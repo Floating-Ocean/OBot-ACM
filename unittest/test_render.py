@@ -4,6 +4,7 @@ import unittest
 
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg
+from src.module.how_to_cook import __how_to_cook_version__
 from src.module.color_rand import load_colors, _colors, transform_color, add_qrcode
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
@@ -54,7 +55,7 @@ class Render(unittest.TestCase):
         _lib_path = os.path.join(Constants.config["lib_path"], "How-To-Cook")
         dish_path = os.path.join(_lib_path, "lib", "dishes", "vegetable_dish", "西红柿豆腐汤羹", "西红柿豆腐汤羹.md")
         self.assertTrue(os.path.exists(dish_path))
-        render_how_to_cook(dish_path, "西红柿豆腐汤羹.png")
+        render_how_to_cook(__how_to_cook_version__, dish_path, "西红柿豆腐汤羹.png")
 
 if __name__ == '__main__':
     unittest.main()

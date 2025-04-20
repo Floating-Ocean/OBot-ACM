@@ -4,7 +4,6 @@ from datetime import datetime
 from easy_pixie import pick_gradient_color, GradientColor, darken_color, hex_to_color, color_to_hex
 
 from src.core.constants import Constants
-from src.module.how_to_cook import __how_to_cook_version__
 from src.render.html.markdown import render_md_html
 
 _lib_path = os.path.join(Constants.config["lib_path"], "How-To-Cook")
@@ -20,7 +19,7 @@ def _format_gradient_color(gradient: GradientColor) -> str:
         raise RuntimeError(f"Unsupported gradient color: {gradient.color_list}")
 
 
-def render_how_to_cook(dish_path: str, output_path: str):
+def render_how_to_cook(how_to_cook_version: str, dish_path: str, output_path: str):
     gradient_color = pick_gradient_color()
     accent_dark_color = darken_color(hex_to_color(gradient_color.color_list[0]), 0.3)
     extra_body = f"""
@@ -31,7 +30,7 @@ def render_how_to_cook(dish_path: str, output_path: str):
         <div class="copyright-container">
             <div class="tool-container">
                 <p class="tool-name">How to Cook</p>
-                <p class="tool-version">{__how_to_cook_version__}</p>
+                <p class="tool-version">{how_to_cook_version}</p>
             </div>
             <p class="generation-info">Generated at {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}.<br>
                                        Initiated by OBot\'s ACM {Constants.core_version}.<br>

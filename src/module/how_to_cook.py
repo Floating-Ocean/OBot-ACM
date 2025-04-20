@@ -42,6 +42,6 @@ def reply_how_to_cook(message: RobotMessage):
 
     chosen_dish_name = random.choice(list(_dishes.keys()))
     cached_prefix = get_cached_prefix('How-To-Cook')
-    render_how_to_cook(_dishes[chosen_dish_name], f"{cached_prefix}.png")
+    render_how_to_cook(__how_to_cook_version__, _dishes[chosen_dish_name], f"{cached_prefix}.png")
 
     message.reply(f"可以学着做一下【{chosen_dish_name}】", png2jpg(f"{cached_prefix}.png"))
