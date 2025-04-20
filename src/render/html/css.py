@@ -20,7 +20,7 @@ def get_basic_css():
     """
 
 
-def load_css(css_path: str) -> str:
+def load_css(css_path: str, **kwargs) -> str:
     css_dir = os.path.dirname(css_path)
     css_dir_path = Path(css_dir).resolve()
 
@@ -41,5 +41,13 @@ def load_css(css_path: str) -> str:
 
     with open(css_path, "r", encoding="utf-8") as f:
         css_content = f.read()
+
+    # 匹配所有 {{xxx}} 格式的占位符
+    placeholders = re.findall(r'\$\{(\w+)}', css_content)
+    for placeholder in placeholders:
+        if placeholder in kwargs:
+            css_content = css_content.replace(f'${{{placeholder}}}', kwargs[placeholder])
+        else:
+            raise RuntimeError(f'Value for {placeholder} not found.')
 
     return pattern.sub(_replace_css_url, css_content)

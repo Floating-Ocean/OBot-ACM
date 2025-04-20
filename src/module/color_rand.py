@@ -5,7 +5,7 @@ from colorsys import rgb_to_hsv
 
 import pixie
 from PIL import Image
-from easy_pixie import choose_text_color, color_to_tuple, change_alpha
+from easy_pixie import choose_text_color, color_to_tuple, change_alpha, hex_to_color
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
@@ -49,7 +49,7 @@ def add_qrcode(target_path: str, color: dict):
     hex_clean = color["hex"][1:].lower()
     qr.add_data(f"https://gradients.app/zh/color/{hex_clean}")
 
-    font_color = choose_text_color(pixie.parse_color(color["hex"]))
+    font_color = choose_text_color(hex_to_color(color["hex"]))
     font_transparent_color = change_alpha(font_color, 0)
     qrcode_img = qr.make_image(image_factory=StyledPilImage,
                                module_drawer=RoundedModuleDrawer(), eye_drawer=RoundedModuleDrawer(),

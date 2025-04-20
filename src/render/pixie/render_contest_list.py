@@ -5,7 +5,7 @@ from datetime import datetime
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
     pick_gradient_color, draw_gradient_rect, GradientDirection, draw_mask_rect, darken_color, tuple_to_color, \
-    change_alpha
+    change_alpha, hex_to_color
 
 from src.core.constants import Constants
 from src.core.util.tools import format_timestamp, format_timestamp_diff, format_seconds
@@ -76,7 +76,7 @@ class _ContestItem(RenderableSection):
 class _TitleSection(RenderableSection):
 
     def __init__(self, accent_color: str):
-        self.accent_dark_color = darken_color(pixie.parse_color(accent_color), 0.3)
+        self.accent_dark_color = darken_color(hex_to_color(accent_color), 0.3)
         self.accent_dark_color_tran = change_alpha(self.accent_dark_color, 136)
         self.logo_path = Renderer.load_img_resource("Contest", self.accent_dark_color)
         self.title_text = StyledString("近日算法竞赛", 'H', 96, padding_bottom=4,

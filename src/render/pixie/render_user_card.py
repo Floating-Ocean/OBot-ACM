@@ -1,6 +1,6 @@
 import pixie
 from easy_pixie import draw_gradient_rect, GradientColor, Loc, GradientDirection, draw_mask_rect, darken_color, \
-    draw_img, StyledString, draw_text, tuple_to_color
+    draw_img, StyledString, draw_text, tuple_to_color, hex_to_color
 
 from src.platform.model import CompetitivePlatform
 from src.render.pixie.model import Renderer
@@ -27,7 +27,7 @@ class UserCardRenderer(Renderer):
                            GradientDirection.DIAGONAL_LEFT_TO_RIGHT, 96)
         draw_mask_rect(img, Loc(32, 32, 1600, 976), (255, 255, 255, 152), 96)
 
-        text_color = darken_color(pixie.parse_color(rk_color), 0.2)
+        text_color = darken_color(hex_to_color(rk_color), 0.2)
         pf_raw_text = f"{self._platform.platform_name} ID"
         platform_img = self.load_img_resource(self._platform.platform_name, text_color)
         draw_img(img, platform_img, Loc(144 + 32, 120 + 6 + 32, 48, 48))
