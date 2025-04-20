@@ -9,6 +9,8 @@ from src.module.message import RobotMessage
 from src.render.html.render_how_to_cook import render_how_to_cook
 
 _lib_path = os.path.join(Constants.config["lib_path"], "How-To-Cook")
+__how_to_cook_version__ = "v1.4.0"
+
 _dishes_path = os.path.join(_lib_path, "lib", "dishes")
 
 _dishes: dict[str, str] = {}
@@ -33,8 +35,13 @@ def reply_how_to_cook(message: RobotMessage):
     message.reply("正在翻菜谱，请稍等")
 
     _load_dishes()
+
+    if not _dishes:
+        message.reply("抱歉，菜谱库为空，请踢一踢管理员")
+        return
+
     chosen_dish_name = random.choice(list(_dishes.keys()))
     cached_prefix = get_cached_prefix('How-To-Cook')
     render_how_to_cook(_dishes[chosen_dish_name], f"{cached_prefix}.png")
 
-    message.reply(f"可以学着做一下【{chosen_dish_name}】哦", png2jpg(f"{cached_prefix}.png"))
+    message.reply(f"可以学着做一下【{chosen_dish_name}】", png2jpg(f"{cached_prefix}.png"))

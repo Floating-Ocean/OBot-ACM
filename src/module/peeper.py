@@ -14,6 +14,7 @@ from src.module.atc import __atc_version__
 from src.module.cf import __cf_version__
 from src.module.color_rand import __color_rand_version__
 from src.module.contest_manual import __contest_list_renderer_version__
+from src.module.how_to_cook import __how_to_cook_version__
 from src.module.message import RobotMessage
 from src.module.nk import __nk_version__
 from src.module.pick_one import __pick_one_version__
@@ -195,6 +196,7 @@ def send_version_info(message: RobotMessage):
                       f"Codeforces {__cf_version__}\n"
                       f"Color-Rand {__color_rand_version__}\n"
                       f"Contest-List-Renderer {__contest_list_renderer_version__}\n"
+                      f"How-To-Cook {__how_to_cook_version__}\n"
                       f"NowCoder {__nk_version__}\n"
                       f"{result}\n"
                       f"Pick-One {__pick_one_version__}\n"
@@ -212,5 +214,7 @@ def oj_user(message: RobotMessage):
         return message.reply("参数错误，id必须为整数")
     if content[1] == "id" or content[1] == "name":
         send_user_info(message, content[2], by_name=(content[1] == "name"))
+        return None
     else:
         message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
+        return None
