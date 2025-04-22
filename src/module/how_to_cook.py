@@ -2,6 +2,7 @@ import os
 import random
 
 from src.core.bot.command import command
+from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
@@ -40,8 +41,9 @@ def reply_how_to_cook(message: RobotMessage):
         message.reply("抱歉，菜谱库为空，请踢一踢管理员")
         return
 
-    chosen_dish_name = random.choice(list(_dishes.keys()))
-    cached_prefix = get_cached_prefix('How-To-Cook')
-    render_how_to_cook(__how_to_cook_version__, _dishes[chosen_dish_name], f"{cached_prefix}.png")
+    def reply_ok(query_tag: str, query_more_tip: str, picked: str):
+        cached_prefix = get_cached_prefix('How-To-Cook')
+        render_how_to_cook(__how_to_cook_version__, _dishes[picked], f"{cached_prefix}.png")
+        message.reply(f"帮你找到了{query_tag}一个菜谱【{picked}】{query_more_tip}", png2jpg(f"{cached_prefix}.png"))
 
-    message.reply(f"可以学着做一下【{chosen_dish_name}】", png2jpg(f"{cached_prefix}.png"))
+    reply_fuzzy_matching(message, list(_dishes.keys()), "菜谱", 1, reply_ok)

@@ -113,7 +113,7 @@ def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name
                 # 传递 dict 时会返回 tuple(value, ratio, key)
                 picked_tuple = [(result[2], result[1]) for result in match_results if result[1] >= 20]  # 相似度至少 20%
             else:
-                picked_tuple = [(result[1], result[0]) for result in match_results if result[0] >= 20]
+                picked_tuple = [(result[0], result[1]) for result in match_results if result[1] >= 20]
             if len(picked_tuple) == 0:
                 message.reply(f"这里还没有满足条件的 {target_name}")
                 return
