@@ -2,10 +2,10 @@ import re
 import traceback
 
 from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import get_simple_qrcode, png2jpg
-from src.module.message import RobotMessage
 from src.platform.online.atcoder import AtCoder
 
 __atc_version__ = "v1.3.1"

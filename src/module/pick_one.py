@@ -1,18 +1,18 @@
 import json
 import os
 import random
-import secrets
 
 import easyocr
 from thefuzz import process
 
 from src.core.bot.command import command, PermissionLevel
+from src.core.bot.message import RobotMessage
+from src.core.bot.interact import reply_fuzzy_matching
 from src.core.constants import Constants
-from src.core.util.tools import save_img, rand_str_len32, get_md5, read_image_with_opencv, check_is_int
-from src.module.message import RobotMessage
+from src.core.util.tools import save_img, rand_str_len32, get_md5, read_image_with_opencv
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Pick-One")
-__pick_one_version__ = "v3.0.3"
+__pick_one_version__ = "v3.1.0"
 
 _lib_config, _match_dict, _ids = {}, {}, []
 
@@ -82,7 +82,7 @@ def parse_img(message: RobotMessage, img_key: str):
         Constants.log.error(f"Save parser.json failed: {e}")
 
 
-def pick_specified_img(img_key: str, query: str) -> list[tuple[str, int]]:
+def get_img_parser(img_key: str) -> dict:
     dir_path = _get_img_dir_path(img_key)
     paser_path = os.path.join(dir_path, "parser.json")
     parsed = None
@@ -92,13 +92,11 @@ def pick_specified_img(img_key: str, query: str) -> list[tuple[str, int]]:
                 parsed = json.load(f)
             except json.JSONDecodeError as e:
                 Constants.log.warn(f"parser.json invalid: {e}")
-                return []
+                return {}
     if not parsed or len(parsed) == 0:
         Constants.log.warn("parser.json invalid")
-        return []
-    # 传递 dict 时会返回 tuple(value, ratio, key)，返回 (key, 可信度)
-    match_results = process.extract(query, parsed, limit=5)
-    return [(result[2], result[1]) for result in match_results if result[1] >= 20]  # 相似度至少 20%
+        return {}
+    return parsed
 
 
 _what_dict = {
@@ -130,56 +128,16 @@ def pick_one(message: RobotMessage):
             return
         current_key = _match_dict[matches[0]]
 
-    parse_img(message, current_key)
-
     current_config = _lib_config[current_key]
     dir_path = _get_img_dir_path(current_key)
-    img_list = [img for img in os.listdir(dir_path) if img.endswith(".gif")]
-    img_len = len(img_list)
 
-    if img_len == 0:
-        message.reply(f"这里还没有 {current_config['_id']} 的图片")
-    else:
-        query_tag, query_more_tip = "", ""
+    parse_img(message, current_key)
+    img_parser = get_img_parser(current_key)
 
-        if len(message.tokens) > query_idx:
-            picked_tuple = pick_specified_img(current_key, message.tokens[query_idx])
-            if len(picked_tuple) == 0:
-                message.reply(f"这里还没有满足条件的 {current_config['_id']} 的图片")
-                return
-
-            pick_idx = 1
-            if len(message.tokens) > query_idx + 1:
-                if (not check_is_int(message.tokens[query_idx + 1]) or
-                        int(message.tokens[query_idx + 1]) > len(picked_tuple)):
-                    message.reply(f"这里还没有满足条件且编号对应的 {current_config['_id']} 的图片")
-                    return
-                pick_idx = int(message.tokens[query_idx + 1])
-                if pick_idx == 0:
-                    message.reply("从 1 开始编号呢，不是从 0 开始")
-                    return
-
-            picked, ratio = picked_tuple[pick_idx - 1]
-            query_more_tip = f"\n标签匹配度 {ratio}%"
-            if len(message.tokens) > query_idx + 1:
-                query_more_tip += f"，在 {len(picked_tuple)} 张类似的图片中排名第 {pick_idx} "
-            else:
-                query_more_tip += f"，共有 {len(picked_tuple)} 张类似的图片"
-                if len(picked_tuple) > 1:
-                    query_more_tip += "，可以在指令后追加编号参数查询更多"
-
-            if ratio >= 95:  # 简单的评价反馈
-                query_tag = "完美满足条件的"
-            elif ratio >= 60:
-                query_tag = "满足条件的"
-            elif ratio >= 35:
-                query_tag = "比较满足条件的"
-            else:
-                query_tag = "可能不太满足条件的"
-        else:
-            rnd_idx = secrets.randbelow(img_len)  # 加强随机性
-            picked = img_list[rnd_idx]
+    def reply_ok(query_tag: str, query_more_tip: str, picked: str):
         message.reply(f"来了一只{query_tag}{current_config['_id']}{query_more_tip}", img_path=os.path.join(dir_path, picked))
+
+    reply_fuzzy_matching(message, img_parser, f"{current_config['_id']} 的图片", query_idx, reply_ok)
 
 
 @command(tokens=["添加来只*", "添加*"])

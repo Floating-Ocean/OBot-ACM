@@ -1,16 +1,18 @@
 import random
 import re
+import secrets
 import traceback
+from typing import Callable
 
 from pypinyin import pinyin, Style
 from thefuzz import process
 
 from src.core.bot.command import command, __commands__
+from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
 from src.core.util.output_cached import get_cached_prefix
-from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range
-from src.module.message import RobotMessage, MessageType
+from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, check_is_int
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
@@ -89,13 +91,78 @@ def call_handle_message(message: RobotMessage):
         return None
 
 
+def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name: str, query_idx: int,
+                         reply_ok: Callable[[str, str, str], None]):
+    """
+    模糊匹配，支持下标查询
+
+    :param message: 消息
+    :param target: 匹配列表
+    :param target_name: 列表名称
+    :param query_idx: 待匹配文本在消息中的下标
+    :param reply_ok: 匹配成功时调用，参数列表：[匹配程度文本, 提示文本, 选取的对象]，无返回值
+    """
+    if len(target) == 0:
+        message.reply(f"这里还没有 {target_name}")
+    else:
+        query_tag, query_more_tip = "", ""
+
+        if len(message.tokens) > query_idx:
+            match_results = process.extract(message.tokens[query_idx], target, limit=5)
+            if isinstance(target, dict):
+                # 传递 dict 时会返回 tuple(value, ratio, key)
+                picked_tuple = [(result[2], result[1]) for result in match_results if result[1] >= 20]  # 相似度至少 20%
+            else:
+                picked_tuple = [(result[1], result[0]) for result in match_results if result[0] >= 20]
+            if len(picked_tuple) == 0:
+                message.reply(f"这里还没有满足条件的 {target_name}")
+                return
+
+            pick_idx = 1
+            if len(message.tokens) > query_idx + 1:
+                if (not check_is_int(message.tokens[query_idx + 1]) or
+                        int(message.tokens[query_idx + 1]) > len(picked_tuple)):
+                    message.reply(f"这里还没有满足条件且编号对应的 {target_name}")
+                    return
+                pick_idx = int(message.tokens[query_idx + 1])
+                if pick_idx == 0:
+                    message.reply("从 1 开始编号呢，不是从 0 开始")
+                    return
+
+            picked, ratio = picked_tuple[pick_idx - 1]
+            query_more_tip = f"\n标签匹配度 {ratio}%"
+            if len(message.tokens) > query_idx + 1:
+                query_more_tip += f"，在 {len(picked_tuple)} 个候选中排名第 {pick_idx} "
+            else:
+                query_more_tip += f"，共有 {len(picked_tuple)} 个候选"
+                if len(picked_tuple) > 1:
+                    query_more_tip += "，可以在指令后追加编号参数查询更多"
+
+            if ratio >= 95:  # 简单的评价反馈
+                query_tag = "完美满足条件的"
+            elif ratio >= 60:
+                query_tag = "满足条件的"
+            elif ratio >= 35:
+                query_tag = "比较满足条件的"
+            else:
+                query_tag = "可能不太满足条件的"
+        else:
+            rnd_idx = secrets.randbelow(len(target))  # 加强随机性
+            if isinstance(target, dict):
+                picked = list(target.keys())[rnd_idx]
+            else:
+                picked = target[rnd_idx]
+
+        reply_ok(query_tag, query_more_tip, picked)
+
+
 @command(tokens=list(_fixed_reply.keys()))
 def reply_fixed(message: RobotMessage):
     message.reply(_fixed_reply.get(message.tokens[0][1:], ""), modal_words=False)
 
 
 @command(tokens=['contest', 'contests', '比赛', '近日比赛', '最近的比赛', '今天比赛', '今天的比赛', '今日比赛', '今日的比赛'])
-def recent_contests(message: RobotMessage):
+def reply_recent_contests(message: RobotMessage):
     query_today = message.tokens[0] in ['/今天比赛', '/今天的比赛', '/今日比赛', '/今日的比赛']
     if len(message.tokens) >= 3 and message.tokens[1] == 'today':
         query_today = True

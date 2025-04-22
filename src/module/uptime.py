@@ -1,7 +1,7 @@
 from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.tools import fetch_url_json
-from src.module.message import RobotMessage
 
 _api_key = Constants.config["uptime_apikey"]
 

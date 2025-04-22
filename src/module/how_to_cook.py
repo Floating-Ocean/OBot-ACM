@@ -2,10 +2,10 @@ import os
 import random
 
 from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg
-from src.module.message import RobotMessage
 from src.render.html.render_how_to_cook import render_how_to_cook
 
 _lib_path = os.path.join(Constants.config["lib_path"], "How-To-Cook")
@@ -22,11 +22,11 @@ def register_module():
 
 def _load_dishes():
     _dishes.clear()
-    for root, dirs, files in os.walk(_dishes_path):
+    for root, _, files in os.walk(_dishes_path):
         for file in files:
             if file.endswith(".md"):
                 full_path = os.path.join(root, file)
-                dish_name = file.rstrip('.md')
+                dish_name = os.path.splitext(file)[0]
                 _dishes[dish_name] = full_path
 
 

@@ -33,7 +33,7 @@ def render_how_to_cook(how_to_cook_version: str, dish_path: str, output_path: st
                 <p class="tool-version">{how_to_cook_version}</p>
             </div>
             <p class="generation-info">Generated at {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}.<br>
-                                       Initiated by OBot\'s ACM {Constants.core_version}.<br>
+                                       Initiated by OBot's ACM {Constants.core_version}.<br>
                                        {gradient_color.name}.</p>
         </div>
         """

@@ -3,10 +3,10 @@ import os
 from datetime import datetime
 
 from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.bot.perm import PermissionLevel
 from src.core.util.tools import is_valid_date, check_is_int
-from src.module.message import RobotMessage
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")
 __contest_list_renderer_version__ = "v1.0.0"

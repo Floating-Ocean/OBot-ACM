@@ -3,7 +3,6 @@ import os
 import random
 from colorsys import rgb_to_hsv
 
-import pixie
 from PIL import Image
 from easy_pixie import choose_text_color, color_to_tuple, change_alpha, hex_to_color
 from qrcode.image.styledpil import StyledPilImage
@@ -11,11 +10,11 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from qrcode.main import QRCode
 
+from src.core.bot.message import RobotMessage
 from src.core.bot.command import command
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg
-from src.module.message import RobotMessage
 from src.render.pixie.render_color_card import ColorCardRenderer
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Color-Rand")
