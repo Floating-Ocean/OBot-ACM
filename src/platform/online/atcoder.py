@@ -4,12 +4,12 @@ from datetime import datetime
 import pixie
 from lxml.etree import Element
 
-from src.core.tools import fetch_url_element, fetch_url_json, format_int_delta, patch_https_url, decode_range, \
+from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, patch_https_url, decode_range, \
     check_intersect, get_today_timestamp_range
-from src.platform.online.codeforces import Codeforces
 from src.platform.collect.clist import Clist
 from src.platform.model import CompetitivePlatform, Contest
-from src.render.render_user_card import UserCardRenderer
+from src.platform.online.codeforces import Codeforces
+from src.render.pixie.render_user_card import UserCardRenderer
 
 
 class AtCoder(CompetitivePlatform):
@@ -57,7 +57,8 @@ class AtCoder(CompetitivePlatform):
         return f"为 {rating_str} 计分"
 
     @classmethod
-    def _format_social_info(cls, info: dict, i18n: tuple[str, str, str] = ("国家/地区", "出生年份", "来自")) -> list[str]:
+    def _format_social_info(cls, info: dict, i18n: tuple[str, str, str] = ("国家/地区", "出生年份", "来自")) -> list[
+        str]:
         social_info = []
         tag_trans = {
             "Country/Region": i18n[0],

@@ -11,9 +11,9 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from botpy import Client, Intents
 from botpy.message import Message, GroupMessage, C2CMessage
 
-from src.core.command import command, PermissionLevel
+from src.core.bot.command import command, PermissionLevel
 from src.core.constants import Constants
-from src.core.interact import RobotMessage, call_handle_message
+from src.core.bot.interact import RobotMessage, call_handle_message
 from src.module.peeper import daily_update_job, noon_report_job
 
 _query_queue = queue.Queue()

@@ -3,21 +3,19 @@ import os
 import random
 from colorsys import rgb_to_hsv
 
-import pixie
-import qrcode
 from PIL import Image
-from easy_pixie import choose_text_color, color_to_tuple, change_alpha
+from easy_pixie import choose_text_color, color_to_tuple, change_alpha, hex_to_color
 from qrcode.image.styledpil import StyledPilImage
 from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from qrcode.main import QRCode
 
-from src.core.command import command
+from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.output_cached import get_cached_prefix
-from src.core.tools import png2jpg
-from src.module.message import RobotMessage
-from src.render.render_color_card import ColorCardRenderer
+from src.core.util.output_cached import get_cached_prefix
+from src.core.util.tools import png2jpg
+from src.render.pixie.render_color_card import ColorCardRenderer
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Color-Rand")
 __color_rand_version__ = "v1.1.1"
@@ -44,12 +42,13 @@ def transform_color(color: dict) -> tuple[str, str, str]:
 
 
 def add_qrcode(target_path: str, color: dict):
-    qr = QRCode(error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=8)
+    qr = QRCode(error_correction=1,  # ERROR_CORRECT_L
+                box_size=8)
 
     hex_clean = color["hex"][1:].lower()
     qr.add_data(f"https://gradients.app/zh/color/{hex_clean}")
 
-    font_color = choose_text_color(pixie.parse_color(color["hex"]))
+    font_color = choose_text_color(hex_to_color(color["hex"]))
     font_transparent_color = change_alpha(font_color, 0)
     qrcode_img = qr.make_image(image_factory=StyledPilImage,
                                module_drawer=RoundedModuleDrawer(), eye_drawer=RoundedModuleDrawer(),
@@ -78,4 +77,4 @@ def reply_color_rand(message: RobotMessage):
     pinyin = picked_color["pinyin"]
 
     message.reply(f"[Color] {name} {pinyin}\nHEX: {hex_text}\nRGB: {rgb_text}\nHSV: {hsv_text}",
-                        img_path=png2jpg(img_path), modal_words=False)
+                  img_path=png2jpg(img_path), modal_words=False)

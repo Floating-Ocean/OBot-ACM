@@ -1,11 +1,11 @@
 import re
 import traceback
 
-from src.core.command import command
+from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.output_cached import get_cached_prefix
-from src.core.tools import get_simple_qrcode, png2jpg
-from src.module.message import RobotMessage
+from src.core.util.output_cached import get_cached_prefix
+from src.core.util.tools import get_simple_qrcode, png2jpg
 from src.platform.online.atcoder import AtCoder
 
 __atc_version__ = "v1.3.1"
@@ -123,10 +123,10 @@ def reply_atc_request(message: RobotMessage):
                 if func == "atc":
                     func_prefix = "/rand atc"
                 message.reply("请输入正确的指令格式，题目标签不要带有空格，如:\n\n"
-                                    f"{func_prefix} common\n"
-                                    f"{func_prefix} abc\n"
-                                    f"{func_prefix} sp 1200-1600\n"
-                                    f"{func_prefix} all 1800", modal_words=False)
+                              f"{func_prefix} common\n"
+                              f"{func_prefix} abc\n"
+                              f"{func_prefix} sp 1200-1600\n"
+                              f"{func_prefix} all 1800", modal_words=False)
 
         elif func == "contest" or func == "contests":
             send_contest(message)

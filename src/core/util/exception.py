@@ -4,12 +4,14 @@ from botpy.errors import ServerError
 
 class UnauthorizedError(PermissionError):
     """ Not enough permissions. """
+
     def __init__(self, *args):
         super().__init__(*args)
 
 
 class ModuleRuntimeError(OSError):
     """ Module runtime errors. """
+
     def __init__(self, *args):
         super().__init__(*args)
 
@@ -36,4 +38,3 @@ def handle_exception(e: Exception):
                 error_reply += "\n\n" + repr(e)
 
     return error_reply
-

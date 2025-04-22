@@ -1,11 +1,11 @@
 import re
 import traceback
 
-from src.core.command import command
+from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.output_cached import get_cached_prefix
-from src.core.tools import check_is_int, png2jpg
-from src.module.message import RobotMessage
+from src.core.util.output_cached import get_cached_prefix
+from src.core.util.tools import check_is_int, png2jpg
 
 __nk_version__ = "v1.2.1"
 

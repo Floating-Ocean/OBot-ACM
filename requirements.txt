@@ -14,3 +14,5 @@ easyocr==1.7.2
 nest-asyncio==1.6.0
 thefuzz==0.22.1
 easy-pixie==0.0.6
+markdown2==2.5.3
+imgkit==1.2.3

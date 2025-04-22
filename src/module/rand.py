@@ -2,13 +2,13 @@ import random
 import re
 import traceback
 
-from src.core.command import command
+from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.tools import check_is_int, fetch_url_json, fetch_url_text
+from src.core.util.tools import check_is_int, fetch_url_json, fetch_url_text
 from src.module.atc import reply_atc_request
 from src.module.cf import reply_cf_request
 from src.module.color_rand import reply_color_rand
-from src.module.message import RobotMessage
 
 __rand_version__ = "v2.1.2"
 

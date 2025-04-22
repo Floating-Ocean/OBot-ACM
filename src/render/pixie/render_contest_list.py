@@ -5,13 +5,12 @@ from datetime import datetime
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
     pick_gradient_color, draw_gradient_rect, GradientDirection, draw_mask_rect, darken_color, tuple_to_color, \
-    change_alpha
+    change_alpha, hex_to_color
 
 from src.core.constants import Constants
-from src.core.tools import format_timestamp, format_timestamp_diff, format_seconds
+from src.core.util.tools import format_timestamp, format_timestamp_diff, format_seconds
 from src.platform.model import Contest
-from src.render.model import Renderer, RenderableSection
-
+from src.render.pixie.model import Renderer, RenderableSection
 
 _CONTENT_WIDTH = 1024
 _TOP_PADDING = 168
@@ -33,7 +32,7 @@ class _ContestItem(RenderableSection):
         else:
             _status = format_timestamp_diff(int(time.time()) - self._contest.start_time)
 
-        self._00_idx_text = StyledString("00",'H', 72)
+        self._00_idx_text = StyledString("00", 'H', 72)
         self._begin_x = _SIDE_PADDING + calculate_width(self._00_idx_text) + 48
         max_width = _CONTENT_WIDTH + 32 - self._begin_x - 48 - _SIDE_PADDING
 
@@ -76,7 +75,7 @@ class _ContestItem(RenderableSection):
 class _TitleSection(RenderableSection):
 
     def __init__(self, accent_color: str):
-        self.accent_dark_color = darken_color(pixie.parse_color(accent_color), 0.3)
+        self.accent_dark_color = darken_color(hex_to_color(accent_color), 0.3)
         self.accent_dark_color_tran = change_alpha(self.accent_dark_color, 136)
         self.logo_path = Renderer.load_img_resource("Contest", self.accent_dark_color)
         self.title_text = StyledString("近日算法竞赛", 'H', 96, padding_bottom=4,
@@ -171,7 +170,7 @@ class _ContestsSection(RenderableSection):
                 if len(_contests) > 0:
                     height += calculate_height(_type_title_text)
                     column_count = math.ceil(len(_contests) / self.column)
-                    column_split = [_contests[i:i+column_count] for i in range(0, len(_contests), column_count)]
+                    column_split = [_contests[i:i + column_count] for i in range(0, len(_contests), column_count)]
                     height += max(sum(contest.get_height() for contest in column)
                                   for column in column_split) + _TYPE_PADDING
                     height += _CONTEST_PADDING * (column_count - 1)  # 各比赛间的 padding
@@ -200,7 +199,8 @@ class _CopyrightSection(RenderableSection):
         current_x, current_y = x, y
 
         draw_text(img, self.tips_title_text, current_x, current_y)
-        current_y = draw_text(img, self.tips_detail_text, current_x + calculate_width(self.tips_title_text) + 12, current_y + 8)
+        current_y = draw_text(img, self.tips_detail_text, current_x + calculate_width(self.tips_title_text) + 12,
+                              current_y + 8)
         current_y = draw_text(img, self.generator_text, current_x, current_y)
         draw_text(img, self.generation_info_text, current_x, current_y)
 
@@ -213,7 +213,8 @@ class _CopyrightSection(RenderableSection):
 class ContestListRenderer(Renderer):
     """渲染比赛列表"""
 
-    def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest], finished_contests: list[Contest]):
+    def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest],
+                 finished_contests: list[Contest]):
         self._raw_running_contests = running_contests
         self._raw_upcoming_contests = upcoming_contests
         self._raw_finished_contests = finished_contests

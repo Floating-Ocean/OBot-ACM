@@ -1,7 +1,7 @@
 from urllib.parse import quote
 
 from src.core.constants import Constants
-from src.core.tools import fetch_url_json
+from src.core.util.tools import fetch_url_json
 
 
 class Clist:

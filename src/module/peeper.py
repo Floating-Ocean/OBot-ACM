@@ -5,16 +5,17 @@ import os
 from botpy import Client
 from thefuzz import process
 
-from src.core.command import command
+from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.exception import ModuleRuntimeError
-from src.core.output_cached import get_cached_prefix
-from src.core.tools import run_shell, escape_mail_url, png2jpg, check_is_int
+from src.core.util.exception import ModuleRuntimeError
+from src.core.util.output_cached import get_cached_prefix
+from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
 from src.module.atc import __atc_version__
 from src.module.cf import __cf_version__
 from src.module.color_rand import __color_rand_version__
 from src.module.contest_manual import __contest_list_renderer_version__
-from src.module.message import RobotMessage
+from src.module.how_to_cook import __how_to_cook_version__
 from src.module.nk import __nk_version__
 from src.module.pick_one import __pick_one_version__
 from src.module.rand import __rand_version__
@@ -62,7 +63,7 @@ def execute_lib_method(prop: str, message: RobotMessage | None, no_id: bool) -> 
 
     if message is not None:
         message.report_exception('Peeper-Board-Generator', traceback,
-                               ModuleRuntimeError(traceback.split('\n')[-2]))
+                                 ModuleRuntimeError(traceback.split('\n')[-2]))
 
     return None
 
@@ -141,7 +142,7 @@ def send_now_board_with_verdict(message: RobotMessage):
     single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = call_lib_method(message,
-                                f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
+                          f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
     if run is None:
         return
 
@@ -195,6 +196,7 @@ def send_version_info(message: RobotMessage):
                       f"Codeforces {__cf_version__}\n"
                       f"Color-Rand {__color_rand_version__}\n"
                       f"Contest-List-Renderer {__contest_list_renderer_version__}\n"
+                      f"How-To-Cook {__how_to_cook_version__}\n"
                       f"NowCoder {__nk_version__}\n"
                       f"{result}\n"
                       f"Pick-One {__pick_one_version__}\n"
@@ -212,5 +214,7 @@ def oj_user(message: RobotMessage):
         return message.reply("参数错误，id必须为整数")
     if content[1] == "id" or content[1] == "name":
         send_user_info(message, content[2], by_name=(content[1] == "name"))
+        return None
     else:
         message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
+        return None

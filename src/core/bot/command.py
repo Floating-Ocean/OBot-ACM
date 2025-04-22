@@ -1,4 +1,4 @@
-from src.core.perm import PermissionLevel
+from src.core.bot.perm import PermissionLevel
 
 __commands__ = {}
 

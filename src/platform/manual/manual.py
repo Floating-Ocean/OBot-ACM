@@ -8,6 +8,7 @@ from src.platform.model import CompetitivePlatform, Contest, DynamicContest, Dyn
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")
 
+
 class ManualPlatform(CompetitivePlatform):
     """
     本类平台用于手动配置的比赛列表获取
@@ -41,7 +42,6 @@ class ManualPlatform(CompetitivePlatform):
             return [], [], []
 
         return running_contests, upcoming_contests, finished_contests
-
 
     @classmethod
     def get_user_id_card(cls, handle: str) -> pixie.Image | str:
