@@ -4,8 +4,8 @@ from datetime import datetime
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
-from src.core.constants import Constants
 from src.core.bot.perm import PermissionLevel
+from src.core.constants import Constants
 from src.core.util.tools import is_valid_date, check_is_int
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")

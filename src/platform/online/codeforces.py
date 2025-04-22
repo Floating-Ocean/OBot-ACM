@@ -5,9 +5,9 @@ import time
 import pixie
 from thefuzz import process
 
+from src.core.lib.cf_rating_calc import PredictResult, Contestant, predict
 from src.core.util.tools import fetch_url_json, format_timestamp, get_week_start_timestamp, get_today_start_timestamp, \
     format_timestamp_diff, format_seconds, format_int_delta, decode_range, check_intersect, get_today_timestamp_range
-from src.core.lib.cf_rating_calc import PredictResult, Contestant, predict
 from src.platform.model import CompetitivePlatform, Contest
 from src.render.pixie.render_user_card import UserCardRenderer
 
@@ -384,7 +384,7 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def get_prob_filtered(cls, tag_needed: str, limit: str = None, newer: bool = False,
-                                on_tag_chosen=None) -> dict | int:
+                          on_tag_chosen=None) -> dict | int:
         min_point, max_point = 0, 0
         if limit is not None:
             min_point, max_point = decode_range(limit, length=(3, 4))

@@ -9,9 +9,9 @@ from typing import Optional, Union
 from botpy import BotAPI
 from botpy.message import Message, GroupMessage, C2CMessage
 
+from src.core.bot.perm import PermissionLevel
 from src.core.constants import Constants
 from src.core.util.exception import handle_exception
-from src.core.bot.perm import PermissionLevel
 from src.core.util.tools import april_fool_magic
 
 
@@ -23,6 +23,7 @@ class MessageType(Enum):
 
 class RobotMessage:
     """合并多种消息类型的操作"""
+
     def __init__(self, api: BotAPI):
         self.api = api
         self.message_type: Optional[MessageType] = None

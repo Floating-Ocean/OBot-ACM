@@ -130,7 +130,7 @@ def send_contest(message: RobotMessage):
 
 def send_user_contest_standings(message: RobotMessage, handle: str, contest_id: str):
     message.reply(f"正在查询编号为 {contest_id} 的比赛中 {handle} 的榜单信息，请稍等。\n"
-                        f"查询对象为参赛者时将会给出 Rating 变化预估，但可能需要更久的时间")
+                  f"查询对象为参赛者时将会给出 Rating 变化预估，但可能需要更久的时间")
 
     contest_info, standings_info = Codeforces.get_user_contest_standings(handle, contest_id)
 
@@ -198,9 +198,9 @@ def reply_cf_request(message: RobotMessage):
                 if func == "cf":
                     func_prefix = "/rand cf"
                 message.reply("请输入正确的指令格式，题目标签不要带有空格，如:\n\n"
-                                    f"{func_prefix} dp 1700-1900 new\n"
-                                    f"{func_prefix} dfs-and-similar\n"
-                                    f"{func_prefix} all 1800", modal_words=False)
+                              f"{func_prefix} dp 1700-1900 new\n"
+                              f"{func_prefix} dfs-and-similar\n"
+                              f"{func_prefix} all 1800", modal_words=False)
 
         elif func == "contest" or func == "contests":
             send_contest(message)
@@ -208,7 +208,7 @@ def reply_cf_request(message: RobotMessage):
         elif func == "status" or func == "stand" or func == "standing" or func == "standings":
             if len(content) != 4:
                 message.reply("请输入正确的指令格式，如:\n\n"
-                                    f"/cf {func} jiangly 2057", modal_words=False)
+                              f"/cf {func} jiangly 2057", modal_words=False)
             else:
                 send_user_contest_standings(message, content[2], content[3])
 

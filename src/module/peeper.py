@@ -6,8 +6,8 @@ from botpy import Client
 from thefuzz import process
 
 from src.core.bot.command import command
-from src.core.constants import Constants
 from src.core.bot.message import RobotMessage
+from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
@@ -63,7 +63,7 @@ def execute_lib_method(prop: str, message: RobotMessage | None, no_id: bool) -> 
 
     if message is not None:
         message.report_exception('Peeper-Board-Generator', traceback,
-                               ModuleRuntimeError(traceback.split('\n')[-2]))
+                                 ModuleRuntimeError(traceback.split('\n')[-2]))
 
     return None
 
@@ -142,7 +142,7 @@ def send_now_board_with_verdict(message: RobotMessage):
     single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = call_lib_method(message,
-                                f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
+                          f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
     if run is None:
         return
 

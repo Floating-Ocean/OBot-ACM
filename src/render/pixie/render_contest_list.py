@@ -12,7 +12,6 @@ from src.core.util.tools import format_timestamp, format_timestamp_diff, format_
 from src.platform.model import Contest
 from src.render.pixie.model import Renderer, RenderableSection
 
-
 _CONTENT_WIDTH = 1024
 _TOP_PADDING = 168
 _BOTTOM_PADDING = 128
@@ -33,7 +32,7 @@ class _ContestItem(RenderableSection):
         else:
             _status = format_timestamp_diff(int(time.time()) - self._contest.start_time)
 
-        self._00_idx_text = StyledString("00",'H', 72)
+        self._00_idx_text = StyledString("00", 'H', 72)
         self._begin_x = _SIDE_PADDING + calculate_width(self._00_idx_text) + 48
         max_width = _CONTENT_WIDTH + 32 - self._begin_x - 48 - _SIDE_PADDING
 
@@ -171,7 +170,7 @@ class _ContestsSection(RenderableSection):
                 if len(_contests) > 0:
                     height += calculate_height(_type_title_text)
                     column_count = math.ceil(len(_contests) / self.column)
-                    column_split = [_contests[i:i+column_count] for i in range(0, len(_contests), column_count)]
+                    column_split = [_contests[i:i + column_count] for i in range(0, len(_contests), column_count)]
                     height += max(sum(contest.get_height() for contest in column)
                                   for column in column_split) + _TYPE_PADDING
                     height += _CONTEST_PADDING * (column_count - 1)  # 各比赛间的 padding
@@ -200,7 +199,8 @@ class _CopyrightSection(RenderableSection):
         current_x, current_y = x, y
 
         draw_text(img, self.tips_title_text, current_x, current_y)
-        current_y = draw_text(img, self.tips_detail_text, current_x + calculate_width(self.tips_title_text) + 12, current_y + 8)
+        current_y = draw_text(img, self.tips_detail_text, current_x + calculate_width(self.tips_title_text) + 12,
+                              current_y + 8)
         current_y = draw_text(img, self.generator_text, current_x, current_y)
         draw_text(img, self.generation_info_text, current_x, current_y)
 
@@ -213,7 +213,8 @@ class _CopyrightSection(RenderableSection):
 class ContestListRenderer(Renderer):
     """渲染比赛列表"""
 
-    def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest], finished_contests: list[Contest]):
+    def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest],
+                 finished_contests: list[Contest]):
         self._raw_running_contests = running_contests
         self._raw_upcoming_contests = upcoming_contests
         self._raw_finished_contests = finished_contests

@@ -11,6 +11,7 @@ from src.core.constants import Constants
 _lib_path = os.path.join(Constants.config["lib_path"], "Render-Images")
 _img_load_cache: dict[str, tuple[float, pixie.Image]] = {}
 
+
 class Renderer(abc.ABC):
     """图片渲染基类"""
 

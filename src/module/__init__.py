@@ -11,4 +11,5 @@ def register_all_modules():
     from .rand import register_module
     from .uptime import register_module
 
+
 register_all_modules()

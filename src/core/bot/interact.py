@@ -63,7 +63,8 @@ def call_handle_message(message: RobotMessage):
 
                 if need_to_check_exclude and (message.message_type == MessageType.GROUP and
                                               message.message.group_openid in Constants.config['exclude_group_id']):
-                    Constants.log.info(f'{message.message.group_openid} was banned to call {original_command.__name__}.')
+                    Constants.log.info(
+                        f'{message.message.group_openid} was banned to call {original_command.__name__}.')
                     raise UnauthorizedError("榜单功能被禁用")
                 try:
                     if starts_with:
@@ -161,7 +162,8 @@ def reply_fixed(message: RobotMessage):
     message.reply(_fixed_reply.get(message.tokens[0][1:], ""), modal_words=False)
 
 
-@command(tokens=['contest', 'contests', '比赛', '近日比赛', '最近的比赛', '今天比赛', '今天的比赛', '今日比赛', '今日的比赛'])
+@command(tokens=['contest', 'contests', '比赛', '近日比赛', '最近的比赛', '今天比赛', '今天的比赛', '今日比赛',
+                 '今日的比赛'])
 def reply_recent_contests(message: RobotMessage):
     query_today = message.tokens[0] in ['/今天比赛', '/今天的比赛', '/今日比赛', '/今日的比赛']
     if len(message.tokens) >= 3 and message.tokens[1] == 'today':

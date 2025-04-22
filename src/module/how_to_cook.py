@@ -1,5 +1,4 @@
 import os
-import random
 
 from src.core.bot.command import command
 from src.core.bot.interact import reply_fuzzy_matching

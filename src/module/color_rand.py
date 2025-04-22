@@ -10,8 +10,8 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from qrcode.main import QRCode
 
-from src.core.bot.message import RobotMessage
 from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg
@@ -77,4 +77,4 @@ def reply_color_rand(message: RobotMessage):
     pinyin = picked_color["pinyin"]
 
     message.reply(f"[Color] {name} {pinyin}\nHEX: {hex_text}\nRGB: {rgb_text}\nHSV: {hsv_text}",
-                        img_path=png2jpg(img_path), modal_words=False)
+                  img_path=png2jpg(img_path), modal_words=False)

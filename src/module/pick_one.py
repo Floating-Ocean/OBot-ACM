@@ -6,8 +6,8 @@ import easyocr
 from thefuzz import process
 
 from src.core.bot.command import command, PermissionLevel
-from src.core.bot.message import RobotMessage
 from src.core.bot.interact import reply_fuzzy_matching
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.tools import save_img, rand_str_len32, get_md5, read_image_with_opencv
 
@@ -135,7 +135,8 @@ def pick_one(message: RobotMessage):
     img_parser = get_img_parser(current_key)
 
     def reply_ok(query_tag: str, query_more_tip: str, picked: str):
-        message.reply(f"来了一只{query_tag}{current_config['_id']}{query_more_tip}", img_path=os.path.join(dir_path, picked))
+        message.reply(f"来了一只{query_tag}{current_config['_id']}{query_more_tip}",
+                      img_path=os.path.join(dir_path, picked))
 
     reply_fuzzy_matching(message, img_parser, f"{current_config['_id']} 的图片", query_idx, reply_ok)
 
