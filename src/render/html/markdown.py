@@ -5,6 +5,7 @@ import imgkit
 import markdown2
 from PIL import Image
 from lxml import html
+from lxml.etree import Element
 
 from src.render.html.css import get_basic_css, load_css
 
@@ -14,6 +15,7 @@ def _fill_in_html(body: str, css: str, body_extra: str = "") -> str:
     <!DOCTYPE html>
     <html>
     <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
         <meta charset="utf-8">
         <style>
             {get_basic_css()}
@@ -46,6 +48,18 @@ def md_to_html(markdown_path: str, css_path: str, extra_body: str = "", **kwargs
         src = img.get('src')
         if src and not src.startswith(('http://', 'https://', '/')):
             img.set('src', prefix + src)  # 替换相对路径为绝对路径
+
+    for code in tree.xpath('//code'):  # 替换 <code> 为 <span class="code">
+        new_span = Element("span")
+        new_span.set("class", "code")
+        new_span.text = code.text
+        new_span.tail = code.tail
+        for child in code:
+            new_span.append(child)
+
+        # 替换原节点
+        code.getparent().replace(code, new_span)
+
 
     html_body = html.tostring(tree, encoding='unicode')
     html_css = load_css(css_path, **kwargs)
