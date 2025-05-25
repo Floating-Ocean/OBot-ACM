@@ -7,9 +7,10 @@ from src.core.bot.message import RobotMessage
 from src.core.bot.perm import PermissionLevel
 from src.core.constants import Constants
 from src.core.util.tools import is_valid_date, check_is_int
+from src.platform.model import DynamicContest
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")
-__contest_list_renderer_version__ = "v1.0.0"
+__contest_list_renderer_version__ = "v1.0.1"
 
 
 def register_module():
@@ -76,7 +77,8 @@ def reply_manual_add_contest(message: RobotMessage):
         with open(manual_contests_path, 'w', encoding='utf-8') as f:
             json.dump(manual_contests, f, ensure_ascii=False, indent=4)
 
-        message.reply("导入比赛成功")
+        message.reply("导入比赛成功，比赛解析为\n\n" +
+                      DynamicContest(**contest).format(), modal_words=False)
 
     except Exception as e:
         message.reply("出现错误，导入比赛失败")
