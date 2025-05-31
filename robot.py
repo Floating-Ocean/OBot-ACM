@@ -12,8 +12,9 @@ from botpy import Client, Intents
 from botpy.message import Message, GroupMessage, C2CMessage
 
 from src.core.bot.command import command, PermissionLevel
+from src.core.bot.transit import MessageID, handle_message, get_message_id
 from src.core.constants import Constants
-from src.core.bot.interact import RobotMessage, call_handle_message
+from src.core.bot.interact import RobotMessage
 from src.module.peeper import daily_update_job, noon_report_job
 
 _query_queue = queue.Queue()
@@ -51,7 +52,8 @@ def clear_message_queue():
         _terminate_signal = True
     while not _query_queue.empty():
         try:
-            message: RobotMessage = _query_queue.get_nowait()
+            queued_message: tuple[RobotMessage, MessageID] = _query_queue.get_nowait()
+            message, message_id = queued_message
         except queue.Empty:
             break
         message.reply("O宝被爆了！等待一段时间后再试试")
@@ -59,13 +61,17 @@ def clear_message_queue():
 
 def queue_up_handler():
     global _terminate_signal
+
     while True:
         with _terminate_lock:
             is_terminate = _terminate_signal
         if is_terminate:
             break
-        message: RobotMessage = _query_queue.get()
-        call_handle_message(message)
+
+        queued_message: tuple[RobotMessage, MessageID] = _query_queue.get()
+        message, message_id = queued_message
+
+        handle_message(message, message_id)
         _count_queue.get()
 
 
@@ -74,7 +80,7 @@ def join_in_message(message: RobotMessage):
     size = _count_queue.qsize()
     if size > 1:
         message.reply(f"已加入处理队列，前方还有 {size - 1} 个请求")
-    _query_queue.put(message)
+    _query_queue.put((message, get_message_id(message)))
 
 
 class MyClient(Client):

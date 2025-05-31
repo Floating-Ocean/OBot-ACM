@@ -1,16 +1,14 @@
 import random
 import re
 import secrets
-import traceback
 from typing import Callable
 
 from pypinyin import pinyin, Style
 from thefuzz import process
 
-from src.core.bot.command import command, __commands__
-from src.core.bot.message import RobotMessage, MessageType
+from src.core.bot.command import command
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.util.exception import UnauthorizedError
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, check_is_int
 from src.platform.manual.manual import ManualPlatform
@@ -29,67 +27,28 @@ _fixed_reply = {
 }
 
 
-def match_key_words(content: str) -> str:
+def no_reply():
+    """
+    无回复
+    """
+    pass
+
+
+def reply_key_words(message: RobotMessage, content: str):
+    """
+    回复关键词匹配，精确到拼音
+    """
     random.shuffle(Constants.key_words)  # 多个关键词时的处理
+    reply = random.choice(["你干嘛", "干什么", "咋了", "how", "what"])
+
     for asks, answers in Constants.key_words:
         for ask in asks:
             ask_pinyin = ''.join(word[0] for word in pinyin(ask, Style.NORMAL))
             ctx_pinyin = ''.join(word[0] for word in pinyin(content.lower(), Style.NORMAL))
             if ask_pinyin in ctx_pinyin:
-                return random.choice(answers)
-    return random.choice(["你干嘛", "干什么", "咋了", "how", "what"])
+                reply = random.choice(answers)
 
-
-def call_handle_message(message: RobotMessage):
-    """分发消息处理"""
-    try:
-        content = message.tokens
-
-        if len(content) == 0 and not message.is_guild_public():
-            return message.reply(f"{match_key_words('')}")
-
-        func = content[0].lower()
-        for cmd in __commands__:
-            starts_with = cmd[-1] == '*' and func.startswith(cmd[:-1])
-            if starts_with or cmd == func:
-                original_command, execute_level, is_command, need_to_check_exclude = __commands__[cmd]
-
-                if not is_command and message.is_guild_public():
-                    continue
-
-                if message.user_permission_level < execute_level:
-                    Constants.log.info(f'{message.author_id} attempted to call {original_command.__name__} but failed.')
-                    raise UnauthorizedError("权限不足，操作被拒绝" if func != "/去死" else "阿米诺斯")
-
-                if need_to_check_exclude and (message.message_type == MessageType.GROUP and
-                                              message.message.group_openid in Constants.config['exclude_group_id']):
-                    Constants.log.info(
-                        f'{message.message.group_openid} was banned to call {original_command.__name__}.')
-                    raise UnauthorizedError("榜单功能被禁用")
-                try:
-                    if starts_with:
-                        name = cmd[:-1]
-                        replaced = func.replace(name, '')
-                        message.tokens = [name] + ([replaced] if replaced else []) + message.tokens[1:]
-                    original_command(message)
-                except Exception as e:
-                    message.report_exception(f'Command<{original_command.__name__}>', traceback.format_exc(), e)
-                return None
-
-        # 如果是频道无at消息可能是发错了或者并非用户希望的处理对象
-        if message.is_guild_public():
-            return None
-
-        if '/' in func:
-            message.reply("其他指令还在开发中")
-            return None
-        else:
-            message.reply(f"{match_key_words(func)}")
-            return None
-
-    except Exception as e:
-        message.report_exception('Core', traceback.format_exc(), e)
-        return None
+    message.reply(reply)
 
 
 def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name: str, query_idx: int,
