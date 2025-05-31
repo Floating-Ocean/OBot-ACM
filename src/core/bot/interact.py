@@ -201,20 +201,17 @@ def reply_qrcode(message: RobotMessage):
 
 @command(tokens=["晚安", "睡觉", "睡觉去了", "sleep"], is_command=False)
 def reply_mc_sleep(message: RobotMessage):
-    seed = random.randint(1, 100)
-    if seed < 12:
-        message.reply("你的床爆炸了", modal_words=False)
-    elif seed < 24:
-        message.reply("你被床弹飞了", modal_words=False)
-    elif seed < 36:
-        message.reply("你现在不能休息，周围有怪物在游荡", modal_words=False)
-    elif seed < 48:
-        message.reply("你现在不能休息，周围有玩家在游荡", modal_words=False)
-    elif seed < 60:
-        message.reply("你只能在夜间或雷暴中入睡", modal_words=False)
-    elif seed < 72:
-        message.reply("正在等待1/10名玩家入睡", modal_words=False)
-    else:
-        message.reply("晚安")
+    actions = [
+        "你的床爆炸了",
+        "你被床弹飞了",
+        "你现在不能休息，周围有怪物在游荡",
+        "你只能在夜间或雷暴中入睡",
+        "正在等待1/10名玩家入睡",
+        "晚安"
+    ]
+    chosen_action = random.choice(actions)
+    message.reply(chosen_action, modal_words=False)
+
+    if chosen_action == "晚安":
         time.sleep(random.randint(30, 120))
         message.reply("早上好")
