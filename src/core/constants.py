@@ -8,7 +8,7 @@ class Constants:
     log = logging.get_logger()
     config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
 
-    core_version = "v3.7.0.beta3_05311847"
+    core_version = "v3.7.0.beta4_05312310"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -88,6 +88,10 @@ class Constants:
         ]),
         'color-rand': '\n'.join([
             "/color: 获取一个色卡."
+        ]),
+        'number-guess': '\n'.join([
+            "/guess: 开始猜数字."
+            "/guess [num]: 猜测数字为 [num]."
         ]),
         'misc': '\n'.join([
             "/qrcode [content]：生成一个内容为 content 的二维码."

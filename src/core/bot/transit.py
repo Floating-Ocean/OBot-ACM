@@ -1,6 +1,7 @@
 import datetime
 import queue
 import threading
+import time
 import traceback
 from dataclasses import dataclass
 
@@ -13,6 +14,7 @@ from src.core.util.exception import UnauthorizedError
 
 _query_queue: dict[str, queue.Queue] = {}
 _count_queue: dict[str, queue.Queue] = {}
+_work_thread_life: dict[str, int] = {}
 _terminate_lock = threading.Lock()
 _terminate_signal = False
 
@@ -44,12 +46,19 @@ def get_message_id(message: RobotMessage) -> MessageID:
             for cmd in module_commands:
                 starts_with = cmd[-1] == '*' and func.startswith(cmd[:-1])
                 if starts_with or cmd == func:
-                    original_command, _, is_command, _ = module_commands[cmd]
+                    original_command, _, is_command, _, multi_thread = module_commands[cmd]
 
                     if not is_command and message.is_guild_public():
                         # 对频道无at消息的过滤，避免spam
                         continue
 
+                    if multi_thread:
+                        # 多线程时，同一上下文一个线程
+                        multi_thread_id = f"{module}_{message.uuid}"
+                        _work_thread_life[multi_thread_id] = 60 * 60  # 一小时生命周期
+                        return MessageID(multi_thread_id, cmd)
+
+                    _work_thread_life[module] = -1
                     return MessageID(module, cmd)
 
         # 如果是频道无at消息可能是发错了或者并非用户希望的处理对象
@@ -121,7 +130,7 @@ def handle_message(message: RobotMessage, message_id: MessageID):
         func = message.tokens[0].lower()
 
         (original_command, execute_level,
-         is_command, need_to_check_exclude) = __commands__[message_id.module][message_id.command]
+         is_command, need_to_check_exclude, _) = __commands__[message_id.module][message_id.command]
 
         if message.user_permission_level < execute_level:
             Constants.log.info(f'{message.author_id} attempted to call {message_id.command} but failed.')
@@ -165,16 +174,31 @@ def clear_message_queue():
 
 
 def queue_up_handler(module: str):
+    Constants.log.info(f'Work thread {module} started.')
+
+    life = _work_thread_life[module]
+    terminate_time = time.time() + life if life >= 0 else -1
+
     global _terminate_signal
 
     while True:
+        if terminate_time != -1 and time.time() >= terminate_time:
+            # 生命周期时间到的自动退出
+            break
+
         with _terminate_lock:
             is_terminate = _terminate_signal
         if is_terminate:
+            # 机器人重启时的强制退出
             break
 
-        queued_message: tuple[RobotMessage, MessageID] = _query_queue[module].get()
-        message, message_id = queued_message
+        try:
+            queued_message: tuple[RobotMessage, MessageID] = _query_queue[module].get(timeout=1)  # 这里需要timeout，不然会一直阻塞
+            message, message_id = queued_message
 
-        handle_message(message, message_id)
-        _count_queue[module].get()
+            handle_message(message, message_id)
+            _count_queue[module].get()
+        except queue.Empty:
+            pass
+
+    Constants.log.info(f'Work thread {module} terminated.')

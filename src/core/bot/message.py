@@ -2,6 +2,7 @@ import asyncio
 import base64
 import random
 import re
+import uuid
 from asyncio import AbstractEventLoop
 from enum import Enum
 from typing import Optional, Union
@@ -36,6 +37,7 @@ class RobotMessage:
         self.attachments = []
         self.msg_seq = 0
         self.user_permission_level: PermissionLevel = PermissionLevel.USER
+        self.uuid = str(uuid.uuid4())  # 默认值，正常来说会被覆盖
         self._public = False  # Guild only
 
     def is_guild_public(self):
@@ -54,18 +56,21 @@ class RobotMessage:
         self.message = message
         self._public = is_public
         self._initial_setup(message, 'id')
+        self.uuid = f"guild_channel_{self.message.channel_id}"
 
     def setup_group_message(self, loop: AbstractEventLoop, message: GroupMessage):
         self.loop = loop
         self.message_type = MessageType.GROUP
         self.message = message
         self._initial_setup(message, 'member_openid')
+        self.uuid = f"group_{self.message.group_openid}"
 
     def setup_c2c_message(self, loop: AbstractEventLoop, message: C2CMessage):
         self.loop = loop
         self.message_type = MessageType.C2C
         self.message = message
         self._initial_setup(message, 'user_openid')
+        self.uuid = f"c2c_{self.author_id}"
 
     def reply(self, content: str, img_path: str = None, img_url: str = None, modal_words: bool = True):
         """异步发送回复的入口方法"""
