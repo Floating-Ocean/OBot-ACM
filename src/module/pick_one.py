@@ -39,7 +39,7 @@ def load_pick_one_config():
         _ids.sort(key=lambda s: s[1], reverse=True)  # 按图片数量降序排序
 
 
-def parse_img(message: RobotMessage, img_key: str):
+def parse_img(message: RobotMessage, img_key: str, notified: bool = False):
     """解析图片文字"""
     dir_path = _get_img_dir_path(img_key)
     img_list = [img for img in os.listdir(dir_path) if img.endswith(".gif")]
@@ -55,7 +55,6 @@ def parse_img(message: RobotMessage, img_key: str):
             old_parsed = {}
 
     parsed = {}
-    notified = False
     ocr_reader = None
     for img in img_list:
         if img in old_parsed:
@@ -207,6 +206,7 @@ def audit_accept(message: RobotMessage):
     cnt, ok = 0, 0
     ok_dict: dict[str, int] = {}
 
+    notified = False
     for tag in tags:
         if not os.path.exists(os.path.join(_lib_path, tag)):
             continue
@@ -223,7 +223,8 @@ def audit_accept(message: RobotMessage):
             ok += 1
             ok_dict[tag] = ok_dict.get(tag, 0) + 1
 
-        parse_img(message, tag)
+        parse_img(message, tag, notified)
+        notified = True
 
     if cnt == 0:
         message.reply("没有需要审核的图片")
