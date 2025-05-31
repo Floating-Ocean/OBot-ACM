@@ -62,19 +62,21 @@ def try_guess(message: RobotMessage):
                       modal_words=False)
         return None
 
+    current_info: GuessInfo = _guess_info[current_uuid]
     participant_guess_plain = message.tokens[1]
 
     if not check_is_int(participant_guess_plain):
-        message.reply("参数格式错误，请输入数字")
+        if participant_guess_plain in ['stop', '结束', 'end', 'finish']:
+            message.reply(f"游戏终止，答案是 {current_info.target}，总共猜了 {current_info.trials} 次")
+        else:
+            message.reply("参数格式错误，请输入数字")
         return None
 
     participant_guess = int(participant_guess_plain)
-
-    current_info: GuessInfo = _guess_info[current_uuid]
     current_info.trials += 1
 
     if participant_guess == current_info.target:
-        message.reply(f"恭喜你猜对了，答案是 {participant_guess}，总共猜了 {current_info.trials} 次")
+        message.reply(f"恭喜你猜对了，答案是 {current_info.target}，总共猜了 {current_info.trials} 次")
         current_info = GuessInfo(GuessStatus.ENDED, -1, (-1, -1), -1)
 
     elif participant_guess > current_info.target:
@@ -93,7 +95,7 @@ def try_guess(message: RobotMessage):
     return None
 
 
-@command(tokens=["guess", "猜数字"])
+@command(tokens=["guess", "猜数字"], multi_thread=True)
 def reply_number_guess(message: RobotMessage):
     if not 1 <= len(message.tokens) <= 2:
         message.reply(f"参数数量有误\n\n{Constants.help_contents['number-guess']}",

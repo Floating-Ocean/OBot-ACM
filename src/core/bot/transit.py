@@ -14,7 +14,7 @@ from src.core.util.exception import UnauthorizedError
 
 _query_queue: dict[str, queue.Queue] = {}
 _count_queue: dict[str, queue.Queue] = {}
-_work_thread_life: dict[str, int] = {}
+_work_thread_life: dict[str, int] = {"default.manual": -1}
 _terminate_lock = threading.Lock()
 _terminate_signal = False
 
@@ -24,10 +24,11 @@ _MAINTAINING_SIGNAL = False
 @dataclass(frozen=True)
 class MessageID:
     """
-    消息的身份，包含所属模块和命令名
+    消息的身份，包含所属模块，命令名，和是否多线程
     """
     module: str
     command: str
+    multi_thread: bool = False
 
 
 def get_message_id(message: RobotMessage) -> MessageID:
@@ -54,9 +55,9 @@ def get_message_id(message: RobotMessage) -> MessageID:
 
                     if multi_thread:
                         # 多线程时，同一上下文一个线程
-                        multi_thread_id = f"{module}_{message.uuid}"
-                        _work_thread_life[multi_thread_id] = 60 * 60  # 一小时生命周期
-                        return MessageID(multi_thread_id, cmd)
+                        worker_id = f"{module}_{message.uuid}"
+                        _work_thread_life[worker_id] = 60 * 60  # 一小时生命周期
+                        return MessageID(module, cmd, True)
 
                     _work_thread_life[module] = -1
                     return MessageID(module, cmd)
@@ -86,22 +87,25 @@ def distribute_message(message: RobotMessage):
         return
 
     message_id = get_message_id(message)
+    worker_id = message_id.module
+    if message_id.multi_thread:
+        worker_id = f"{message_id.module}_{message.uuid}"
 
-    if (message_id.module not in _count_queue
-            or message_id.module not in _query_queue):
-        _count_queue[message_id.module] = queue.Queue()
-        _query_queue[message_id.module] = queue.Queue()
+    if (worker_id not in _count_queue
+            or worker_id not in _query_queue):
+        _count_queue[worker_id] = queue.Queue()
+        _query_queue[worker_id] = queue.Queue()
 
         # 启动对应工作线程
         threading.Thread(target=queue_up_handler,
-                         args=[message_id.module],
-                         name=f"Work Thread ({message_id.module})").start()
+                         args=[worker_id],
+                         name=f"Work Thread ({worker_id})").start()
 
-    _count_queue[message_id.module].put(1)
-    size = _count_queue[message_id.module].qsize()
+    _count_queue[worker_id].put(1)
+    size = _count_queue[worker_id].qsize()
     if size > 1:
         message.reply(f"已加入处理队列，前方还有 {size - 1} 个请求")
-    _query_queue[message_id.module].put((message, message_id))
+    _query_queue[worker_id].put((message, message_id))
 
 
 def handle_message(message: RobotMessage, message_id: MessageID):
@@ -173,10 +177,10 @@ def clear_message_queue():
             message.reply("O宝被爆了！等待一段时间后再试试")
 
 
-def queue_up_handler(module: str):
-    Constants.log.info(f'Work thread {module} started.')
+def queue_up_handler(worker_id: str):
+    Constants.log.info(f'Work thread {worker_id} started.')
 
-    life = _work_thread_life[module]
+    life = _work_thread_life[worker_id]
     terminate_time = time.time() + life if life >= 0 else -1
 
     global _terminate_signal
@@ -193,12 +197,12 @@ def queue_up_handler(module: str):
             break
 
         try:
-            queued_message: tuple[RobotMessage, MessageID] = _query_queue[module].get(timeout=1)  # 这里需要timeout，不然会一直阻塞
+            queued_message: tuple[RobotMessage, MessageID] = _query_queue[worker_id].get(timeout=1)  # 这里需要timeout，不然会一直阻塞
             message, message_id = queued_message
 
             handle_message(message, message_id)
-            _count_queue[module].get()
+            _count_queue[worker_id].get()
         except queue.Empty:
             pass
 
-    Constants.log.info(f'Work thread {module} terminated.')
+    Constants.log.info(f'Work thread {worker_id} terminated.')
