@@ -15,7 +15,8 @@ _query_queue: dict[str, queue.Queue] = {}
 _count_queue: dict[str, queue.Queue] = {}
 _terminate_lock = threading.Lock()
 _terminate_signal = False
-_maintaining_signal = False
+
+_MAINTAINING_SIGNAL = False
 
 
 @dataclass(frozen=True)
@@ -69,7 +70,7 @@ def distribute_message(message: RobotMessage):
     """
     分发消息
     """
-    if _maintaining_signal:
+    if _MAINTAINING_SIGNAL:
         message.reply("O宝维护中，晚点再来吧\n\n"
                       f"OBot's ACM {Constants.core_version}\n"
                       f"{datetime.datetime.now()}\n", modal_words=False)

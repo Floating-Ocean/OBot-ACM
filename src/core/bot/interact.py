@@ -201,6 +201,10 @@ def reply_qrcode(message: RobotMessage):
 
 @command(tokens=["晚安", "睡觉", "睡觉去了", "sleep"], is_command=False)
 def reply_mc_sleep(message: RobotMessage):
+    """
+    Minecraft主题的睡觉命令处理器
+    随机回复睡觉相关的游戏消息，并可能延时发送"早上好"
+    """
     actions = [
         "你的床爆炸了",
         "你被床弹飞了",

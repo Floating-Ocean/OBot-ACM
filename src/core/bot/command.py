@@ -18,7 +18,7 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
         tokens = []
 
     def decorator(func):
-        module_name = func.__module__  # 根据函数注册的位置分类处理
+        module_name = func.__module__ or "default.unknown"  # 根据函数注册的位置分类处理
         if module_name not in __commands__:
             __commands__[module_name] = {}
 
