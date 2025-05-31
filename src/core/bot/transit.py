@@ -1,3 +1,6 @@
+import datetime
+import queue
+import threading
 import traceback
 from dataclasses import dataclass
 
@@ -6,6 +9,13 @@ from src.core.bot.interact import reply_key_words, no_reply
 from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
+
+
+_query_queue: dict[str, queue.Queue] = {}
+_count_queue: dict[str, queue.Queue] = {}
+_terminate_lock = threading.Lock()
+_terminate_signal = False
+_maintaining_signal = False
 
 
 @dataclass(frozen=True)
@@ -59,7 +69,29 @@ def distribute_message(message: RobotMessage):
     """
     分发消息
     """
-    pass
+    if _maintaining_signal:
+        message.reply("O宝维护中，晚点再来吧\n\n"
+                      f"OBot's ACM {Constants.core_version}\n"
+                      f"{datetime.datetime.now()}\n", modal_words=False)
+        return
+
+    message_id = get_message_id(message)
+
+    if (message_id.module not in _count_queue
+            or message_id.module not in _query_queue):
+        _count_queue[message_id.module] = queue.Queue()
+        _query_queue[message_id.module] = queue.Queue()
+
+        # 启动对应工作线程
+        threading.Thread(target=queue_up_handler,
+                         args=[message_id.module],
+                         name=f"Work Thread ({message_id.module})").start()
+
+    _count_queue[message_id.module].put(1)
+    size = _count_queue[message_id.module].qsize()
+    if size > 1:
+        message.reply(f"已加入处理队列，前方还有 {size - 1} 个请求")
+    _query_queue[message_id.module].put((message, message_id))
 
 
 def handle_message(message: RobotMessage, message_id: MessageID):
@@ -115,3 +147,33 @@ def handle_message(message: RobotMessage, message_id: MessageID):
     except Exception as e:
         message.report_exception('Core.Transit', traceback.format_exc(), e)
         return None
+
+
+def clear_message_queue():
+    global _terminate_signal
+    with _terminate_lock:
+        _terminate_signal = True
+    for module, module_query_queue in _query_queue.items():
+        while not module_query_queue.empty():
+            try:
+                queued_message: tuple[RobotMessage, MessageID] = (module_query_queue.get_nowait())
+                message, message_id = queued_message
+            except queue.Empty:
+                break
+            message.reply("O宝被爆了！等待一段时间后再试试")
+
+
+def queue_up_handler(module: str):
+    global _terminate_signal
+
+    while True:
+        with _terminate_lock:
+            is_terminate = _terminate_signal
+        if is_terminate:
+            break
+
+        queued_message: tuple[RobotMessage, MessageID] = _query_queue[module].get()
+        message, message_id = queued_message
+
+        handle_message(message, message_id)
+        _count_queue[module].get()

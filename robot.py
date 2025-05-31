@@ -1,5 +1,4 @@
 ﻿import os
-import queue
 import re
 import sys
 import threading
@@ -12,15 +11,10 @@ from botpy import Client, Intents
 from botpy.message import Message, GroupMessage, C2CMessage
 
 from src.core.bot.command import command, PermissionLevel
-from src.core.bot.transit import MessageID, handle_message, get_message_id
-from src.core.constants import Constants
 from src.core.bot.interact import RobotMessage
+from src.core.bot.transit import clear_message_queue, distribute_message
+from src.core.constants import Constants
 from src.module.peeper import daily_update_job, noon_report_job
-
-_query_queue = queue.Queue()
-_count_queue = queue.Queue()
-_terminate_lock = threading.Lock()
-_terminate_signal = False
 
 daily_sched = BlockingScheduler()
 noon_sched = BlockingScheduler()
@@ -46,43 +40,6 @@ def reply_restart_bot(message: RobotMessage):
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
-def clear_message_queue():
-    global _terminate_signal
-    with _terminate_lock:
-        _terminate_signal = True
-    while not _query_queue.empty():
-        try:
-            queued_message: tuple[RobotMessage, MessageID] = _query_queue.get_nowait()
-            message, message_id = queued_message
-        except queue.Empty:
-            break
-        message.reply("O宝被爆了！等待一段时间后再试试")
-
-
-def queue_up_handler():
-    global _terminate_signal
-
-    while True:
-        with _terminate_lock:
-            is_terminate = _terminate_signal
-        if is_terminate:
-            break
-
-        queued_message: tuple[RobotMessage, MessageID] = _query_queue.get()
-        message, message_id = queued_message
-
-        handle_message(message, message_id)
-        _count_queue.get()
-
-
-def join_in_message(message: RobotMessage):
-    _count_queue.put(1)
-    size = _count_queue.qsize()
-    if size > 1:
-        message.reply(f"已加入处理队列，前方还有 {size - 1} 个请求")
-    _query_queue.put((message, get_message_id(message)))
-
-
 class MyClient(Client):
     def __init__(self, intents: Intents, timeout: int = 5, is_sandbox=False,
                  log_config: Union[str, dict] = None, log_format: str = None, log_level: int = None,
@@ -98,7 +55,7 @@ class MyClient(Client):
             f"from {message.channel_id}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_guild_message(self.loop, message)
-        join_in_message(packed_message)
+        distribute_message(packed_message)
 
     async def on_message_create(self, message: Message):
         Constants.log.info(
@@ -110,7 +67,7 @@ class MyClient(Client):
         packed_message.setup_guild_message(self.loop, message, is_public=True)
 
         if not re.search(r'<@!\d+>', content):
-            join_in_message(packed_message)
+            distribute_message(packed_message)
 
     async def on_group_at_message_create(self, message: GroupMessage):
         Constants.log.info(
@@ -118,7 +75,7 @@ class MyClient(Client):
             f"from {message.group_openid}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_group_message(self.loop, message)
-        join_in_message(packed_message)
+        distribute_message(packed_message)
 
     async def on_c2c_message_create(self, message: C2CMessage):
         Constants.log.info(
@@ -126,7 +83,7 @@ class MyClient(Client):
             f"from {message.author.user_openid}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_c2c_message(self.loop, message)
-        join_in_message(packed_message)
+        distribute_message(packed_message)
 
 
 def check_path_in_config():
@@ -138,8 +95,6 @@ def check_path_in_config():
 def open_robot_session():
     # 检查配置文件中的目录是否合法，防止错误配置和命令意外执行
     check_path_in_config()
-
-    threading.Thread(target=queue_up_handler, args=[]).start()
 
     intents = botpy.Intents.default()  # 对目前已支持的所有事件进行监听
     client = MyClient(intents=intents, timeout=60)
