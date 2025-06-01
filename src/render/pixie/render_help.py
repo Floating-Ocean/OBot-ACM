@@ -19,15 +19,14 @@ class _HelpItem(RenderableSection):
     def __init__(self, single_help: Help):
         self._help = single_help
 
-        self._cmd_text = StyledString(self._help.command,
-                                      'H', 52,
-                                      font_color=(255, 255, 255), padding_bottom=16,
-                                      max_width=(_CONTENT_WIDTH - 108 - 12 - 48))
-        self._help_text = StyledString(self._help.help,
-                                       'B', 28,
-                                       font_color=(255, 255, 255, 228), padding_bottom=64,
-                                       max_width=(_CONTENT_WIDTH - 108 - 12 - 48),
-                                       line_multiplier=1.36)
+        self._cmd_text = StyledString(
+            self._help.command, 'H', 52, font_color=(255, 255, 255), padding_bottom=16,
+            max_width=_CONTENT_WIDTH - 108 - 12 - 48
+        )
+        self._help_text = StyledString(
+            self._help.help, 'B', 28, font_color=(255, 255, 255, 228), padding_bottom=64,
+            max_width=_CONTENT_WIDTH - 108 - 12 - 48, line_multiplier=1.36
+        )
 
     def get_height(self):
         return calculate_height([self._cmd_text, self._help_text])
@@ -47,10 +46,19 @@ class _HelpSection(RenderableSection):
                             for _, help_items in self._helps.items()]
 
     def get_height(self):
-        return max(sum(sum(single_help.get_height() for single_help in help_items)
-                       for help_items in self._help_items[:4]) + _HELP_SECTION_PADDING * 3,
-                   sum(sum(single_help.get_height() for single_help in help_items)
-                       for help_items in self._help_items[4:]) + _HELP_SECTION_PADDING * (len(self._help_items) - 5))
+        # 计算左列高度
+        left_column_height = sum(
+            sum(single_help.get_height() for single_help in help_items)
+            for help_items in self._help_items[:4]
+        ) + _HELP_SECTION_PADDING * 3
+
+        # 计算右列高度
+        right_column_height = sum(
+            sum(single_help.get_height() for single_help in help_items)
+            for help_items in self._help_items[4:]
+        ) + _HELP_SECTION_PADDING * (len(self._help_items) - 5)
+
+        return max(left_column_height, right_column_height)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
@@ -81,10 +89,13 @@ class _TitleSection(RenderableSection):
         self.accent_light_color = lighten_color(hex_to_color(accent_color), 0.8)
         self.accent_light_color_tran = change_alpha(self.accent_light_color, 136)
         self.logo_path = Renderer.load_img_resource("Help", self.accent_light_color)
-        self.title_text = StyledString("指令帮助", 'H', 96, padding_bottom=4,
-                                       font_color=self.accent_light_color)
-        self.subtitle_text = StyledString("Command Instructions for OBot", 'H', 28,
-                                          font_color=self.accent_light_color_tran)
+
+        self.title_text = StyledString(
+            "指令帮助", 'H', 96, padding_bottom=4, font_color=self.accent_light_color
+        )
+        self.subtitle_text = StyledString(
+            "Command Instructions for OBot", 'H', 28, font_color=self.accent_light_color_tran
+        )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         draw_img(img, self.logo_path, Loc(106, 181, 102, 102))
@@ -103,24 +114,31 @@ class _CopyrightSection(RenderableSection):
 
     def __init__(self, gradient_color_name: str):
         self.mild_text_color = (255, 255, 255, 156)
-        self.tips_title_text = StyledString("Tips:", 'H', 36, padding_bottom=64,
-                                            font_color=(255, 255, 255, 228))
-        self.tips_detail_text = StyledString("中括号必填，小括号选填，使用指令时不用加括号", 'M', 28,
-                                             line_multiplier=1.32, padding_bottom=64,
-                                             max_width=(_CONTENT_WIDTH - 108 -  # 考虑右边界，不然画出去了
-                                                        calculate_width(self.tips_title_text) - 12 - 48),
-                                             font_color=(255, 255, 255, 228))
-        self.generator_text = StyledString("Command Instructions", 'H', 36,
-                                           font_color=(255, 255, 255, 228), padding_bottom=16)
-        self.generation_info_text = StyledString(f"Compatible to OBot's ACM {Constants.core_version}.\n"
-                                                 f"{gradient_color_name}.", 'B', 20,
-                                                 line_multiplier=1.32, font_color=self.mild_text_color)
+
+        self.tips_title_text = StyledString(
+            "Tips:", 'H', 36, padding_bottom=64, font_color=(255, 255, 255, 228)
+        )
+        self.tips_detail_text = StyledString(
+            "中括号必填，小括号选填，使用指令时不用加括号", 'M', 28,
+            line_multiplier=1.32, padding_bottom=64, font_color=(255, 255, 255, 228),
+            max_width=(_CONTENT_WIDTH - 108 -  # 考虑右边界，不然画出去了
+                       calculate_width(self.tips_title_text) - 12 - 48)
+        )
+        self.generator_text = StyledString(
+            "Command Instructions", 'H', 36, padding_bottom=16,
+            font_color=(255, 255, 255, 228)
+        )
+        self.generation_info_text = StyledString(
+            f"Compatible to OBot's ACM {Constants.core_version}.\n{gradient_color_name}.",
+            'B', 20, line_multiplier=1.32, font_color=self.mild_text_color
+        )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
 
         draw_text(img, self.tips_title_text, current_x, current_y)
-        current_y = draw_text(img, self.tips_detail_text, current_x + calculate_width(self.tips_title_text) + 12,
+        current_y = draw_text(img, self.tips_detail_text,
+                              current_x + calculate_width(self.tips_title_text) + 12,
                               current_y + 8)
         current_y = draw_text(img, self.generator_text, current_x, current_y)
         draw_text(img, self.generation_info_text, current_x, current_y)
@@ -144,7 +162,8 @@ class HelpRenderer(Renderer):
 
         width, height = (_CONTENT_WIDTH * 2 + _COLUMN_PADDING,
                          sum(section.get_height() for section in render_sections) +
-                         _SECTION_PADDING * (len(render_sections) - 1) + _TOP_PADDING + _BOTTOM_PADDING)
+                         _SECTION_PADDING * (len(render_sections) - 1) +
+                         _TOP_PADDING + _BOTTOM_PADDING)
 
         img = pixie.Image(width + 64, height + 64)
         img.fill(tuple_to_color((255, 255, 255, 255)))  # 填充白色背景

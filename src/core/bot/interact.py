@@ -19,6 +19,7 @@ from src.platform.online.nowcoder import NowCoder
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 
+
 _fixed_reply = {
     "ping": "pong",
     "活着吗": "你猜捏",
@@ -198,7 +199,7 @@ def reply_qrcode(message: RobotMessage):
     message.reply("生成了一个二维码", png2jpg(f"{cached_prefix}.png"))
 
 
-@command(tokens=["晚安", "睡觉", "睡觉去了", "sleep"], is_command=False)
+@command(tokens=["晚安", "睡觉", "睡觉去了"], is_command=False)
 def reply_mc_sleep(message: RobotMessage):
     """
     Minecraft主题的睡觉命令处理器
@@ -218,6 +219,14 @@ def reply_mc_sleep(message: RobotMessage):
     if chosen_action == "晚安":
         time.sleep(random.randint(30, 120))
         message.reply("早上好")
+
+
+@command(tokens=["sleep"])
+def reply_mc_sleep_as_cmd(message: RobotMessage):
+    """
+    Minecraft主题的睡觉命令处理器的指令调用版
+    """
+    reply_mc_sleep(message)
 
 
 @command(tokens=['help', 'helps', 'instruction', 'instructions', '帮助'])

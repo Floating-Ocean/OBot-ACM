@@ -25,14 +25,30 @@ class ColorCardRenderer(Renderer):
         text_color = choose_text_color(paint_bg.color)
         title_raw_text = f"Color Collect - {self._color['pinyin']}"
 
-        title_text = StyledString(title_raw_text, 'H', 48, font_color=text_color, padding_bottom=52)
-        name_text = StyledString(self._color['name'], 'H', 144, font_color=text_color, padding_bottom=60)
-        hex_text = StyledString(self._hex_raw_text, 'M', 72, font_color=text_color, padding_bottom=80)
-        rgb_text = StyledString(self._rgb_raw_text, 'M', 72, font_color=text_color, padding_bottom=80)
-        hsv_text = StyledString(self._hsv_raw_text, 'M', 72, font_color=text_color, padding_bottom=80)
-        hex_tag = StyledString("HEX", 'R', 48, font_color=text_color, padding_bottom=56)
-        rgb_tag = StyledString("RGB", 'R', 48, font_color=text_color, padding_bottom=56)
-        hsv_tag = StyledString("HSV", 'R', 48, font_color=text_color, padding_bottom=56)
+        title_text = StyledString(
+            title_raw_text, 'H', 48, font_color=text_color, padding_bottom=52
+        )
+        name_text = StyledString(
+            self._color['name'], 'H', 144, font_color=text_color, padding_bottom=60
+        )
+        hex_text = StyledString(
+            self._hex_raw_text, 'M', 72, font_color=text_color, padding_bottom=80
+        )
+        rgb_text = StyledString(
+            self._rgb_raw_text, 'M', 72, font_color=text_color, padding_bottom=80
+        )
+        hsv_text = StyledString(
+            self._hsv_raw_text, 'M', 72, font_color=text_color, padding_bottom=80
+        )
+        hex_tag = StyledString(
+            "HEX", 'R', 48, font_color=text_color, padding_bottom=56
+        )
+        rgb_tag = StyledString(
+            "RGB", 'R', 48, font_color=text_color, padding_bottom=56
+        )
+        hsv_tag = StyledString(
+            "HSV", 'R', 48, font_color=text_color, padding_bottom=56
+        )
 
         current_x, current_y = 144 + 32, 120 + 32
         current_y = draw_text(img, title_text, current_x, current_y)

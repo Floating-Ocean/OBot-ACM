@@ -10,7 +10,7 @@ from src.platform.online.atcoder import AtCoder
 
 __atc_version__ = "v1.3.1"
 
-_atc_help = '\n'.join(HelpStrList(Constants.help_contents["atcoder"]))
+_ATC_HELP = '\n'.join(HelpStrList(Constants.help_contents["atcoder"]))
 
 
 def register_module():
@@ -95,7 +95,7 @@ def reply_atc_request(message: RobotMessage):
     try:
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
         if len(content) < 2:
-            message.reply(f'[AtCoder]\n\n{_atc_help}', modal_words=False)
+            message.reply(f'[AtCoder]\n\n{_ATC_HELP}', modal_words=False)
             return
 
         func = content[1]
@@ -134,7 +134,7 @@ def reply_atc_request(message: RobotMessage):
             send_contest(message)
 
         else:
-            message.reply(f'[AtCoder]\n\n{_atc_help}', modal_words=False)
+            message.reply(f'[AtCoder]\n\n{_ATC_HELP}', modal_words=False)
 
     except Exception as e:
         message.report_exception('AtCoder', traceback.format_exc(), e)

@@ -10,7 +10,7 @@ from src.platform.online.codeforces import Codeforces
 
 __cf_version__ = "v3.1.2"
 
-_cf_help = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
+_CF_HELP = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
 
 
 def register_module():
@@ -157,7 +157,7 @@ def reply_cf_request(message: RobotMessage):
     try:
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
         if len(content) < 2:
-            message.reply(f'[Codeforces]\n\n{_cf_help}', modal_words=False)
+            message.reply(f'[Codeforces]\n\n{_CF_HELP}', modal_words=False)
             return
 
         func = content[1]
@@ -221,7 +221,7 @@ def reply_cf_request(message: RobotMessage):
             send_logo(message)
 
         else:
-            message.reply(f'[Codeforces]\n\n{_cf_help}', modal_words=False)
+            message.reply(f'[Codeforces]\n\n{_CF_HELP}', modal_words=False)
 
     except Exception as e:
         message.report_exception('Codeforces', traceback.format_exc(), e)

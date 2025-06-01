@@ -10,7 +10,7 @@ from src.platform.online.nowcoder import NowCoder
 
 __nk_version__ = "v1.2.1"
 
-_nk_help = '\n'.join(HelpStrList(Constants.help_contents["nowcoder"]))
+_NK_HELP = '\n'.join(HelpStrList(Constants.help_contents["nowcoder"]))
 
 
 def register_module():
@@ -65,7 +65,7 @@ def reply_nk_request(message: RobotMessage):
     try:
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
         if len(content) < 2:
-            message.reply(f'[NowCoder]\n\n{_nk_help}', modal_words=False)
+            message.reply(f'[NowCoder]\n\n{_NK_HELP}', modal_words=False)
             return
 
         func = content[1]
@@ -96,7 +96,7 @@ def reply_nk_request(message: RobotMessage):
             send_contest(message)
 
         else:
-            message.reply(f'[NowCoder]\n\n{_nk_help}', modal_words=False)
+            message.reply(f'[NowCoder]\n\n{_NK_HELP}', modal_words=False)
 
     except Exception as e:
         message.report_exception('NowCoder', traceback.format_exc(), e)
