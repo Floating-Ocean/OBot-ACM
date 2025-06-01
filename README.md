@@ -61,7 +61,7 @@
 
 <details open>
 <summary><h3>可用指令</h3></summary>
-  <img src="/img/command_instructions.jpg" alt="游戏截图"/>
+  <img src="/img/command_instructions.png" alt="游戏截图"/>
 </details>
 
 ### PRs Welcome

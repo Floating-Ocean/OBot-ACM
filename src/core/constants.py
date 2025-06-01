@@ -101,21 +101,16 @@ class Constants:
             Help("/rand [num/int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
             Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500].")
         ],
-        'hitokoto': [
-            Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话).")
-        ],
-        'color-rand': [
-            Help("/color", "获取一个色卡.")
-        ],
         'number-guess': [
             Help("/guess", "开始猜数字."),
             Help("/guess [num]", "猜测数字为 num."),
-            Help("/guess stop", "结束本轮猜数字游戏")
+            Help("/guess stop", "结束本轮猜数字游戏.")
         ],
         'misc': [
-            Help("/qrcode [content]", "生成一个内容为 content 的二维码.")
-        ],
-        'help': [
+            Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
+            Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
+            Help("/sleep", "进行一种 Minecraft 风格的睡觉."),
+            Help("/color", "获取一个色卡."),
             Help("/help", "获取本图.")
         ],
     }

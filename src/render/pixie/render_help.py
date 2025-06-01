@@ -147,7 +147,7 @@ class HelpRenderer(Renderer):
                          _SECTION_PADDING * (len(render_sections) - 1) + _TOP_PADDING + _BOTTOM_PADDING)
 
         img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((255, 255, 255, 100)))  # 填充白色背景
+        img.fill(tuple_to_color((255, 255, 255, 255)))  # 填充白色背景
 
         draw_gradient_rect(img, Loc(32, 32, width, height), gradient_color,
                            GradientDirection.DIAGONAL_RIGHT_TO_LEFT, 96)
