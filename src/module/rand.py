@@ -23,7 +23,7 @@ def get_rand_num(range_min: int, range_max: int) -> int:
     data = fetch_url_text(url, throw=False, method='get')
 
     if isinstance(data, int):
-        Constants.log.info(f"failed to get random number, code {data}.")
+        Constants.log.info(f"[rand] 获取随机数失败，代码 {data}.")
         return random.randint(range_min, range_max)
 
     return int(data)
@@ -36,7 +36,7 @@ def get_rand_seq(range_max: int) -> str:
     data = fetch_url_text(url, throw=False, method='get')
 
     if isinstance(data, int):
-        Constants.log.info(f"failed to get random sequence, code {data}.")
+        Constants.log.info(f"[rand] 获取随机序列失败，代码 {data}.")
         return ", ".join([str(x) for x in random.sample(range(1, range_max + 1), range_max)])
 
     return data

@@ -33,10 +33,10 @@ def noon_sched_thread(client: Client):
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
 def reply_restart_bot(message: RobotMessage):
     message.reply("好的捏，捏？欸我怎么似了" if message.tokens[0] == '/去死' else "好的捏，正在重启bot")
-    Constants.log.info("Clearing message queue...")
+    Constants.log.info("[obot] 正在清空消息队列")
     clear_message_queue()
     time.sleep(2)  # 等待 message 通知消息线程发送回复
-    Constants.log.info("Restarting bot...")
+    Constants.log.info("[obot] 正在重启")
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
@@ -47,20 +47,24 @@ class MyClient(Client):
         super().__init__(intents, timeout, is_sandbox, log_config, log_format, log_level, bot_log, ext_handlers)
 
     async def on_ready(self):
-        Constants.log.info(f"robot 「{self.robot.name}」 on_ready!")
+        Constants.log.info("[obot] 机器人上线！")
 
     async def on_at_message_create(self, message: Message):
-        Constants.log.info(
-            f"{self.robot.name} receive public message {message.content} {message.attachments} "
-            f"from {message.channel_id}")
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+        Constants.log.info(f"[obot] 在频道 {message.channel_id} "
+                           f"收到@消息: {message.content}"
+                           f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_guild_message(self.loop, message)
         distribute_message(packed_message)
 
     async def on_message_create(self, message: Message):
-        Constants.log.info(
-            f"{self.robot.name} receive global message {message.content} {message.attachments} "
-            f"from {message.channel_id}")
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+        Constants.log.info(f"[obot] 在频道 {message.channel_id} "
+                           f"收到公共消息: {message.content}"
+                           f"{attachment_info}")
         content = message.content
 
         packed_message = RobotMessage(self.api)
@@ -70,17 +74,21 @@ class MyClient(Client):
             distribute_message(packed_message)
 
     async def on_group_at_message_create(self, message: GroupMessage):
-        Constants.log.info(
-            f"{self.robot.name} receive group message {message.content} {message.attachments} "
-            f"from {message.group_openid}")
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+        Constants.log.info(f"[obot] 在群聊 {message.group_openid} "
+                           f"收到消息: {message.content}"
+                           f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_group_message(self.loop, message)
         distribute_message(packed_message)
 
     async def on_c2c_message_create(self, message: C2CMessage):
-        Constants.log.info(
-            f"{self.robot.name} receive private message {message.content} {message.attachments} "
-            f"from {message.author.user_openid}")
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+        Constants.log.info(f"[obot] 在用户 {message.author.user_openid} "
+                           f"收到私聊消息: {message.content}"
+                           f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_c2c_message(self.loop, message)
         distribute_message(packed_message)

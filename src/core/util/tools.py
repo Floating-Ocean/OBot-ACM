@@ -24,14 +24,14 @@ from src.core.constants import Constants
 
 
 def run_shell(shell: str) -> str:
-    Constants.log.info(shell)
+    Constants.log.info(f"[shell] {shell}")
     cmd = subprocess.Popen(shell, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
                            universal_newlines=True, shell=True, bufsize=1)
     info = ""
     # 实时输出
     while True:
         line = cmd.stderr.readline().strip()
-        Constants.log.info(line)
+        Constants.log.info(f"[shell] {line}")
         info += line
 
         if line == "" or subprocess.Popen.poll(cmd) == 0:  # 判断子进程是否结束
@@ -72,7 +72,7 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
             raise ValueError("Parameter method must be either 'post' or 'get'.")
 
         code = response.status_code
-        Constants.log.info(f"Connected to {url}, code {code}.")
+        Constants.log.info(f"[network] 连接到 {url}, 代码 {code}.")
 
         if code != 200 and throw:
             raise ConnectionError(f"Filed to connect {url}, code {code}.")
@@ -81,8 +81,8 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
     except Exception as e:
         if throw:
             raise RuntimeError(f"Filed to connect {url}: {e}") from e
-        Constants.log.warn("A fetch exception ignored.")
-        Constants.log.warn(e)
+        Constants.log.warn("[network] 一个异常被忽略.")
+        Constants.log.warn(f"[network] {e}")
         return code
 
 

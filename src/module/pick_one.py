@@ -67,11 +67,11 @@ def parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                 if ocr_reader is None:
                     ocr_reader = easyocr.Reader(['en', 'ch_sim'])
                 correct_img = read_image_with_opencv(os.path.join(dir_path, img))  # 修复全都修改为 gif 的兼容性问题
-                Constants.log.info(f"正在识别 {os.path.join(dir_path, img)}")
+                Constants.log.info(f"[ocr] 正在识别 {os.path.join(dir_path, img)}")
                 ocr_result = ''.join(ocr_reader.readtext(correct_img, detail=0))
                 parsed[img] = ocr_result
             except Exception as e:
-                Constants.log.error(f"OCR failed: {e}")
+                Constants.log.error(f"[ocr] 识别出错: {e}")
                 parsed[img] = ""
 
     try:
@@ -90,10 +90,10 @@ def get_img_parser(img_key: str) -> dict:
             try:
                 parsed = json.load(f)
             except json.JSONDecodeError as e:
-                Constants.log.warn(f"parser.json invalid: {e}")
+                Constants.log.warn(f"[ocr] 读取 parser.json 失败: {e}")
                 return {}
     if not parsed or len(parsed) == 0:
-        Constants.log.warn("parser.json invalid")
+        Constants.log.warn("[ocr] 读取 parser.json 失败")
         return {}
     return parsed
 

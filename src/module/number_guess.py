@@ -74,6 +74,7 @@ def try_guess(message: RobotMessage):
     if not check_is_int(participant_guess_plain):
         if participant_guess_plain in ['stop', '结束', 'end', 'finish']:
             message.reply(f"游戏终止，答案是 {current_info.target}，总共猜了 {current_info.trials} 次")
+            _guess_info[current_uuid] = GuessInfo(GuessStatus.ENDED, -1, (-1, -1), -1)
         else:
             message.reply("参数格式错误，请输入数字")
         return None
@@ -89,13 +90,15 @@ def try_guess(message: RobotMessage):
         current_info = GuessInfo(GuessStatus.ENDED, -1, (-1, -1), -1)
 
     elif participant_guess > current_info.target:
-        current_info.bound = (current_info.bound[0], min(participant_guess - 1, current_info.bound[1]))
+        current_info.bound = (current_info.bound[0],
+                              min(participant_guess - 1, current_info.bound[1]))
         message.reply(f"太大了！\n\n"
                       f"目标位于闭区间 [{current_info.bound[0]}, {current_info.bound[1]}] 内，"
                       f"目前总共猜了 {current_info.trials} 次")
 
     else:
-        current_info.bound = (max(participant_guess + 1, current_info.bound[0]), current_info.bound[1])
+        current_info.bound = (max(participant_guess + 1, current_info.bound[0]),
+                              current_info.bound[1])
         message.reply(f"太小了！\n\n"
                       f"目标位于闭区间 [{current_info.bound[0]}, {current_info.bound[1]}] 内，"
                       f"目前总共猜了 {current_info.trials} 次")
