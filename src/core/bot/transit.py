@@ -138,7 +138,7 @@ def handle_message(message: RobotMessage, message_id: MessageID):
         func = message.tokens[0].lower()
 
         (original_command, execute_level,
-         is_command, need_to_check_exclude, _) = __commands__[message_id.module][message_id.command]
+         _, need_to_check_exclude, _) = __commands__[message_id.module][message_id.command]
 
         if message.user_permission_level < execute_level:
             Constants.log.info(f'{message.author_id} attempted to call {message_id.command} but failed.')

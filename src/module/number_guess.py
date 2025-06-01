@@ -36,22 +36,29 @@ _guess_info_lock = threading.Lock()
 
 def start_game(message: RobotMessage):
     current_uuid = message.uuid
-    if _guess_info[current_uuid].status == GuessStatus.RUNNING:
-        message.reply("游戏已经开始，请使用 \"/guess [num]\" 猜测数字，不要带上中括号")
+    current_info: GuessInfo = _guess_info[current_uuid]
+
+    if current_info.status == GuessStatus.RUNNING:
+        message.reply("游戏已经开始，请使用 \"/guess [num]\" 猜测数字，不要带上中括号\n\n"
+                      f"目标位于闭区间 [{current_info.bound[0]}, {current_info.bound[1]}] 内")
         return None
 
     range_min = random.randint(1, 49900)  # 确保至少有100的范围
     range_max = random.randint(range_min + 100, 50000)
 
     target = random.randint(range_min, range_max)
-    _guess_info[current_uuid] = GuessInfo(GuessStatus.RUNNING, target, (range_min, range_max), 0)
+    current_info = GuessInfo(GuessStatus.RUNNING, target, (range_min, range_max), 0)
     message.reply("猜数字开始！使用 \"/guess [num]\" 猜测数字，不要带上中括号\n\n"
                   f"目标位于闭区间 [{range_min}, {range_max}] 内")
+
+    _guess_info[current_uuid] = current_info
     return None
 
 
 def try_guess(message: RobotMessage):
     current_uuid = message.uuid
+    current_info: GuessInfo = _guess_info[current_uuid]
+
     if _guess_info[current_uuid].status == GuessStatus.IDLE:
         message.reply(f"游戏还未开始\n\n{Constants.help_contents['number-guess']}",
                       modal_words=False)
@@ -62,7 +69,6 @@ def try_guess(message: RobotMessage):
                       modal_words=False)
         return None
 
-    current_info: GuessInfo = _guess_info[current_uuid]
     participant_guess_plain = message.tokens[1]
 
     if not check_is_int(participant_guess_plain):
@@ -76,7 +82,10 @@ def try_guess(message: RobotMessage):
     current_info.trials += 1
 
     if participant_guess == current_info.target:
-        message.reply(f"恭喜你猜对了，答案是 {current_info.target}，总共猜了 {current_info.trials} 次")
+        ok_bound = current_info.bound[1] - current_info.bound[0] + 1
+        ok_possibility = round((100 / ok_bound) * 100) / 100
+        message.reply(f"恭喜你猜对了，答案是 {current_info.target}，总共猜了 {current_info.trials} 次\n\n"
+                      f"在最后一次猜测中，你在 {ok_bound} 个数中以 {ok_possibility}% 的可能性猜对了答案")
         current_info = GuessInfo(GuessStatus.ENDED, -1, (-1, -1), -1)
 
     elif participant_guess > current_info.target:
