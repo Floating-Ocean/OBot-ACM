@@ -17,14 +17,13 @@ from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
 from src.platform.online.nowcoder import NowCoder
 from src.render.pixie.render_contest_list import ContestListRenderer
+from src.render.pixie.render_help import HelpRenderer
 
 _fixed_reply = {
     "ping": "pong",
     "活着吗": "你猜捏",
     "似了吗": "？",
-    "死了吗": "？？？",
-    "help": Constants.merged_help_content,
-    "帮助": Constants.merged_help_content
+    "死了吗": "？？？"
 }
 
 
@@ -219,3 +218,14 @@ def reply_mc_sleep(message: RobotMessage):
     if chosen_action == "晚安":
         time.sleep(random.randint(30, 120))
         message.reply("早上好")
+
+
+@command(tokens=['help', 'helps', 'instruction', 'instructions', '帮助'])
+def reply_help(message: RobotMessage):
+    message.reply("O宝正在画画，稍等一下")
+
+    cached_prefix = get_cached_prefix('Help-Renderer')
+    contest_list_img = HelpRenderer().render()
+    contest_list_img.write_file(f"{cached_prefix}.png")
+
+    message.reply("帮助手册", png2jpg(f"{cached_prefix}.png"))

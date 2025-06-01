@@ -5,10 +5,12 @@ from enum import Enum
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
-from src.core.constants import Constants
+from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int
 
 __number_guess_version__ = "v1.0.1"
+
+_number_guess_help = '\n'.join(HelpStrList(Constants.help_contents["number-guess"]))
 
 
 def register_module():
@@ -60,12 +62,12 @@ def try_guess(message: RobotMessage):
     current_info: GuessInfo = _guess_info[current_uuid]
 
     if _guess_info[current_uuid].status == GuessStatus.IDLE:
-        message.reply(f"游戏还未开始\n\n{Constants.help_contents['number-guess']}",
+        message.reply(f"游戏还未开始\n\n{_number_guess_help}",
                       modal_words=False)
         return None
 
     if _guess_info[current_uuid].status == GuessStatus.ENDED:
-        message.reply(f"上一轮游戏已结束\n\n{Constants.help_contents['number-guess']}",
+        message.reply(f"上一轮游戏已结束\n\n{_number_guess_help}",
                       modal_words=False)
         return None
 
@@ -110,7 +112,7 @@ def try_guess(message: RobotMessage):
 @command(tokens=["guess", "猜数字"], multi_thread=True)
 def reply_number_guess(message: RobotMessage):
     if not 1 <= len(message.tokens) <= 2:
-        message.reply(f"参数数量有误\n\n{Constants.help_contents['number-guess']}",
+        message.reply(f"参数数量有误\n\n{_number_guess_help}",
                       modal_words=False)
         return None
 

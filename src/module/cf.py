@@ -3,12 +3,14 @@ import traceback
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
-from src.core.constants import Constants
+from src.core.constants import Constants, HelpStrList
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, get_simple_qrcode, png2jpg
 from src.platform.online.codeforces import Codeforces
 
 __cf_version__ = "v3.1.2"
+
+_cf_help = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
 
 
 def register_module():
@@ -155,7 +157,7 @@ def reply_cf_request(message: RobotMessage):
     try:
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
         if len(content) < 2:
-            message.reply(f'[Codeforces]\n\n{Constants.help_contents["codeforces"]}', modal_words=False)
+            message.reply(f'[Codeforces]\n\n{_cf_help}', modal_words=False)
             return
 
         func = content[1]
@@ -219,7 +221,7 @@ def reply_cf_request(message: RobotMessage):
             send_logo(message)
 
         else:
-            message.reply(f'[Codeforces]\n\n{Constants.help_contents["codeforces"]}', modal_words=False)
+            message.reply(f'[Codeforces]\n\n{_cf_help}', modal_words=False)
 
     except Exception as e:
         message.report_exception('Codeforces', traceback.format_exc(), e)
