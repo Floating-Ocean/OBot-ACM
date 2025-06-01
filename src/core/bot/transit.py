@@ -116,10 +116,14 @@ def handle_message(message: RobotMessage, message_id: MessageID):
         fixed_handlers = {
             None: (no_reply, {}),
             MessageID("default.manual", "no_reply"): (no_reply, {}),
-            MessageID("default.manual", "reply_not_implemented"): (message.reply,
-                                                                   {"content": "其他指令还在开发中"}),
-            MessageID("default.manual", "reply_key_words_empty"): (reply_key_words,
-                                                                   {"message": message, "content": ""}),
+            MessageID("default.manual", "reply_not_implemented"): (
+                message.reply,
+                {"content": "其他指令还在开发中"}
+            ),
+            MessageID("default.manual", "reply_key_words_empty"): (
+                reply_key_words,
+                {"message": message, "content": ""}
+            ),
             MessageID("default.manual", "reply_key_words_func"): (
                 reply_key_words,
                 {"message": message, "content": "" if len(message.tokens) == 0 else message.tokens[0].lower()}
@@ -205,4 +209,6 @@ def queue_up_handler(worker_id: str):
         except queue.Empty:
             pass
 
+    del _count_queue[worker_id]
+    del _query_queue[worker_id]
     Constants.log.info(f'Work thread {worker_id} terminated.')
