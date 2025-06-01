@@ -6,10 +6,9 @@ from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, png2jpg
+from src.platform.online.nowcoder import NowCoder
 
 __nk_version__ = "v1.2.1"
-
-from src.platform.online.nowcoder import NowCoder
 
 
 def register_module():

@@ -6,6 +6,7 @@ def register_all_modules():
     from .contest_manual import register_module
     from .how_to_cook import register_module
     from .nk import register_module
+    from .number_guess import register_module
     from .peeper import register_module
     from .pick_one import register_module
     from .rand import register_module

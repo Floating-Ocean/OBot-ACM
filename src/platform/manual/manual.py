@@ -4,6 +4,7 @@ import os
 import pixie
 
 from src.core.constants import Constants
+from src.core.util.tools import check_intersect, get_today_timestamp_range
 from src.platform.model import CompetitivePlatform, Contest, DynamicContest, DynamicContestPhase
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")
@@ -35,7 +36,9 @@ class ManualPlatform(CompetitivePlatform):
                         running_contests.append(contest)
                     elif current_phase == DynamicContestPhase.UPCOMING:
                         upcoming_contests.append(contest)
-                    else:
+                    elif check_intersect(range1=get_today_timestamp_range(),
+                                         range2=(contest.start_time,
+                                                 contest.start_time + contest.duration)):
                         finished_contests.append(contest)
         except (json.JSONDecodeError, KeyError) as e:
             Constants.log.error(f"Decode manual_contests.json failed: {e}")
