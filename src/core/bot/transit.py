@@ -142,12 +142,15 @@ def handle_message(message: RobotMessage, message_id: MessageID):
          _, need_to_check_exclude, _) = __commands__[message_id.module][message_id.command]
 
         if message.user_permission_level < execute_level:
-            Constants.log.info(f"[obot-core] 操作越权: {message.author_id} 试图发起操作 {message_id.command}.")
+            Constants.log.info(f"[obot-core] 操作越权: {message.author_id} "
+                               f"试图发起操作 {message_id.command}.")
             raise UnauthorizedError("权限不足，操作被拒绝" if func != "/去死" else "阿米诺斯")
 
-        if need_to_check_exclude and (message.message_type == MessageType.GROUP and
-                                      message.message.group_openid in Constants.config['exclude_group_id']):
-            Constants.log.info(f"[obot-core] 操作被禁用: {message.message.group_openid} 试图发起操作 {message_id.command}.")
+        if (need_to_check_exclude and
+                message.message_type == MessageType.GROUP and
+                message.message.group_openid in Constants.config['exclude_group_id']):
+            Constants.log.info(f"[obot-core] 操作被禁用: {message.message.group_openid} "
+                               f"试图发起操作 {message_id.command}.")
             raise UnauthorizedError("榜单功能被禁用")
 
         try:
