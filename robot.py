@@ -33,10 +33,10 @@ def noon_sched_thread(client: Client):
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
 def reply_restart_bot(message: RobotMessage):
     message.reply("好的捏，捏？欸我怎么似了" if message.tokens[0] == '/去死' else "好的捏，正在重启bot")
-    Constants.log.info("[obot] 正在清空消息队列")
+    Constants.log.info("[obot-core] 正在清空消息队列")
     clear_message_queue()
     time.sleep(2)  # 等待 message 通知消息线程发送回复
-    Constants.log.info("[obot] 正在重启")
+    Constants.log.info("[obot-core] 正在重启")
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
@@ -47,12 +47,12 @@ class MyClient(Client):
         super().__init__(intents, timeout, is_sandbox, log_config, log_format, log_level, bot_log, ext_handlers)
 
     async def on_ready(self):
-        Constants.log.info(f"[obot] 机器人上线，版本 {Constants.core_version}.")
+        Constants.log.info(f"[obot-core] 机器人上线，版本 {Constants.core_version}.")
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot] 在频道 {message.channel_id} "
+        Constants.log.info(f"[obot-int] 在频道 {message.channel_id} "
                            f"收到@消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
@@ -62,7 +62,7 @@ class MyClient(Client):
     async def on_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot] 在频道 {message.channel_id} "
+        Constants.log.info(f"[obot-int] 在频道 {message.channel_id} "
                            f"收到公共消息: {message.content}"
                            f"{attachment_info}")
         content = message.content
@@ -76,7 +76,7 @@ class MyClient(Client):
     async def on_group_at_message_create(self, message: GroupMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot] 在群聊 {message.group_openid} "
+        Constants.log.info(f"[obot-int] 在群聊 {message.group_openid} "
                            f"收到消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
@@ -86,7 +86,7 @@ class MyClient(Client):
     async def on_c2c_message_create(self, message: C2CMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot] 在用户 {message.author.user_openid} "
+        Constants.log.info(f"[obot-int] 在用户 {message.author.user_openid} "
                            f"收到私聊消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)

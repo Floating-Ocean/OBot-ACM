@@ -41,7 +41,8 @@ class ManualPlatform(CompetitivePlatform):
                                                  contest.start_time + contest.duration)):
                         finished_contests.append(contest)
         except (json.JSONDecodeError, KeyError) as e:
-            Constants.log.error(f"Decode manual_contests.json failed: {e}")
+            Constants.log.warn("[manual] 配置文件 manual_contests.json 无效.")
+            Constants.log.error(f"[manual] {e}")
             return [], [], []
 
         return running_contests, upcoming_contests, finished_contests

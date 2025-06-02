@@ -51,7 +51,8 @@ def parse_img(message: RobotMessage, img_key: str, notified: bool = False):
             with open(paser_path, 'r', encoding="utf-8") as f:
                 old_parsed = json.load(f)
         except Exception as e:
-            Constants.log.error(f"parser.json invalid: {e}")
+            Constants.log.warn(f"[ocr] 标签文件无效.")
+            Constants.log.error(f"[ocr] {e}")
             old_parsed = {}
 
     parsed = {}
@@ -71,14 +72,16 @@ def parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                 ocr_result = ''.join(ocr_reader.readtext(correct_img, detail=0))
                 parsed[img] = ocr_result
             except Exception as e:
-                Constants.log.error(f"[ocr] 识别出错: {e}")
+                Constants.log.warn(f"[ocr] 识别出错.")
+                Constants.log.error(f"[ocr] {e}")
                 parsed[img] = ""
 
     try:
         with open(paser_path, 'w', encoding="utf-8") as f:
             f.write(json.dumps(parsed, ensure_ascii=False, indent=4))
     except Exception as e:
-        Constants.log.error(f"Save parser.json failed: {e}")
+        Constants.log.warn(f"[ocr] 保存标签文件失败.")
+        Constants.log.error(f"[ocr] {e}")
 
 
 def get_img_parser(img_key: str) -> dict:
