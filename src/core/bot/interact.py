@@ -208,9 +208,12 @@ def reply_mc_sleep(message: RobotMessage):
     actions = [
         "你的床爆炸了",
         "你被床弹飞了",
+        "你的床已被破坏",
         "你现在不能休息，周围有怪物在游荡",
+        "你现在不能休息，周围有玩家在游荡",
         "你只能在夜间或雷暴中入睡",
-        "正在等待1/10名玩家入睡",
+        "你只能在白天或晴天中入睡",
+        f"正在等待 1/{random.randint(2, 100)} 名玩家入睡",
         "晚安"
     ]
     chosen_action = random.choice(actions)
