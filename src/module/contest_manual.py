@@ -82,4 +82,5 @@ def reply_manual_add_contest(message: RobotMessage):
 
     except Exception as e:
         message.reply("出现错误，导入比赛失败")
-        Constants.log.error(f"Import custom contest failed: {e}")
+        Constants.log.warn("[manual] 导入自定义比赛失败.")
+        Constants.log.error(f"[manual] {e}")

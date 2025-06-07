@@ -3,12 +3,14 @@ import traceback
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
-from src.core.constants import Constants
+from src.core.constants import Constants, HelpStrList
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import get_simple_qrcode, png2jpg
 from src.platform.online.atcoder import AtCoder
 
 __atc_version__ = "v1.3.1"
+
+_ATC_HELP = '\n'.join(HelpStrList(Constants.help_contents["atcoder"]))
 
 
 def register_module():
@@ -93,7 +95,7 @@ def reply_atc_request(message: RobotMessage):
     try:
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
         if len(content) < 2:
-            message.reply(f'[AtCoder]\n\n{Constants.help_contents["atcoder"]}', modal_words=False)
+            message.reply(f'[AtCoder]\n\n{_ATC_HELP}', modal_words=False)
             return
 
         func = content[1]
@@ -132,7 +134,7 @@ def reply_atc_request(message: RobotMessage):
             send_contest(message)
 
         else:
-            message.reply(f'[AtCoder]\n\n{Constants.help_contents["atcoder"]}', modal_words=False)
+            message.reply(f'[AtCoder]\n\n{_ATC_HELP}', modal_words=False)
 
     except Exception as e:
         message.report_exception('AtCoder', traceback.format_exc(), e)

@@ -17,14 +17,14 @@ from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
 from src.platform.online.nowcoder import NowCoder
 from src.render.pixie.render_contest_list import ContestListRenderer
+from src.render.pixie.render_help import HelpRenderer
+
 
 _fixed_reply = {
     "ping": "pong",
     "活着吗": "你猜捏",
     "似了吗": "？",
-    "死了吗": "？？？",
-    "help": Constants.merged_help_content,
-    "帮助": Constants.merged_help_content
+    "死了吗": "？？？"
 }
 
 
@@ -199,7 +199,7 @@ def reply_qrcode(message: RobotMessage):
     message.reply("生成了一个二维码", png2jpg(f"{cached_prefix}.png"))
 
 
-@command(tokens=["晚安", "睡觉", "睡觉去了", "sleep"], is_command=False)
+@command(tokens=["晚安", "睡觉", "睡觉去了"], is_command=False)
 def reply_mc_sleep(message: RobotMessage):
     """
     Minecraft主题的睡觉命令处理器
@@ -208,9 +208,12 @@ def reply_mc_sleep(message: RobotMessage):
     actions = [
         "你的床爆炸了",
         "你被床弹飞了",
+        "你的床已被破坏",
         "你现在不能休息，周围有怪物在游荡",
+        "你现在不能休息，周围有玩家在游荡",
         "你只能在夜间或雷暴中入睡",
-        "正在等待1/10名玩家入睡",
+        "你只能在白天或晴天中入睡",
+        f"正在等待 1/{random.randint(2, 100)} 名玩家入睡",
         "晚安"
     ]
     chosen_action = random.choice(actions)
@@ -219,3 +222,22 @@ def reply_mc_sleep(message: RobotMessage):
     if chosen_action == "晚安":
         time.sleep(random.randint(30, 120))
         message.reply("早上好")
+
+
+@command(tokens=["sleep"])
+def reply_mc_sleep_as_cmd(message: RobotMessage):
+    """
+    Minecraft主题的睡觉命令处理器的指令调用版
+    """
+    reply_mc_sleep(message)
+
+
+@command(tokens=['help', 'helps', 'instruction', 'instructions', '帮助'])
+def reply_help(message: RobotMessage):
+    message.reply("O宝正在画画，稍等一下")
+
+    cached_prefix = get_cached_prefix('Help-Renderer')
+    contest_list_img = HelpRenderer().render()
+    contest_list_img.write_file(f"{cached_prefix}.png")
+
+    message.reply("帮助手册", png2jpg(f"{cached_prefix}.png"))
