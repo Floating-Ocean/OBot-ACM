@@ -4,13 +4,15 @@ import traceback
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
-from src.core.constants import Constants
+from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int, fetch_url_json, fetch_url_text
 from src.module.atc import reply_atc_request
 from src.module.cf import reply_cf_request
 from src.module.color_rand import reply_color_rand
 
 __rand_version__ = "v2.1.2"
+
+_RAND_HELP = '\n'.join(HelpStrList(Constants.help_contents["random"]))
 
 
 def register_module():
@@ -47,7 +49,7 @@ def reply_rand_request(message: RobotMessage):
     try:
         content = message.tokens
         if len(content) < 2 and not content[0].startswith("/选择"):
-            message.reply(f'[Random]\n\n{Constants.help_contents["random"]}', modal_words=False)
+            message.reply(f'[Random]\n\n{_RAND_HELP}', modal_words=False)
             return
 
         if content[0] == "/shuffle" or content[0] == "/打乱":
@@ -116,7 +118,7 @@ def reply_rand_request(message: RobotMessage):
             reply_atc_request(message)
 
         else:
-            message.reply(f'[Random]\n\n{Constants.help_contents["random"]}', modal_words=False)
+            message.reply(f'[Random]\n\n{_RAND_HELP}', modal_words=False)
 
     except Exception as e:
         message.report_exception('Random', traceback.format_exc(), e)

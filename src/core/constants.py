@@ -1,14 +1,30 @@
 import os
+from dataclasses import dataclass
 
 from botpy import logging
 from botpy.ext.cog_yaml import read
+
+
+@dataclass(frozen=True)
+class Help:
+    command: str
+    help: str
+
+    def __str__(self):
+        return f"{self.command}: {self.help}"
+
+
+class HelpStrList(list):
+    def __iter__(self):
+        # 每次迭代时返回每个元素的字符串表示
+        return (str(item) for item in super().__iter__())
 
 
 class Constants:
     log = logging.get_logger()
     config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
 
-    core_version = "v3.7.1"
+    core_version = "v3.8.1"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -39,64 +55,62 @@ class Constants:
     modal_words = ["喵", "呢", "捏", "qaq"]
 
     help_contents = {
-        'Main': '\n'.join([
-            "/今日题数: 查询今天从凌晨到现在的做题数情况.",
-            "/昨日总榜: 查询昨日的完整榜单.",
-            "/评测榜单 [verdict]: 查询分类型榜单，其中指定评测结果为第二参数 verdict，需要保证参数中无空格，如 wa, TimeExceeded."
-        ]),
-        'sub': '\n'.join([
-            "/user id [uid]: 查询 uid 对应用户的信息.",
-            "/user name [name]: 查询名为 name 对应用户的信息，支持模糊匹配.",
-            "/contests (platform): 查询 platform 平台近期比赛，可指定 Codeforces, AtCoder, NowCoder，留空则返回三平台近日比赛集合.",
-            "/contests today (platform): 查询 platform 平台今日比赛，参数同上.",
-            "/alive: 检查 OJ, Codeforces, AtCoder 的可连通性.",
-            "/api: 获取当前各模块的构建信息."
-        ]),
-        'pick_one': '\n'.join([
-            "/来只 [what]: 获取一个类别为 what 的随机表情包.",
-            "/随便来只: 获取一个随机类别的随机表情包.",
-            "/添加(来只) [what]: 添加一个类别为 what 的表情包，需要管理员审核."
-        ]),
-        'codeforces': '\n'.join([
-            "/cf id [handle]: 获取用户名为 handle 的 Codeforces 基础用户信息卡片.",
-            "/cf info [handle]: 获取用户名为 handle 的 Codeforces 详细用户信息.",
-            "/cf recent [handle] (count): 获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5.",
-            "/cf pick [标签|all] (难度) (new): 从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为xxx-xxx"
-            ". 末尾加上 new 参数则会忽视 P1000A 以前的题.",
-            "/cf contests: 列出最近的 Codeforces 比赛.",
-            "/cf tags: 用于列出 codeforces 平台的 tags (辅助 pick)."
-        ]),
-        'atcoder': '\n'.join([
-            "/atc id [handle]: 获取用户名为 handle 的 AtCoder 基础用户信息卡片.",
-            "/atc info [handle]: 获取用户名为 handle 的 AtCoder 详细用户信息.",
-            "/atc pick [比赛类型|all] (难度): 从 AtCoder 上随机选题，基于 Clist API"
-            ". 比赛类型可选参数为 [abc, arc, agc, ahc, common, sp, all]"
-            "，其中 common 涵盖前四个类型，而 sp 则是排除前四个类型. 难度为整数或一个区间，格式为xxx-xxx.",
-            "/atc contests: 列出最近的 AtCoder 比赛."
-        ]),
-        'nowcoder': '\n'.join([
-            "/nk id [handle]: 获取用户名为 handle 的 NowCoder 基础用户信息卡片.",
-            "/nk info [handle]: 获取用户名为 handle 的 NowCoder 详细用户信息.",
-            "/nk contests: 列出最近的 NowCoder 比赛."
-        ]),
-        'random': '\n'.join([
-            "/rand [num/int] [min] [max]: 在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9].",
-            "/rand seq [max]: 获取一个 1, 2, ..., max 的随机排列，值域 [1, 500]."
-        ]),
-        'hitokoto': '\n'.join([
-            "/hitokoto: 获取一条一言. 指令别名：/一言，/来(一)句(话)."
-        ]),
-        'color-rand': '\n'.join([
-            "/color: 获取一个色卡."
-        ]),
-        'number-guess': '\n'.join([
-            "/guess: 开始猜数字."
-            "/guess [num]: 猜测数字为 [num]."
-        ]),
-        'misc': '\n'.join([
-            "/qrcode [content]：生成一个内容为 content 的二维码."
-        ]),
+        'Main': [
+            Help("/今日题数", "查询今天从凌晨到现在的做题数情况."),
+            Help("/昨日总榜", "查询昨日的完整榜单."),
+            Help("/评测榜单 [verdict]", "查询分类型榜单，其中指定评测结果为第二参数 verdict，需要保证参数中无空格，如 wa, TimeExceeded.")
+        ],
+        'sub': [
+            Help("/user id [uid]", "查询 uid 对应用户的信息."),
+            Help("/user name [name]", "查询名为 name 对应用户的信息，支持模糊匹配."),
+            Help("/contests (platform)",
+                 "查询 platform 平台近期比赛，可指定 Codeforces, AtCoder, NowCoder，留空则返回三平台近日比赛集合."),
+            Help("/contests today (platform)", "查询 platform 平台今日比赛，参数同上."),
+            Help("/alive", "检查各算竟平台的可连通性."),
+            Help("/api", "获取当前各模块的构建信息.")
+        ],
+        'pick_one': [
+            Help("/来只 [what]", "获取一个类别为 what 的随机表情包."),
+            Help("/随便来只", "获取一个随机类别的随机表情包."),
+            Help("/添加(来只) [what]", "添加一个类别为 what 的表情包，需要管理员审核.")
+        ],
+        'codeforces': [
+            Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
+            Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
+            Help("/cf recent [handle] (count)", "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
+            Help("/cf pick [标签|all] (难度) (new)",
+                 "从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
+                 "末尾加上 new 参数则会忽视 P1000A 以前的题."),
+            Help("/cf contests", "列出最近的 Codeforces 比赛."),
+            Help("/cf tags", "用于列出 codeforces 平台的 tags (辅助 pick).")
+        ],
+        'atcoder': [
+            Help("/atc id [handle]", "获取用户名为 handle 的 AtCoder 基础用户信息卡片."),
+            Help("/atc info [handle]", "获取用户名为 handle 的 AtCoder 详细用户信息."),
+            Help("/atc pick [比赛类型|all] (难度)",
+                 "从 AtCoder 上随机选题，基于 Clist API. 比赛类型可选参数为 [abc, arc, agc, ahc, common, sp, all]，"
+                 "其中 common 涵盖前四个类型，而 sp 则是排除前四个类型. 难度为整数或一个区间，格式为xxx-xxx."),
+            Help("/atc contests", "列出最近的 AtCoder 比赛.")
+        ],
+        'nowcoder': [
+            Help("/nk id [handle]", "获取用户名为 handle 的 NowCoder 基础用户信息卡片."),
+            Help("/nk info [handle]", "获取用户名为 handle 的 NowCoder 详细用户信息."),
+            Help("/nk contests", "列出最近的 NowCoder 比赛.")
+        ],
+        'random': [
+            Help("/rand [num/int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
+            Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500].")
+        ],
+        'number-guess': [
+            Help("/guess", "开始猜数字."),
+            Help("/guess [num]", "猜测数字为 num."),
+            Help("/guess stop", "结束本轮猜数字游戏.")
+        ],
+        'misc': [
+            Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
+            Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
+            Help("/sleep", "进行一种 Minecraft 风格的睡觉."),
+            Help("/color", "获取一个色卡."),
+            Help("/help", "获取本图.")
+        ],
     }
-
-    merged_help_content = ("[Functions]\n\n" +
-                           "\n\n".join([f"[{module}]\n{helps}" for module, helps in help_contents.items()]))

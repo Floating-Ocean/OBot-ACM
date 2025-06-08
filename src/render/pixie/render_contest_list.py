@@ -32,23 +32,32 @@ class _ContestItem(RenderableSection):
         else:
             _status = format_timestamp_diff(int(time.time()) - self._contest.start_time)
 
-        self._00_idx_text = StyledString("00", 'H', 72)
+        self._00_idx_text = StyledString(
+            "00", 'H', 72
+        )
         self._begin_x = _SIDE_PADDING + calculate_width(self._00_idx_text) + 48
         max_width = _CONTENT_WIDTH + 32 - self._begin_x - 48 - _SIDE_PADDING
 
         self._time_logo_path = Renderer.load_img_resource("Time", (0, 0, 0))
         self._info_logo_path = Renderer.load_img_resource("Info", (0, 0, 0))
-        self._idx_text = StyledString(f"{self._idx:02d}",
-                                      'H', 78,
-                                      font_color=(0, 0, 0, 30), padding_bottom=12)
-        self._subtitle_text = StyledString(f"{self._contest.platform.upper()} · {self._contest.abbr}",
-                                           'H', 20, max_width=max_width, padding_bottom=12)
-        self._title_text = StyledString(f"{self._contest.name}",
-                                        'H', 56, max_width=max_width, padding_bottom=12)
-        self._time_text = StyledString(f"{_status}, {format_timestamp(self._contest.start_time)}",
-                                       'M', 32, max_width=max_width, padding_bottom=12)
-        self._status_text = StyledString(f"持续 {format_seconds(self._contest.duration)}, {self._contest.supplement}",
-                                         'M', 32, max_width=max_width, padding_bottom=12)
+        self._idx_text = StyledString(
+            f"{self._idx:02d}", 'H', 78, font_color=(0, 0, 0, 30), padding_bottom=12
+        )
+        self._subtitle_text = StyledString(
+            f"{self._contest.platform.upper()} · {self._contest.abbr}", 'H', 20,
+            max_width=max_width, padding_bottom=12
+        )
+        self._title_text = StyledString(
+            f"{self._contest.name}", 'H', 56, max_width=max_width, padding_bottom=12
+        )
+        self._time_text = StyledString(
+            f"{_status}, {format_timestamp(self._contest.start_time)}", 'M', 32,
+            max_width=max_width, padding_bottom=12
+        )
+        self._status_text = StyledString(
+            f"持续 {format_seconds(self._contest.duration)}, {self._contest.supplement}", 'M', 32,
+            max_width=max_width, padding_bottom=12
+        )
 
     def get_height(self):
         return calculate_height([self._subtitle_text, self._title_text, self._time_text, self._status_text])
@@ -78,10 +87,14 @@ class _TitleSection(RenderableSection):
         self.accent_dark_color = darken_color(hex_to_color(accent_color), 0.3)
         self.accent_dark_color_tran = change_alpha(self.accent_dark_color, 136)
         self.logo_path = Renderer.load_img_resource("Contest", self.accent_dark_color)
-        self.title_text = StyledString("近日算法竞赛", 'H', 96, padding_bottom=4,
-                                       font_color=self.accent_dark_color)
-        self.subtitle_text = StyledString("Recent Competitive Programming Competitions", 'H', 28,
-                                          font_color=self.accent_dark_color_tran)
+
+        self.title_text = StyledString(
+            "近日算法竞赛", 'H', 96, padding_bottom=4, font_color=self.accent_dark_color
+        )
+        self.subtitle_text = StyledString(
+            "Recent Competitive Programming Competitions", 'H', 28,
+            font_color=self.accent_dark_color_tran
+        )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         draw_img(img, self.logo_path, Loc(106, 181, 102, 102))
@@ -107,13 +120,19 @@ class _ContestsSection(RenderableSection):
         self.running_logo_path = Renderer.load_img_resource("Running", self.mild_ext_color, 1, 192 / 255)
         self.upcoming_logo_path = Renderer.load_img_resource("Pending", self.mild_ext_color, 1, 192 / 255)
         self.finished_logo_path = Renderer.load_img_resource("Ended", self.mild_ext_color, 1, 192 / 255)
-        self.none_title_text = StyledString("最近没有比赛，放松一下吧", 'H', 52, padding_bottom=72)
-        self.running_title_text = StyledString("RUNNING 正在进行", 'H', 52, padding_bottom=72,
-                                               font_color=self.mild_ext_color)
-        self.upcoming_title_text = StyledString("PENDING 即将进行", 'H', 52, padding_bottom=72,
-                                                font_color=self.mild_ext_color)
-        self.finished_title_text = StyledString("ENDED 已结束", 'H', 52, padding_bottom=72,
-                                                font_color=self.mild_ext_color)
+
+        self.none_title_text = StyledString(
+            "最近没有比赛，放松一下吧", 'H', 52, padding_bottom=72
+        )
+        self.running_title_text = StyledString(
+            "RUNNING 正在进行", 'H', 52, padding_bottom=72, font_color=self.mild_ext_color
+        )
+        self.upcoming_title_text = StyledString(
+            "PENDING 即将进行", 'H', 52, padding_bottom=72, font_color=self.mild_ext_color
+        )
+        self.finished_title_text = StyledString(
+            "ENDED 已结束", 'H', 52, padding_bottom=72, font_color=self.mild_ext_color
+        )
         self.column = self.get_columns()
 
     def get_columns(self):
@@ -160,7 +179,7 @@ class _ContestsSection(RenderableSection):
 
     def get_height(self):
         height = 0
-        if len(self.upcoming_contests) == 0 and len(self.running_contests) == 0 and len(self.finished_contests) == 0:
+        if max(len(self.upcoming_contests), len(self.running_contests), len(self.finished_contests)) == 0:
             height += calculate_height(self.none_title_text)
         else:
             height -= _TYPE_PADDING
@@ -181,19 +200,23 @@ class _CopyrightSection(RenderableSection):
 
     def __init__(self, gradient_color_name: str):
         self.mild_text_color = (0, 0, 0, 136)
-        self.tips_title_text = StyledString("Tips:", 'H', 36, padding_bottom=64,
-                                            font_color=(0, 0, 0, 208))
-        self.tips_detail_text = StyledString("数据源于平台数据爬取/API调用/手动填写，仅供参考", 'M', 28,
-                                             line_multiplier=1.32, padding_bottom=64,
-                                             max_width=(_CONTENT_WIDTH - 108 -  # 考虑右边界，不然画出去了
-                                                        calculate_width(self.tips_title_text) - 12 - 48),
-                                             font_color=(0, 0, 0, 208))
-        self.generator_text = StyledString("Contest List Renderer", 'H', 36,
-                                           font_color=(0, 0, 0, 208), padding_bottom=16)
-        self.generation_info_text = StyledString(f'Generated at {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}.\n'
-                                                 f'Initiated by OBot\'s ACM {Constants.core_version}.\n'
-                                                 f'{gradient_color_name}.', 'B', 20,
-                                                 line_multiplier=1.32, font_color=self.mild_text_color)
+        self.tips_title_text = StyledString(
+            "Tips:", 'H', 36, padding_bottom=64, font_color=(0, 0, 0, 208)
+        )
+        self.tips_detail_text = StyledString(
+            "数据源于平台数据爬取/API调用/手动填写，仅供参考", 'M', 28, line_multiplier=1.32,
+            max_width=(_CONTENT_WIDTH - 108 -  # 考虑右边界，不然画出去了
+                       calculate_width(self.tips_title_text) - 12 - 48),
+            padding_bottom=64, font_color=(0, 0, 0, 208)
+        )
+        self.generator_text = StyledString(
+            "Contest List Renderer", 'H', 36, font_color=(0, 0, 0, 208), padding_bottom=16
+        )
+        self.generation_info_text = StyledString(
+            f'Generated at {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}.\n'
+            f'Initiated by OBot\'s ACM {Constants.core_version}.\n'
+            f'{gradient_color_name}.', 'B', 20, line_multiplier=1.32, font_color=self.mild_text_color
+        )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y

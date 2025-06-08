@@ -13,6 +13,7 @@ from src.platform.online.nowcoder import NowCoder
 from src.render.html.render_how_to_cook import render_how_to_cook
 from src.render.pixie.render_color_card import ColorCardRenderer
 from src.render.pixie.render_contest_list import ContestListRenderer
+from src.render.pixie.render_help import HelpRenderer
 
 
 class Render(unittest.TestCase):
@@ -56,6 +57,11 @@ class Render(unittest.TestCase):
         dish_path = os.path.join(_lib_path, "lib", "dishes", "vegetable_dish", "西红柿豆腐汤羹", "西红柿豆腐汤羹.md")
         self.assertTrue(os.path.exists(dish_path))
         render_how_to_cook(__how_to_cook_version__, dish_path, "西红柿豆腐汤羹.png")
+
+    def test_help(self):
+        help_img = HelpRenderer().render()
+        self.assertIsNotNone(help_img)
+        help_img.write_file("test_help.png")
 
 if __name__ == '__main__':
     unittest.main()

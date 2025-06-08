@@ -20,7 +20,8 @@ class ManualPlatform(CompetitivePlatform):
 
     @classmethod
     def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
-        running_contests, upcoming_contests, finished_contests = [], [], []
+        running_contests, upcoming_contests = [], []
+        finished_contests_today, finished_contests_last = [], []
 
         manual_contests_path = os.path.join(_lib_path, 'manual_contests.json')
         if not os.path.exists(manual_contests_path):
@@ -36,13 +37,22 @@ class ManualPlatform(CompetitivePlatform):
                         running_contests.append(contest)
                     elif current_phase == DynamicContestPhase.UPCOMING:
                         upcoming_contests.append(contest)
-                    elif check_intersect(range1=get_today_timestamp_range(),
-                                         range2=(contest.start_time,
-                                                 contest.start_time + contest.duration)):
-                        finished_contests.append(contest)
+                    else:
+                        finished_contests_last.append(contest)
+                        if check_intersect(range1=get_today_timestamp_range(),
+                                           range2=(contest.start_time,
+                                                   contest.start_time + contest.duration)):
+                            finished_contests_today.append(contest)
         except (json.JSONDecodeError, KeyError) as e:
-            Constants.log.error(f"Decode manual_contests.json failed: {e}")
+            Constants.log.warn("[manual] 配置文件 manual_contests.json 无效.")
+            Constants.log.error(f"[manual] {e}")
             return [], [], []
+
+        finished_contests_last.sort(key=lambda c: -c.start_time)
+        if len(finished_contests_today) == 0:
+            finished_contests = [finished_contests_last[0]]
+        else:
+            finished_contests = finished_contests_today
 
         return running_contests, upcoming_contests, finished_contests
 

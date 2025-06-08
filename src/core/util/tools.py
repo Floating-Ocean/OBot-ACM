@@ -72,7 +72,7 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
             raise ValueError("Parameter method must be either 'post' or 'get'.")
 
         code = response.status_code
-        Constants.log.info(f"[network] 连接到 {url}, 代码 {code}.")
+        Constants.log.info(f"[network] {code} | {url}")
 
         if code != 200 and throw:
             raise ConnectionError(f"Filed to connect {url}, code {code}.")
@@ -81,8 +81,8 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
     except Exception as e:
         if throw:
             raise RuntimeError(f"Filed to connect {url}: {e}") from e
-        Constants.log.warn("[network] 一个异常被忽略.")
-        Constants.log.warn(f"[network] {e}")
+        Constants.log.warn("[network] 忽略了一个连接异常.")
+        Constants.log.error(f"[network] {e}")
         return code
 
 
