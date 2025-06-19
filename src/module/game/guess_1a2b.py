@@ -8,7 +8,7 @@ from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int
 
-__guess_1a2b_version__ = "v1.0.0"
+__guess_1a2b_version__ = "v1.0.1"
 
 _GUESS_1A2B_HELP = '\n'.join(HelpStrList(Constants.help_contents["guess-1a2b"]))
 
@@ -44,11 +44,11 @@ def start_game(message: RobotMessage):
                       f"目标为 {len(current_info.target)} 位数")
         return None
 
-    target_len = random.randint(4, 7)
-    target = ''.join(random.sample("0123456789", k=target_len))
-    if target[0] == '0':  # 避免出现前导0
-        rnd_idx = random.randint(1, len(target) - 1)
-        target[0], target[rnd_idx] = target[rnd_idx], target[0]
+    target_len = random.randint(4, 6)
+    first_digit = random.choice("123456789")  # 避免出现前导0
+    remaining_digits = random.sample([d for d in "0123456789" if d != first_digit],
+                                     target_len - 1)
+    target = first_digit + ''.join(remaining_digits)
 
     current_info = GuessInfo(GuessStatus.RUNNING, target, 0)
     message.reply("1a2b 游戏开始！使用 \"/1a2b [num]\" 猜测数字，不要带上中括号\n\n"
@@ -86,7 +86,7 @@ def try_guess(message: RobotMessage):
         message.reply("目标数字不包含前导0")
         return None
 
-    if len(set(participant_guess)) != len(current_info.target):
+    if len(set(participant_guess)) != len(participant_guess):
         message.reply("目标数字由不同的数组成")
         return None
 
@@ -115,7 +115,7 @@ def try_guess(message: RobotMessage):
     return None
 
 
-@command(tokens=["1a2b", "1A2B", "1a2b猜数字"], multi_thread=True)
+@command(tokens=["1a2b", "1a2b猜数字", "ab"], multi_thread=True)
 def reply_guess_1a2b(message: RobotMessage):
     if not 1 <= len(message.tokens) <= 2:
         message.reply(f"参数数量有误\n\n{_GUESS_1A2B_HELP}",
