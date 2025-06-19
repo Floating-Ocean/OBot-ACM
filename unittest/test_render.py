@@ -14,9 +14,11 @@ from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
 from src.platform.online.nowcoder import NowCoder
 from src.render.html.render_how_to_cook import render_how_to_cook
+from src.render.html.render_tetris_svg import render_tetris_svg
 from src.render.pixie.render_color_card import ColorCardRenderer
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
+from src.render.pixie.render_tetris_game import TetrisGameRenderer
 
 
 class Render(unittest.TestCase):
@@ -66,12 +68,8 @@ class Render(unittest.TestCase):
         self.assertIsNotNone(help_img)
         help_img.write_file("test_help.png")
 
-    def test_tetris(self):
-        colors = [
-            "#000000", "#ec407a", "#ab47bc", "#7986cb", "#29b6f6", "#4db6ac", "#d4e157", "#ffa726"
-        ]
+    def test_tetris_game(self):
         current_map = [
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -98,35 +96,9 @@ class Render(unittest.TestCase):
             [0, 4, 4, 4, 4, 2, 0, 2, 0, 2, 2, 2, 1, 1, 6, 1, 1, 5, 5, 5, 1, 1, 1, 0]
         ]
 
-        def tetris_map_to_svg() -> str:
-            svg_rects = ('<svg xmlns="http://www.w3.org/2000/svg" fill="#303030"'
-                         ' preserveAspectRatio="xMinYMin meet" viewBox="0 0 310 310">\n')
-            x_offset, y_offset = 0, 0
-
-            for line in current_map:
-                svg_rects += f'<g transform="translate(0, {y_offset * 13})">\n'
-                x_offset = 0
-                for item in line:
-                    svg_rects += (f'<rect x="{x_offset * 13}" width="11" height="11"'
-                                  f' fill="{colors[item]}"/>\n')
-                    x_offset += 1
-                y_offset += 1
-                svg_rects += '</g>\n'
-
-            svg_rects += '</svg>'
-
-            return svg_rects
-
-        with open('test_tetris_map_to_svg.svg', 'w') as f:
-            tetris_svg = tetris_map_to_svg()
-            self.assertIsNotNone(tetris_svg)
-            f.write(tetris_svg)
-
-        tetris_map = pixie.read_image('test_tetris_map_to_svg.svg')
-        img = pixie.Image(314, 314)
-        draw_full(img, (36, 36, 36))
-        draw_img(img, tetris_map, Loc(2, 2, 310, 310))
-        img.write_file('test_tetris_map_to_svg.png')
+        tetris_game_img = TetrisGameRenderer(current_map, 'test_tetris_map_to_svg',
+                                             45, 24, 153).render()
+        tetris_game_img.write_file("test_tetris_game.png")
 
 
 if __name__ == '__main__':
