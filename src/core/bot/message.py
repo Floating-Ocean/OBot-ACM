@@ -87,7 +87,7 @@ class RobotMessage:
 
     async def _send_message(self, content: str, img_path: str, img_url: str):
         """统一消息发送入口"""
-        Constants.log.info(f"[obot-int] 发起回复: {content}")
+        Constants.log.info(f"[obot-act] 发起回复: {content}")
         self.msg_seq += 1
 
         # 处理媒体文件上传
@@ -118,8 +118,8 @@ class RobotMessage:
                 if received_media['status'] == 'ok':
                     return received_media
             except Exception as e:
-                Constants.log.warn("[obot-int] 上传媒体文件失败.")
-                Constants.log.error(f"[obot-int] {e}")
+                Constants.log.warn("[obot-act] 上传媒体文件失败.")
+                Constants.log.error(f"[obot-act] {e}")
         return {'status': 'error', 'data': None}
 
     async def _call_upload_api(self, **kwargs) -> dict:

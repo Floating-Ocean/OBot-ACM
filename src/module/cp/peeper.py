@@ -84,7 +84,7 @@ def daily_update_job():
 def noon_report_job(client: Client):
     # 因为只有这里需要主动推送所以写函数里了
     def push_message(content: str, file_image: str | None = None):
-        Constants.log.info(f"[obot-int] 发起推送: {content}")
+        Constants.log.info(f"[obot-act] 发起推送: {content}")
         asyncio.run_coroutine_threadsafe(
             client.api.post_message(channel_id=Constants.config['push_channel'],
                                     content=content,
