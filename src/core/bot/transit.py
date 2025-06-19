@@ -11,7 +11,6 @@ from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
 
-
 _query_queue: dict[str, queue.Queue] = {}
 _count_queue: dict[str, queue.Queue] = {}
 _work_thread_life: dict[str, int] = {"default.manual": -1}
@@ -204,7 +203,9 @@ def queue_up_handler(worker_id: str):
             break
 
         try:
-            queued_message: tuple[RobotMessage, MessageID] = _query_queue[worker_id].get(timeout=1)  # 这里需要timeout，不然会一直阻塞
+            queued_message: tuple[RobotMessage, MessageID] = (
+                _query_queue[worker_id].get(timeout=1)  # 这里需要timeout，不然会一直阻塞
+            )
             message, message_id = queued_message
 
             handle_message(message, message_id)

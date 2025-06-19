@@ -14,7 +14,7 @@ from src.core.bot.command import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, distribute_message
 from src.core.constants import Constants
-from src.module.peeper import daily_update_job, noon_report_job
+from src.module.cp.peeper import daily_update_job, noon_report_job
 
 daily_sched = BlockingScheduler()
 noon_sched = BlockingScheduler()

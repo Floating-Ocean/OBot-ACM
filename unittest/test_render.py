@@ -4,8 +4,8 @@ import unittest
 
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg
-from src.module.how_to_cook import __how_to_cook_version__
-from src.module.color_rand import load_colors, _colors, transform_color, add_qrcode
+from src.module.tool.how_to_cook import __how_to_cook_version__
+from src.module.tool.color_rand import load_colors, _colors, transform_color, add_qrcode
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces

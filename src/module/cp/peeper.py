@@ -11,14 +11,14 @@ from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
-from src.module.atc import __atc_version__
-from src.module.cf import __cf_version__
-from src.module.color_rand import __color_rand_version__
-from src.module.contest_manual import __contest_list_renderer_version__
-from src.module.how_to_cook import __how_to_cook_version__
-from src.module.nk import __nk_version__
-from src.module.pick_one import __pick_one_version__
-from src.module.rand import __rand_version__
+from src.module.cp.atc import __atc_version__
+from src.module.cp.cf import __cf_version__
+from src.module.cp.contest_manual import __contest_list_renderer_version__
+from src.module.cp.nk import __nk_version__
+from src.module.tool.color_rand import __color_rand_version__
+from src.module.tool.how_to_cook import __how_to_cook_version__
+from src.module.tool.pick_one import __pick_one_version__
+from src.module.tool.rand import __rand_version__
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Peeper-Board-Generator")
 

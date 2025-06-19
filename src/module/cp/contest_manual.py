@@ -31,18 +31,18 @@ def reply_manual_add_contest(message: RobotMessage):
 
     date_format = "%y%m%d%H%M%S"
     if not is_valid_date(start_time_raw, date_format):
-        message.reply("start_time格式错误\n\n"
+        message.reply("start_time 格式错误\n\n"
                       f"{help_content}")
         return
     start_time = int(datetime.strptime(start_time_raw, date_format).timestamp())
 
     if not check_is_int(duration_raw):
-        message.reply("duration必须为整数\n\n"
+        message.reply("duration 必须为整数\n\n"
                       f"{help_content}")
         return
     duration = int(duration_raw)
     if duration <= 0:
-        message.reply("duration必须为正整数\n\n"
+        message.reply("duration 必须为正整数\n\n"
                       f"{help_content}")
         return
 

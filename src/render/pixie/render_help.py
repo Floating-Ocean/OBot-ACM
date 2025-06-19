@@ -148,6 +148,7 @@ class _CopyrightSection(RenderableSection):
     def get_height(self):
         return calculate_height([self.tips_title_text, self.generator_text, self.generation_info_text])
 
+
 class HelpRenderer(Renderer):
     """帮助信息"""
 
