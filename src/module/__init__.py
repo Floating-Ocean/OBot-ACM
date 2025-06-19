@@ -5,7 +5,8 @@ def register_all_modules():
     from .cp.contest_manual import register_module
     from .cp.nk import register_module
     from .cp.peeper import register_module
-    from .game.number_guess import register_module
+    from .game.guess_interval import register_module
+    from .game.guess_1a2b import register_module
     from .tool.color_rand import register_module
     from .tool.how_to_cook import register_module
     from .tool.pick_one import register_module

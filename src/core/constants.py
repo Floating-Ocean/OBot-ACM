@@ -102,10 +102,15 @@ class Constants:
             Help("/rand [num/int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
             Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500].")
         ],
-        'number-guess': [
-            Help("/guess", "开始猜数字."),
+        'guess-interval': [
+            Help("/guess", "开始区间猜数字."),
             Help("/guess [num]", "猜测数字为 num."),
-            Help("/guess stop", "结束本轮猜数字游戏.")
+            Help("/guess stop", "结束本轮区间猜数字游戏.")
+        ],
+        'guess-1a2b': [
+            Help("/1a2b", "开始 1a2b 游戏."),
+            Help("/1a2b [num]", "猜测数字为 num."),
+            Help("/1a2b stop", "结束本轮 1a2b 游戏.")
         ],
         'misc': [
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
