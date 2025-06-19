@@ -2,6 +2,9 @@ import os
 import random
 import unittest
 
+import pixie
+from easy_pixie import draw_full, draw_img, Loc
+
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg
 from src.module.tool.how_to_cook import __how_to_cook_version__
@@ -62,6 +65,69 @@ class Render(unittest.TestCase):
         help_img = HelpRenderer().render()
         self.assertIsNotNone(help_img)
         help_img.write_file("test_help.png")
+
+    def test_tetris(self):
+        colors = [
+            "#000000", "#ec407a", "#ab47bc", "#7986cb", "#29b6f6", "#4db6ac", "#d4e157", "#ffa726"
+        ]
+        current_map = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 2, 0, 0, 0, 0, 7, 0, 0, 0, 5, 5, 0, 4, 2, 0, 2, 0, 0, 0, 1, 1],
+            [1, 1, 2, 2, 2, 0, 3, 0, 6, 6, 0, 0, 3, 5, 0, 4, 4, 0, 2, 2, 0, 4, 1, 0],
+            [4, 5, 5, 6, 6, 0, 3, 1, 1, 7, 7, 0, 3, 5, 7, 7, 4, 0, 2, 4, 4, 4, 0, 3],
+            [4, 4, 5, 6, 6, 0, 3, 1, 1, 0, 0, 7, 3, 3, 6, 7, 7, 4, 4, 0, 4, 4, 4, 3],
+            [0, 4, 5, 6, 6, 0, 3, 5, 2, 0, 2, 0, 3, 3, 6, 6, 6, 4, 4, 4, 4, 5, 0, 3],
+            [0, 4, 4, 4, 4, 2, 0, 2, 0, 2, 2, 2, 1, 1, 6, 1, 1, 5, 5, 5, 1, 1, 1, 0]
+        ]
+
+        def tetris_map_to_svg() -> str:
+            svg_rects = ('<svg xmlns="http://www.w3.org/2000/svg" fill="#303030"'
+                         ' preserveAspectRatio="xMinYMin meet" viewBox="0 0 310 310">\n')
+            x_offset, y_offset = 0, 0
+
+            for line in current_map:
+                svg_rects += f'<g transform="translate(0, {y_offset * 13})">\n'
+                x_offset = 0
+                for item in line:
+                    svg_rects += (f'<rect x="{x_offset * 13}" width="11" height="11"'
+                                  f' fill="{colors[item]}"/>\n')
+                    x_offset += 1
+                y_offset += 1
+                svg_rects += '</g>\n'
+
+            svg_rects += '</svg>'
+
+            return svg_rects
+
+        with open('test_tetris_map_to_svg.svg', 'w') as f:
+            tetris_svg = tetris_map_to_svg()
+            self.assertIsNotNone(tetris_svg)
+            f.write(tetris_svg)
+
+        tetris_map = pixie.read_image('test_tetris_map_to_svg.svg')
+        img = pixie.Image(314, 314)
+        draw_full(img, (36, 36, 36))
+        draw_img(img, tetris_map, Loc(2, 2, 310, 310))
+        img.write_file('test_tetris_map_to_svg.png')
+
 
 if __name__ == '__main__':
     unittest.main()
