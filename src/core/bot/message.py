@@ -2,6 +2,7 @@ import asyncio
 import base64
 import random
 import re
+import threading
 import uuid
 from asyncio import AbstractEventLoop
 from enum import Enum
@@ -36,6 +37,7 @@ class RobotMessage:
         self.author_id = ""
         self.attachments = []
         self.msg_seq = 0
+        self.seq_lock = threading.Lock()
         self.user_permission_level: PermissionLevel = PermissionLevel.USER
         self.uuid = str(uuid.uuid4())  # 默认值，正常来说会被覆盖
         self._public = False  # Guild only
@@ -80,21 +82,22 @@ class RobotMessage:
         friendly_content = content + random.choice(Constants.modal_words) if modal_words else content
         friendly_content = april_fool_magic(friendly_content)
 
-        asyncio.run_coroutine_threadsafe(  # 不能使用 loop.create_task，会造成资源竞争
-            self._send_message(friendly_content, img_path, img_url),
-            self.loop
-        )
+        with self.seq_lock:
+            self.msg_seq += 1
+            asyncio.run_coroutine_threadsafe(  # 不能使用 loop.create_task，会造成资源竞争
+                self._send_message(friendly_content, self.msg_seq, img_path, img_url),
+                self.loop
+            )
 
-    async def _send_message(self, content: str, img_path: str, img_url: str):
+    async def _send_message(self, content: str, msg_seq: int, img_path: str, img_url: str):
         """统一消息发送入口"""
         Constants.log.info(f"[obot-act] 发起回复: {content}")
-        self.msg_seq += 1
 
         # 处理媒体文件上传
         media = await self._upload_media(img_path, img_url) \
             if (img_path or img_url) and self.message_type != MessageType.GUILD else None
 
-        base_params = await self._pack_message_params(content, media)
+        base_params = await self._pack_message_params(content, msg_seq, media)
         if not base_params:
             return
         params = base_params
@@ -147,18 +150,19 @@ class RobotMessage:
         else:
             return {'status': 'error', 'data': None}
 
-    async def _pack_message_params(self, content: str, media: Optional[dict]) -> Optional[dict]:
+    async def _pack_message_params(self, content: str, msg_seq: int,
+                                   media: Optional[dict]) -> Optional[dict]:
         """构造消息发送参数"""
         base_params = {
             "content": content,
             "msg_id": self.message.id,
-            "msg_seq": self.msg_seq
+            "msg_seq": msg_seq
         }
 
         # 媒体消息
         if media:
             if media['status'] != 'ok':
-                await self._send_fallback_message("发送图片失败，请稍后重试")
+                await self._send_fallback_message("发送图片失败，请稍后重试", msg_seq)
                 return None
             return {**base_params, "msg_type": 7, "media": media['data']}
 
@@ -186,13 +190,13 @@ class RobotMessage:
         intended_params = {name: params[name] for name in intended_params_name if name in params}
         await api_method(**intended_params)
 
-    async def _send_fallback_message(self, text: str):
+    async def _send_fallback_message(self, text: str, msg_seq: int):
         """发送失败回退消息"""
         fallback_params = {
             "msg_type": 0,
             "content": text,
             "msg_id": self.message.id,
-            "msg_seq": self.msg_seq
+            "msg_seq": msg_seq
         }
         await self._handle_send_request(fallback_params)
 
