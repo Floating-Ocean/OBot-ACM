@@ -306,14 +306,15 @@ def put_block(message: RobotMessage):
         return None
 
     map_w = len(current_info.map[0])
+    setting_point_col -= 1
+
     if setting_point_col >= map_w:
         message.reply('没有这么多列')
         return None
 
-    setting_point_col -= 1
     setting_point_row = valid_setting_points[setting_point_col]
     if setting_point_row == -1:
-        message.reply(f'第 {setting_point_col} 列放不下了')
+        message.reply(f'第 {setting_point_col + 1} 列放不下了')
         return None
 
     current_info.trials += 1

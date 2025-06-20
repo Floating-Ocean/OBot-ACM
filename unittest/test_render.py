@@ -66,7 +66,7 @@ class Render(unittest.TestCase):
         help_img.write_file("test_help.png")
 
     def test_tetris_game(self):
-        current_map = [[0] * 24] * 16
+        current_map = [[0] * 24 for _ in range(16)]
         current_map.extend([
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0],
