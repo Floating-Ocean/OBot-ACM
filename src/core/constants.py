@@ -24,7 +24,7 @@ class Constants:
     log = logging.get_logger()
     config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
 
-    core_version = "v3.9.0.beta2_06200003"
+    core_version = "v3.9.0.beta3_06201907"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -111,6 +111,12 @@ class Constants:
             Help("/1a2b", "开始 1a2b 游戏."),
             Help("/1a2b [num]", "猜测数字为 num."),
             Help("/1a2b stop", "结束本轮 1a2b 游戏.")
+        ],
+        'tetris': [
+            Help("/tetris (col)", "开始 24 * col 大小的俄罗斯方块游戏，col 为列数，留空时默认为 24."),
+            Help("/tetris [rotate_cnt] [left_col]",
+                 "放置方块下落。方块顺时针旋转 rotate_cnt 次，左上角位于 left_col 列，从 1 开始编号."),
+            Help("/tetris stop", "结束本轮俄罗斯方块游戏.")
         ],
         'misc': [
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
