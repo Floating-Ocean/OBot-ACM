@@ -5,8 +5,8 @@
 
 <div align="center">
   <a href="https://github.com/qwedc001/Peeper-Board-Generator/blob/master/requirements.txt"><img alt="Supported Python Version" src="https://img.shields.io/badge/Python-3.10+-teal?style=flat-square"></a>
-  <a href="https://github.com/Floating-Ocean/OBot-ACM/actions/workflows/codeql.yml"><img alt="CodeQL Scan" src="https://img.shields.io/github/actions/workflow/status/Floating-Ocean/OBot-ACM/codeql.yml?style=flat-square&label=codeql scan"></a>
-  <a href="https://github.com/Floating-Ocean/OBot-ACM/releases/latest"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/Floating-Ocean/OBot-ACM?style=flat-square&label=OBot's ACM"></a>
+  <a href="https://github.com/Floating-Ocean/OBot-ACM/actions/workflows/codeql.yml"><img alt="CodeQL Scan" src="https://img.shields.io/github/actions/workflow/status/Floating-Ocean/OBot-ACM/codeql.yml?style=flat-square&label=codeql+scan"></a>
+  <a href="https://github.com/Floating-Ocean/OBot-ACM/releases/latest"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/Floating-Ocean/OBot-ACM?style=flat-square&label=OBot's+ACM"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/Floating-Ocean/OBot-ACM?style=flat-square"></a>
 </div>
 <div align="center">
