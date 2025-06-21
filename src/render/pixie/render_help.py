@@ -52,13 +52,13 @@ class _HelpSection(RenderableSection):
         left_column_height = sum(
             sum(single_help.get_height() for single_help in help_items)
             for help_items in self._help_items[:_SPLIT_POINT]
-        ) + _HELP_SECTION_PADDING * 3
+        ) + _HELP_SECTION_PADDING * (_SPLIT_POINT - 1)
 
         # 计算右列高度
         right_column_height = sum(
             sum(single_help.get_height() for single_help in help_items)
             for help_items in self._help_items[_SPLIT_POINT:]
-        ) + _HELP_SECTION_PADDING * (len(self._help_items) - 5)
+        ) + _HELP_SECTION_PADDING * (len(self._help_items) - _SPLIT_POINT - 1)
 
         return max(left_column_height, right_column_height)
 
