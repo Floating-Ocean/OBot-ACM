@@ -119,26 +119,23 @@ class _TetrisMapSection(RenderableSection):
 class _TetrisNextSection(RenderableSection):
 
     def __init__(self, next_block: dict, svg_ts_path: str):
+        perms = next_block["perm"]
         self.tetris_maps = [
-            _TetrisMapSection(next_block["perm"][d],
-                              f'{svg_ts_path}_{d}.svg',
+            _TetrisMapSection(perms[d],
+                              f'{svg_ts_path}_{d}',
                               _NEXT_BLOCK_SIZE, _NEXT_BLOCK_SIZE)
-            for d in range(len(next_block["perm"]))
+            for d in range(len(perms))
         ]
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
 
-        self.tetris_maps[0].render(img, current_x, current_y)
-        current_x += _NEXT_BLOCK_SIZE + _NEXT_BLOCK_PADDING
-
-        self.tetris_maps[1].render(img, current_x, current_y)
-        current_x += _NEXT_BLOCK_SIZE + _NEXT_BLOCK_PADDING
-
-        self.tetris_maps[2].render(img, current_x, current_y)
-        current_x += _NEXT_BLOCK_SIZE + _NEXT_BLOCK_PADDING
-
-        current_y = self.tetris_maps[3].render(img, current_x, current_y)
+        for idx, tetris_map in enumerate(self.tetris_maps):
+            if idx == len(self.tetris_maps) - 1:
+                current_y = tetris_map.render(img, current_x, current_y)
+            else:
+                tetris_map.render(img, current_x, current_y)
+                current_x += _NEXT_BLOCK_SIZE + _NEXT_BLOCK_PADDING
 
         return current_y
 

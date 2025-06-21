@@ -29,7 +29,7 @@ if __name__ == '__main__':
                 # 验证进程身份，避免误杀
                 if ("python" in proc.name().lower() and
                         any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
-                    psutil.Process(old_pid).kill()
+                    proc.kill()
 
     with open(LOCK_PATH, 'wb') as lock_file:
         lock_file.write(base64.b85encode(str(os.getpid()).encode()))
