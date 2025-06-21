@@ -1,7 +1,10 @@
+import copy
+import math
 import random
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import Optional
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
@@ -99,6 +102,26 @@ class GameInfo:
     next_block: int
     score: int
     trials: int
+    previous_state: Optional['GameInfo'] = field(default=None, repr=False)
+
+    def create_backup(self):
+        backup = copy.deepcopy(self)
+        backup.previous_state = None
+        self.previous_state = backup
+
+    def restore_backup(self) -> bool:
+        if not self.previous_state:
+            return False
+
+        backup = self.previous_state
+        self.status = backup.status
+        self.map = backup.map
+        self.next_block = backup.next_block
+        self.score = backup.score
+        self.trials = backup.trials
+        self.previous_state = None
+
+        return True
 
 
 _game_info = {}
@@ -142,11 +165,9 @@ def _get_valid_setting_points(current_info: GameInfo,
     获取方块可以下落的位置，返回落脚点对应方块左上角所在行
     """
     map_w = len(current_info.map)
-    valid_setting_points = [0] * map_w
-
-    for col in range(map_w):
-        valid_setting_points[col] = _simulate_block_falling(current_info,
-                                                            block_id, rotate_cnt, col)
+    valid_setting_points = [_simulate_block_falling(current_info,
+                                                    block_id, rotate_cnt, col)
+                            for col in range(map_w)]
 
     return valid_setting_points
 
@@ -191,19 +212,15 @@ def _validate_next_block(current_info: GameInfo, block_id: int) -> bool:
     return False
 
 
-def _end_game(message: RobotMessage, current_info: GameInfo):
-    message.reply("游戏结束", img_path=_render_map(current_info), modal_words=False)
+def _end_game(message: RobotMessage, current_info: GameInfo, passive: bool):
+    message.reply("无法放置下一个方块，游戏被判定为结束" if passive else "游戏结束",
+                  img_path=_render_map(current_info), modal_words=False)
     current_uuid = message.uuid
     _game_info[current_uuid] = GameInfo(GameStatus.ENDED,
                                         [[0] * 24 for _ in range(24)], -1, -1, -1)
 
 
-def _next_block(message: RobotMessage, current_info: GameInfo):
-    current_info.next_block = random.randint(0, len(BLOCKS) - 1)
-    if not _validate_next_block(current_info, current_info.next_block):
-        _end_game(message, current_info)
-        return None
-
+def _reply_next_block(message: RobotMessage, current_info: GameInfo):
     cached_prefix = get_cached_prefix('Tetris-Project')
     img_path = f"{cached_prefix}.png"
     tetris_next_block_img = TetrisNextBlockRenderer(BLOCKS[current_info.next_block],
@@ -213,7 +230,14 @@ def _next_block(message: RobotMessage, current_info: GameInfo):
     message.reply(f'下一个方块为 {BLOCKS[current_info.next_block]["name"]}\n\n'
                   '使用 "/tetris [旋转次数] [左上角所在列]" 放置方块，不要带上中括号',
                   img_path=png2jpg(img_path))
-    return None
+
+
+def _next_block(message: RobotMessage, current_info: GameInfo):
+    current_info.next_block = random.randint(0, len(BLOCKS) - 1)
+    _reply_next_block(message, current_info)
+
+    if not _validate_next_block(current_info, current_info.next_block):
+        _end_game(message, current_info, True)
 
 
 def _get_and_validate_map_col(message: RobotMessage) -> int:
@@ -225,7 +249,7 @@ def _get_and_validate_map_col(message: RobotMessage) -> int:
         return -1
 
     if len(message.tokens) > 2:
-        message.reply(f'参数有误\n\n{_TETRIS_HELP}', modal_words=False)
+        message.reply(f'游戏还未开始，参数过多\n\n{_TETRIS_HELP}', modal_words=False)
         return -1
 
     map_col = 24
@@ -241,7 +265,6 @@ def _get_and_validate_map_col(message: RobotMessage) -> int:
 
 def start_game(message: RobotMessage):
     current_uuid = message.uuid
-    current_info: GameInfo = _game_info[current_uuid]
 
     map_col = _get_and_validate_map_col(message)
     if map_col == -1:
@@ -271,6 +294,16 @@ def _place_block(current_info: GameInfo,
                     block[row][col]
 
 
+def _retract_step(message: RobotMessage, current_info: GameInfo):
+    if current_info.restore_backup():
+        current_info.score -= 5  # 回退1次操作扣除5分
+        message.reply('回退到上次的游戏状态，扣除 5 分.\n注意，你无法继续回退',
+                      img_path=_render_map(current_info))
+        _reply_next_block(message, current_info)
+    else:
+        message.reply('无法回退，可能是还未放置方块或已经回退 1 次')
+
+
 def _validate_in_game_pre_input(message: RobotMessage) -> bool:
     current_uuid = message.uuid
     current_info: GameInfo = _game_info[current_uuid]
@@ -291,7 +324,12 @@ def _validate_in_game_pre_input(message: RobotMessage) -> bool:
 
     if not check_is_int(message.tokens[1]):
         if message.tokens[1] in ['stop', '结束', 'end', 'finish']:
-            _end_game(message, current_info)
+            _end_game(message, current_info, False)
+        elif message.tokens[1] in ['now', 'cur', 'current', 'map']:
+            message.reply('当前游戏状态', img_path=_render_map(current_info))
+            _reply_next_block(message, current_info)
+        elif message.tokens[1] in ['retract', 'back', 'undo']:
+            _retract_step(message, current_info)
         else:
             message.reply(f'参数有误\n\n{_TETRIS_HELP}', modal_words=False)
         return False
@@ -331,6 +369,15 @@ def _get_and_validate_setting_point_row(message: RobotMessage,
     return setting_point_row
 
 
+def _calculate_score(current_info: GameInfo, eliminated_lines_count: int) -> int:
+    base_score = eliminated_lines_count * eliminated_lines_count
+
+    level = max(0, current_info.score // 25)  # 每25分升一级
+    factor = 1 + math.sqrt(level) / 2   # 平方根增长，避免指数爆炸
+
+    return int(base_score * factor)
+
+
 def put_block(message: RobotMessage):
     current_uuid = message.uuid
     current_info: GameInfo = _game_info[current_uuid]
@@ -338,8 +385,13 @@ def put_block(message: RobotMessage):
     if not _validate_in_game_pre_input(message):
         return None
 
+    current_info.create_backup()
+
     rotate_cnt, setting_point_col = int(message.tokens[1]), int(message.tokens[2]) - 1
     setting_point_row = _get_and_validate_setting_point_row(message, setting_point_col, rotate_cnt)
+
+    if setting_point_row == -1:
+        return None
 
     current_info.trials += 1
     _place_block(current_info,
@@ -348,7 +400,7 @@ def put_block(message: RobotMessage):
                                               rotate_cnt, setting_point_row)
 
     if eliminated_lines_count > 0:
-        obtained_score = eliminated_lines_count ** int(2 * max(1, current_info.score // 150))
+        obtained_score = _calculate_score(current_info, eliminated_lines_count)
         current_info.score += obtained_score
         message.reply(f'成功消除 {eliminated_lines_count} 行，获得 {obtained_score} 分',
                       img_path=_render_map(current_info))

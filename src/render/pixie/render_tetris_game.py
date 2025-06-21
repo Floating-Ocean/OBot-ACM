@@ -176,7 +176,7 @@ class TetrisGameRenderer(Renderer):
         self.current_map = current_map
         self.svg_ts_path = svg_ts_path
         self.score = score
-        self.map_width = len(current_map)
+        self.map_width = len(current_map[0])
         self.trials = trials
 
     def render(self) -> pixie.Image:
