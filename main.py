@@ -35,13 +35,13 @@ def check_process_job():
                     raw_data = lock_file.read()
                     if not raw_data:
                         Constants.log.warning("[daemon] 锁文件为空")
-                        raise psutil.NoSuchProcess(0)
+                        raise psutil.NoSuchProcess(-1)
 
                     try:
                         pid = int(base64.b85decode(raw_data).decode())
                     except Exception as e:
                         Constants.log.error(f"[daemon] 锁文件解析失败: {str(e)}")
-                        raise psutil.NoSuchProcess(pid)
+                        raise psutil.NoSuchProcess(-1)
 
                     if psutil.pid_exists(pid):
                         proc = psutil.Process(pid)
