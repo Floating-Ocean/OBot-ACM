@@ -14,6 +14,8 @@ _COLUMN_PADDING = 52
 _HELP_SECTION_PADDING = 72
 _SECTION_PADDING = 108
 
+_SPLIT_POINT = 5
+
 
 class _HelpItem(RenderableSection):
     def __init__(self, single_help: Help):
@@ -49,13 +51,13 @@ class _HelpSection(RenderableSection):
         # 计算左列高度
         left_column_height = sum(
             sum(single_help.get_height() for single_help in help_items)
-            for help_items in self._help_items[:4]
+            for help_items in self._help_items[:_SPLIT_POINT]
         ) + _HELP_SECTION_PADDING * 3
 
         # 计算右列高度
         right_column_height = sum(
             sum(single_help.get_height() for single_help in help_items)
-            for help_items in self._help_items[4:]
+            for help_items in self._help_items[_SPLIT_POINT:]
         ) + _HELP_SECTION_PADDING * (len(self._help_items) - 5)
 
         return max(left_column_height, right_column_height)
@@ -65,7 +67,7 @@ class _HelpSection(RenderableSection):
         max_y = y
 
         current_y -= _HELP_SECTION_PADDING
-        for help_items in self._help_items[:4]:
+        for help_items in self._help_items[:_SPLIT_POINT]:
             current_y += _HELP_SECTION_PADDING
             for single_help in help_items:
                 current_y = single_help.render(img, current_x, current_y)
@@ -74,7 +76,7 @@ class _HelpSection(RenderableSection):
         current_x, current_y = x + _CONTENT_WIDTH + _COLUMN_PADDING, y
 
         current_y -= _HELP_SECTION_PADDING
-        for help_items in self._help_items[4:]:
+        for help_items in self._help_items[_SPLIT_POINT:]:
             current_y += _HELP_SECTION_PADDING
             for single_help in help_items:
                 current_y = single_help.render(img, current_x, current_y)

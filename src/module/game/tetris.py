@@ -5,13 +5,12 @@ from enum import Enum
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
-
-__tetris_version__ = "v1.0.0"
-
 from src.core.constants import HelpStrList, Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, png2jpg
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
+
+__tetris_version__ = "v1.1.0"
 
 _TETRIS_HELP = '\n'.join(HelpStrList(Constants.help_contents["tetris"]))
 
@@ -80,6 +79,7 @@ BLOCKS = [
         ]
     }
 ]
+
 
 def register_module():
     pass
@@ -216,25 +216,36 @@ def _next_block(message: RobotMessage, current_info: GameInfo):
     return None
 
 
-def start_game(message: RobotMessage):
+def _get_and_validate_map_col(message: RobotMessage) -> int:
     current_uuid = message.uuid
     current_info: GameInfo = _game_info[current_uuid]
 
     if current_info.status == GameStatus.RUNNING:
         message.reply('游戏已经开始，请使用 "/tetris [旋转次数] [左上角所在列]" 放置方块，不要带上中括号')
-        return None
+        return -1
 
     if len(message.tokens) > 2:
         message.reply(f'参数有误\n\n{_TETRIS_HELP}', modal_words=False)
-        return None
+        return -1
 
     map_col = 24
     if len(message.tokens) == 2:
         if (len(message.tokens[1]) != 2 or not check_is_int(message.tokens[1]) or
                 not 16 <= int(message.tokens[1]) <= 24):
             message.reply(f'列数 col 应为 [16, 24] 内的整数\n\n{_TETRIS_HELP}', modal_words=False)
-            return None
+            return -1
         map_col = int(message.tokens[1])
+
+    return map_col
+
+
+def start_game(message: RobotMessage):
+    current_uuid = message.uuid
+    current_info: GameInfo = _game_info[current_uuid]
+
+    map_col = _get_and_validate_map_col(message)
+    if map_col == -1:
+        return None
 
     current_info = GameInfo(GameStatus.RUNNING,
                             [[0] * map_col for _ in range(24)], -1, 0, 0)
@@ -253,8 +264,6 @@ def _place_block(current_info: GameInfo,
                  setting_point_row: int, setting_point_col: int):
     block = BLOCKS[block_id]["perm"][rotate_cnt % len(BLOCKS[block_id]["perm"])]
     block_w, block_h = len(block[0]), len(block)
-    Constants.log.info(f'{setting_point_row}, {setting_point_col}')
-    Constants.log.info(f'{block_h}, {block_w}')
     for row in range(block_h):
         for col in range(block_w):
             if block[row][col] != 0:
@@ -262,66 +271,81 @@ def _place_block(current_info: GameInfo,
                     block[row][col]
 
 
-
-def put_block(message: RobotMessage):
+def _validate_in_game_pre_input(message: RobotMessage) -> bool:
     current_uuid = message.uuid
     current_info: GameInfo = _game_info[current_uuid]
 
     if _game_info[current_uuid].status == GameStatus.IDLE:
         message.reply(f"游戏还未开始\n\n{_TETRIS_HELP}",
                       modal_words=False)
-        return None
+        return False
 
     if _game_info[current_uuid].status == GameStatus.ENDED:
         message.reply(f"上一轮游戏已结束\n\n{_TETRIS_HELP}",
                       modal_words=False)
-        return None
+        return False
 
     if not 2 <= len(message.tokens) <= 3:
         message.reply(f'参数有误\n\n{_TETRIS_HELP}', modal_words=False)
-        return None
+        return False
 
     if not check_is_int(message.tokens[1]):
         if message.tokens[1] in ['stop', '结束', 'end', 'finish']:
             _end_game(message, current_info)
         else:
             message.reply(f'参数有误\n\n{_TETRIS_HELP}', modal_words=False)
-        return None
-
+        return False
 
     if (len(message.tokens) == 2 or not check_is_int(message.tokens[2]) or
             not 0 <= int(message.tokens[1]) < 100 or
             not int(message.tokens[2]) >= 0):
         message.reply(f'参数有误\n\n{_TETRIS_HELP}', modal_words=False)
-        return None
+        return False
 
-    rotate_cnt, setting_point_col = int(message.tokens[1]), int(message.tokens[2])
+    return True
+
+
+def _get_and_validate_setting_point_row(message: RobotMessage,
+                                        setting_point_col: int, rotate_cnt: int) -> int:
+    current_uuid = message.uuid
+    current_info: GameInfo = _game_info[current_uuid]
+
     valid_setting_points = _get_valid_setting_points(current_info,
                                                      current_info.next_block, rotate_cnt)
 
-    Constants.log.info(valid_setting_points)
-
-    if setting_point_col == 0:
+    if setting_point_col == -1:
         message.reply('列从 1 开始编号')
-        return None
+        return -1
 
     map_w = len(current_info.map[0])
-    setting_point_col -= 1
 
     if setting_point_col >= map_w:
         message.reply('没有这么多列')
-        return None
+        return -1
 
     setting_point_row = valid_setting_points[setting_point_col]
     if setting_point_row == -1:
         message.reply(f'第 {setting_point_col + 1} 列放不下了')
+        return -1
+
+    return setting_point_row
+
+
+def put_block(message: RobotMessage):
+    current_uuid = message.uuid
+    current_info: GameInfo = _game_info[current_uuid]
+
+    if not _validate_in_game_pre_input(message):
         return None
+
+    rotate_cnt, setting_point_col = int(message.tokens[1]), int(message.tokens[2]) - 1
+    setting_point_row = _get_and_validate_setting_point_row(message, setting_point_col, rotate_cnt)
 
     current_info.trials += 1
     _place_block(current_info,
                  current_info.next_block, rotate_cnt, setting_point_row, setting_point_col)
-    eliminated_lines_count = _eliminate_lines(current_info,
-                                              current_info.next_block, rotate_cnt, setting_point_row)
+    eliminated_lines_count = _eliminate_lines(current_info, current_info.next_block,
+                                              rotate_cnt, setting_point_row)
 
     if eliminated_lines_count > 0:
         obtained_score = eliminated_lines_count ** int(2 * max(1, current_info.score // 150))
