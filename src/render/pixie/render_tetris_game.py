@@ -189,7 +189,7 @@ class TetrisGameRenderer(Renderer):
                          _TOP_PADDING + _BOTTOM_PADDING)
 
         img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((0, 0, 0, 255)))  # 填充白色背景
+        img.fill(tuple_to_color((0, 0, 0, 255)))  # 填充背景
 
         draw_mask_rect(img, Loc(32, 32, width, height), (52, 52, 52), 96)
 
