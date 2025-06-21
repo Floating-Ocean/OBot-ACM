@@ -116,6 +116,7 @@ class Constants:
             Help("/tetris (col)", "开始 24 * col 大小的俄罗斯方块游戏，col 为列数，留空时默认为 24."),
             Help("/tetris [rotate_cnt] [left_col]",
                  "放置方块下落。方块顺时针旋转 rotate_cnt 次，左上角位于 left_col 列，从 1 开始编号."),
+            Help("/tetris undo", "回退上一次操作，最多连续被执行一次."),
             Help("/tetris now", "查看当前俄罗斯方块游戏状态."),
             Help("/tetris stop", "结束本轮俄罗斯方块游戏.")
         ],
