@@ -28,37 +28,45 @@ def open_entry():
 
 
 def check_process_job():
+    probable_old_pid = -1
+
     try:
-        if os.path.exists(LOCK_PATH):
+        if not os.path.exists(LOCK_PATH):
+            Constants.log.warning("[daemon] 锁文件不存在")
+            raise psutil.NoSuchProcess(probable_old_pid)
+
+        with open(LOCK_PATH, "rb") as lock_file:
+            raw_data = lock_file.read()
+            if not raw_data:
+                Constants.log.warning("[daemon] 锁文件为空")
+                raise psutil.NoSuchProcess(probable_old_pid)
+
             try:
-                with open(LOCK_PATH, "rb") as lock_file:
-                    raw_data = lock_file.read()
-                    if not raw_data:
-                        Constants.log.warning("[daemon] 锁文件为空")
-                        raise psutil.NoSuchProcess(-1)
+                pid = int(base64.b85decode(raw_data).decode())
+            except Exception as e:
+                Constants.log.error(f"[daemon] 锁文件解析失败: {str(e)}")
+                raise psutil.NoSuchProcess(probable_old_pid)
 
-                    try:
-                        pid = int(base64.b85decode(raw_data).decode())
-                    except Exception as e:
-                        Constants.log.error(f"[daemon] 锁文件解析失败: {str(e)}")
-                        raise psutil.NoSuchProcess(-1)
+            if not psutil.pid_exists(pid):
+                raise psutil.NoSuchProcess(probable_old_pid)
 
-                    if psutil.pid_exists(pid):
-                        proc = psutil.Process(pid)
-                        # 僵尸进程处理
-                        if proc.status() == psutil.STATUS_ZOMBIE:
-                            proc.kill()
-                            Constants.log.info("[daemon] 已清理僵尸进程")
-                            raise psutil.NoSuchProcess(pid)
+            probable_old_pid = pid
+            proc = psutil.Process(pid)
 
-                        # 验证进程身份
-                        if ("python" in proc.name().lower() and
-                                any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
-                            return
+            # 僵尸进程处理
+            if proc.status() == psutil.STATUS_ZOMBIE:
+                proc.kill()
+                Constants.log.info("[daemon] 已清理僵尸进程")
+                raise psutil.NoSuchProcess(probable_old_pid)
 
-            except psutil.NoSuchProcess:
-                pass
+            # 验证进程身份
+            if not ("python" in proc.name().lower() and
+                    any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
+                probable_old_pid = -1
+                Constants.log.info("[daemon] 锁文件对应进程非目标文件")
+                raise psutil.NoSuchProcess(probable_old_pid)
 
+    except psutil.NoSuchProcess:
         Constants.log.info("[daemon] 进程不存在，正在创建")
         open_entry()
 
