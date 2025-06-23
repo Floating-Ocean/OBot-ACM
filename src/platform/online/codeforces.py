@@ -385,8 +385,9 @@ class Codeforces(CompetitivePlatform):
     @classmethod
     def get_prob_filtered(cls, tag_needed: str, limit: str = None, newer: bool = False,
                           on_tag_chosen=None) -> dict | int:
-        min_point, max_point = 0, 0
-        if limit is not None:
+        if limit is None:
+            min_point, max_point = 0, 0
+        else:
             min_point, max_point = decode_range(limit, length=(3, 4))
             if min_point == -2:
                 return -1

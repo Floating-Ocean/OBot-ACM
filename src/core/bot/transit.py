@@ -211,7 +211,7 @@ def queue_up_handler(worker_id: str):
             handle_message(message, message_id)
             _count_queue[worker_id].get()
         except queue.Empty:
-            pass
+            Constants.log.debug(f"[obot-core] 工作线程 {worker_id} 内无消息.")
 
     del _count_queue[worker_id]
     del _query_queue[worker_id]

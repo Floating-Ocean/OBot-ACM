@@ -1,7 +1,6 @@
 import os
 import re
 from pathlib import Path
-from re import Match
 
 
 def get_basic_css():
@@ -26,7 +25,7 @@ def load_css(css_path: str, **kwargs) -> str:
 
     prefix = css_dir_path.as_uri() + "/"
 
-    def _replace_css_url(match: str | Match[str]) -> str:
+    def _replace_css_url(match: str | re.Match[str]) -> str:
         relative_path = match.group(1)
         if relative_path.startswith(('http://', 'https://', 'data:', 'file://')):
             return f'url({relative_path})'  # 跳过绝对路径

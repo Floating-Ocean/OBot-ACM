@@ -104,8 +104,9 @@ class AtCoder(CompetitivePlatform):
 
     @classmethod
     def get_prob_filtered(cls, contest_type: str = 'common', limit: str = None) -> dict | int:
-        min_point, max_point = 0, 0
-        if limit is not None:
+        if limit is None:
+            min_point, max_point = 0, 0
+        else:
             min_point, max_point = decode_range(limit, length=(3, 4))
             if min_point == -2:
                 return -1
