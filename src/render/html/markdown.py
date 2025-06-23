@@ -60,7 +60,6 @@ def md_to_html(markdown_path: str, css_path: str, extra_body: str = "", **kwargs
         # 替换原节点
         code.getparent().replace(code, new_span)
 
-
     html_body = html.tostring(tree, encoding='unicode')
     html_css = load_css(css_path, **kwargs)
 

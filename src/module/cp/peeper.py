@@ -11,14 +11,14 @@ from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
-from src.module.atc import __atc_version__
-from src.module.cf import __cf_version__
-from src.module.color_rand import __color_rand_version__
-from src.module.contest_manual import __contest_list_renderer_version__
-from src.module.how_to_cook import __how_to_cook_version__
-from src.module.nk import __nk_version__
-from src.module.pick_one import __pick_one_version__
-from src.module.rand import __rand_version__
+from src.module.cp.atc import __atc_version__
+from src.module.cp.cf import __cf_version__
+from src.module.cp.contest_manual import __contest_list_renderer_version__
+from src.module.cp.nk import __nk_version__
+from src.module.tool.color_rand import __color_rand_version__
+from src.module.tool.how_to_cook import __how_to_cook_version__
+from src.module.tool.pick_one import __pick_one_version__
+from src.module.tool.rand import __rand_version__
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Peeper-Board-Generator")
 
@@ -84,7 +84,7 @@ def daily_update_job():
 def noon_report_job(client: Client):
     # 因为只有这里需要主动推送所以写函数里了
     def push_message(content: str, file_image: str | None = None):
-        Constants.log.info(f"[obot-int] 发起推送: {content}")
+        Constants.log.info(f"[obot-act] 发起推送: {content}")
         asyncio.run_coroutine_threadsafe(
             client.api.post_message(channel_id=Constants.config['push_channel'],
                                     content=content,

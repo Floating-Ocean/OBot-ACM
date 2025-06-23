@@ -19,7 +19,6 @@ from src.platform.online.nowcoder import NowCoder
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 
-
 _fixed_reply = {
     "ping": "pong",
     "活着吗": "你猜捏",

@@ -24,7 +24,7 @@ class Constants:
     log = logging.get_logger()
     config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
 
-    core_version = "v3.8.1"
+    core_version = "v3.9.0"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -58,7 +58,8 @@ class Constants:
         'Main': [
             Help("/今日题数", "查询今天从凌晨到现在的做题数情况."),
             Help("/昨日总榜", "查询昨日的完整榜单."),
-            Help("/评测榜单 [verdict]", "查询分类型榜单，其中指定评测结果为第二参数 verdict，需要保证参数中无空格，如 wa, TimeExceeded.")
+            Help("/评测榜单 [verdict]",
+                 "查询分类型榜单，其中指定评测结果为第二参数 verdict，需要保证参数中无空格，如 wa, TimeExceeded.")
         ],
         'sub': [
             Help("/user id [uid]", "查询 uid 对应用户的信息."),
@@ -101,10 +102,23 @@ class Constants:
             Help("/rand [num/int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
             Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500].")
         ],
-        'number-guess': [
-            Help("/guess", "开始猜数字."),
+        'guess-interval': [
+            Help("/guess", "开始区间猜数字."),
             Help("/guess [num]", "猜测数字为 num."),
-            Help("/guess stop", "结束本轮猜数字游戏.")
+            Help("/guess stop", "结束本轮区间猜数字游戏.")
+        ],
+        'guess-1a2b': [
+            Help("/1a2b", "开始 1a2b 游戏."),
+            Help("/1a2b [num]", "猜测数字为 num."),
+            Help("/1a2b stop", "结束本轮 1a2b 游戏.")
+        ],
+        'tetris': [
+            Help("/tetris (col)", "开始 24 * col 大小的俄罗斯方块游戏，col 为列数，留空时默认为 24."),
+            Help("/tetris [rotate_cnt] [left_col]",
+                 "放置方块下落。方块顺时针旋转 rotate_cnt 次，左上角位于 left_col 列，从 1 开始编号."),
+            Help("/tetris undo", "回退上一次操作，最多连续被执行一次."),
+            Help("/tetris now", "查看当前俄罗斯方块游戏状态."),
+            Help("/tetris stop", "结束本轮俄罗斯方块游戏.")
         ],
         'misc': [
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),

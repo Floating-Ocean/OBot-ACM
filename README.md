@@ -5,9 +5,12 @@
 
 <div align="center">
   <a href="https://github.com/qwedc001/Peeper-Board-Generator/blob/master/requirements.txt"><img alt="Supported Python Version" src="https://img.shields.io/badge/Python-3.10+-teal?style=flat-square"></a>
-  <a href="https://github.com/Floating-Ocean/OBot-ACM/actions/workflows/codeql.yml"><img alt="CodeQL Scan" src="https://img.shields.io/github/actions/workflow/status/Floating-Ocean/OBot-ACM/codeql.yml?style=flat-square"></a>
-  <a href="https://github.com/Floating-Ocean/OBot-ACM/commits"><img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/Floating-Ocean/OBot-ACM?style=flat-square"></a>
+  <a href="https://github.com/Floating-Ocean/OBot-ACM/actions/workflows/codeql.yml"><img alt="CodeQL Scan" src="https://img.shields.io/github/actions/workflow/status/Floating-Ocean/OBot-ACM/codeql.yml?style=flat-square&label=codeql+scan"></a>
+  <a href="https://github.com/Floating-Ocean/OBot-ACM/releases/latest"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/Floating-Ocean/OBot-ACM?style=flat-square&label=OBot's+ACM"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/Floating-Ocean/OBot-ACM?style=flat-square"></a>
+</div>
+<div align="center">
+  <a href="https://github.com/Floating-Ocean/OBot-ACM/commits"><img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/Floating-Ocean/OBot-ACM?style=flat-square"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/commits"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/y/Floating-Ocean/OBot-ACM?style=flat-square"></a>
 </div>
 
@@ -57,11 +60,17 @@
 
 - 二维码图片生成；
 
-- 猜数字小游戏；
+### 交互式小游戏
+
+- 下落式俄罗斯方块；
+
+- 区间猜数字；
+
+- 1A2B猜数字；
 
 <details open>
 <summary><h3>可用指令</h3></summary>
-  <img src="/img/command_instructions.png" alt="游戏截图"/>
+  <img src="/img/command_instructions.jpg" alt="游戏截图"/>
 </details>
 
 ### PRs Welcome

@@ -8,9 +8,9 @@ from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int
 
-__number_guess_version__ = "v1.0.1"
+__guess_interval_version__ = "v1.0.1"
 
-_NUMBER_GUESS_HELP = '\n'.join(HelpStrList(Constants.help_contents["number-guess"]))
+_GUESS_INTERVAL_HELP = '\n'.join(HelpStrList(Constants.help_contents["guess-interval"]))
 
 
 def register_module():
@@ -50,7 +50,7 @@ def start_game(message: RobotMessage):
 
     target = random.randint(range_min, range_max)
     current_info = GuessInfo(GuessStatus.RUNNING, target, (range_min, range_max), 0)
-    message.reply("猜数字开始！使用 \"/guess [num]\" 猜测数字，不要带上中括号\n\n"
+    message.reply("区间猜数字开始！使用 \"/guess [num]\" 猜测数字，不要带上中括号\n\n"
                   f"目标位于闭区间 [{range_min}, {range_max}] 内")
 
     _guess_info[current_uuid] = current_info
@@ -62,12 +62,12 @@ def try_guess(message: RobotMessage):
     current_info: GuessInfo = _guess_info[current_uuid]
 
     if _guess_info[current_uuid].status == GuessStatus.IDLE:
-        message.reply(f"游戏还未开始\n\n{_NUMBER_GUESS_HELP}",
+        message.reply(f"游戏还未开始\n\n{_GUESS_INTERVAL_HELP}",
                       modal_words=False)
         return None
 
     if _guess_info[current_uuid].status == GuessStatus.ENDED:
-        message.reply(f"上一轮游戏已结束\n\n{_NUMBER_GUESS_HELP}",
+        message.reply(f"上一轮游戏已结束\n\n{_GUESS_INTERVAL_HELP}",
                       modal_words=False)
         return None
 
@@ -109,10 +109,10 @@ def try_guess(message: RobotMessage):
     return None
 
 
-@command(tokens=["guess", "猜数字"], multi_thread=True)
-def reply_number_guess(message: RobotMessage):
+@command(tokens=["guess", "猜数字", "区间猜数字", "interval"], multi_thread=True)
+def reply_guess_interval(message: RobotMessage):
     if not 1 <= len(message.tokens) <= 2:
-        message.reply(f"参数数量有误\n\n{_NUMBER_GUESS_HELP}",
+        message.reply(f"参数数量有误\n\n{_GUESS_INTERVAL_HELP}",
                       modal_words=False)
         return None
 
