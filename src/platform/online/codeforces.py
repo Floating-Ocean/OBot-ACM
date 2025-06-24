@@ -408,7 +408,7 @@ class Codeforces(CompetitivePlatform):
             min_point, max_point = decode_range(limit, length=(3, 4))
             if min_point == -2:
                 return -1
-            elif min_point == -3:
+            if min_point == -3:
                 return 0
             filtered_data = [prob for prob in problems['problems']
                              if 'rating' in prob and min_point <= prob['rating'] <= max_point]

@@ -118,7 +118,7 @@ class AtCoder(CompetitivePlatform):
             min_point, max_point = decode_range(limit, length=(3, 4))
             if min_point == -2:
                 return -1
-            elif min_point == -3:
+            if min_point == -3:
                 return 0
             filtered_data = Clist.api("problem", resource_id=93, rating__gte=min_point, rating__lte=max_point,
                                       url__regex=filter_regex)
