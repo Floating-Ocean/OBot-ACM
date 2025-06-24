@@ -385,15 +385,6 @@ class Codeforces(CompetitivePlatform):
     @classmethod
     def get_prob_filtered(cls, tag_needed: str, limit: str = None, newer: bool = False,
                           on_tag_chosen=None) -> dict | int:
-        if limit is None:
-            min_point, max_point = 0, 0
-        else:
-            min_point, max_point = decode_range(limit, length=(3, 4))
-            if min_point == -2:
-                return -1
-            elif min_point == -3:
-                return 0
-
         if tag_needed == "all":
             problems = cls._api('problemset.problems')
         else:
@@ -414,6 +405,11 @@ class Codeforces(CompetitivePlatform):
 
         filtered_data = problems['problems']
         if limit is not None:
+            min_point, max_point = decode_range(limit, length=(3, 4))
+            if min_point == -2:
+                return -1
+            elif min_point == -3:
+                return 0
             filtered_data = [prob for prob in problems['problems']
                              if 'rating' in prob and min_point <= prob['rating'] <= max_point]
         if newer:
