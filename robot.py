@@ -14,7 +14,7 @@ from src.core.bot.command import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, distribute_message
 from src.core.constants import Constants
-from src.module.cp.peeper import daily_update_job, noon_report_job
+from src.module.cp.peeper import daily_update_job
 
 daily_sched = BlockingScheduler()
 noon_sched = BlockingScheduler()
@@ -23,11 +23,6 @@ noon_sched = BlockingScheduler()
 def daily_sched_thread():
     daily_sched.add_job(daily_update_job, "cron", hour=0, minute=0, args=[])
     daily_sched.start()
-
-
-def noon_sched_thread(client: Client):
-    noon_sched.add_job(noon_report_job, "cron", hour=13, minute=0, args=[client])
-    noon_sched.start()
 
 
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
@@ -109,8 +104,5 @@ def open_robot_session():
 
     # 更新每日排行榜
     threading.Thread(target=daily_sched_thread, args=[]).start()
-    
-    # 午间推送机制
-    threading.Thread(target=noon_sched_thread, args=[client]).start()
 
     client.run(appid=Constants.config["appid"], secret=Constants.config["secret"])
