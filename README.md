@@ -18,7 +18,7 @@
 
 本仓库包含主项目和一个分支，主项目是一个经过配置后可以独立运行的 **官方 QQ 机器人**，而分支则是一个 **Nonebot 机器人**。
 
-请在运行机器人前，将 [`config_example.json`](https://github.com/Floating-Ocean/OBot-ACM/blob/main/config_example.yaml) 重命名为 [`config.json`](https://github.com/Floating-Ocean/OBot-ACM/blob/main/config_example.yaml)，并根据文件内提示填写相关字段。
+请在运行机器人前，将 [`config_example.json`](https://github.com/Floating-Ocean/OBot-ACM/blob/main/config_example.json) 重命名为 [`config.json`](https://github.com/Floating-Ocean/OBot-ACM/blob/main/config_example.json)，并根据文件内提示填写相关字段。
 
 机器人依赖一些项目，需要自行建立 `lib` 文件夹并进行相关配置。
 
