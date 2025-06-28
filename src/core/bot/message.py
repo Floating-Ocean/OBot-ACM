@@ -4,7 +4,6 @@ import random
 import re
 import threading
 import uuid
-from asyncio import AbstractEventLoop
 from enum import Enum
 from typing import Optional, Union
 
@@ -52,7 +51,8 @@ class RobotMessage:
         self.attachments = message.attachments
         self.user_permission_level = PermissionLevel.distribute_permission(self.author_id)
 
-    def setup_guild_message(self, loop: AbstractEventLoop, message: Message, is_public: bool = False):
+    def setup_guild_message(self, loop: asyncio.AbstractEventLoop,
+                            message: Message, is_public: bool = False):
         self.loop = loop
         self.message_type = MessageType.GUILD
         self.message = message
@@ -60,14 +60,14 @@ class RobotMessage:
         self._initial_setup(message, 'id')
         self.uuid = f"guild_channel_{self.message.channel_id}"
 
-    def setup_group_message(self, loop: AbstractEventLoop, message: GroupMessage):
+    def setup_group_message(self, loop: asyncio.AbstractEventLoop, message: GroupMessage):
         self.loop = loop
         self.message_type = MessageType.GROUP
         self.message = message
         self._initial_setup(message, 'member_openid')
         self.uuid = f"group_{self.message.group_openid}"
 
-    def setup_c2c_message(self, loop: AbstractEventLoop, message: C2CMessage):
+    def setup_c2c_message(self, loop: asyncio.AbstractEventLoop, message: C2CMessage):
         self.loop = loop
         self.message_type = MessageType.C2C
         self.message = message

@@ -104,14 +104,6 @@ class AtCoder(CompetitivePlatform):
 
     @classmethod
     def get_prob_filtered(cls, contest_type: str = 'common', limit: str = None) -> dict | int:
-        min_point, max_point = 0, 0
-        if limit is not None:
-            min_point, max_point = decode_range(limit, length=(3, 4))
-            if min_point == -2:
-                return -1
-            elif min_point == -3:
-                return 0
-
         filter_regex = ''
         if contest_type == 'common':
             filter_regex = r'^https:\/\/atcoder\.jp\/contests\/(abc|arc|agc|ahc)'
@@ -123,6 +115,11 @@ class AtCoder(CompetitivePlatform):
             return -2
 
         if limit is not None:
+            min_point, max_point = decode_range(limit, length=(3, 4))
+            if min_point == -2:
+                return -1
+            if min_point == -3:
+                return 0
             filtered_data = Clist.api("problem", resource_id=93, rating__gte=min_point, rating__lte=max_point,
                                       url__regex=filter_regex)
         else:

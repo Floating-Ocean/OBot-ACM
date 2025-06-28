@@ -218,9 +218,8 @@ def png2jpg(path: str, remove_origin: bool = True) -> str:
 
 def get_md5(path: str) -> str:
     md5 = hashlib.md5()
-    file = open(path, 'rb')
-    md5.update(file.read())
-    file.close()
+    with open(path, 'rb') as file:
+        md5.update(file.read())
     return md5.hexdigest()
 
 
@@ -269,9 +268,9 @@ def decode_range(range_str: str, length: tuple[int, int]) -> tuple[int, int]:
     if length[0] > length[1]:
         return -1, -1
 
-    min_point, max_point = 0, 0
-
-    if range_str is not None:
+    if range_str is None:
+        min_point, max_point = 0, 0
+    else:
         # 检查格式是否为 dddd-dddd 或 dddd
         if not re.match("^[0-9]+-[0-9]+$", range_str) and not re.match("^[0-9]+$", range_str):
             return -2, -2
