@@ -20,7 +20,7 @@ from src.module.tool.how_to_cook import __how_to_cook_version__
 from src.module.tool.pick_one import __pick_one_version__
 from src.module.tool.rand import __rand_version__
 
-_lib_path = os.path.join(Constants.config["lib_path"], "Peeper-Board-Generator")
+_lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
 
 
 def register_module():

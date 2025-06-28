@@ -91,8 +91,9 @@ class MyClient(Client):
 
 def check_path_in_config():
     for path in ["lib_path", "output_path"]:
-        if not os.path.isdir(Constants.config[path]):
-            raise FileNotFoundError(Constants.config[path])
+        general_conf = Constants.modules_conf.general
+        if not os.path.isdir(general_conf[path]):
+            raise FileNotFoundError(general_conf[path])
 
 
 def open_robot_session():
@@ -105,4 +106,4 @@ def open_robot_session():
     # 更新每日排行榜
     threading.Thread(target=daily_sched_thread, args=[]).start()
 
-    client.run(appid=Constants.config["appid"], secret=Constants.config["secret"])
+    client.run(appid=Constants.botpy_conf["appid"], secret=Constants.botpy_conf["secret"])

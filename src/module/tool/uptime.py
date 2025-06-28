@@ -3,7 +3,7 @@ from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.tools import fetch_url_json
 
-_api_key = Constants.config["uptime_apikey"]
+_api_key = Constants.modules_conf.uptime["apikey"]
 
 
 def register_module():

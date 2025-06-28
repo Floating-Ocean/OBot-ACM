@@ -5,7 +5,7 @@ from src.core.util.tools import fetch_url_json
 
 
 class Clist:
-    _api_key = Constants.config["clist_apikey"]
+    _api_key = Constants.modules_conf.clist["apikey"]
 
     @classmethod
     def api(cls, api: str, **kwargs) -> list[dict] | int:

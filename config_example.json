@@ -1,0 +1,44 @@
+{
+  "botpy": {
+    "appid": "qqbot的appid",
+    "secret": "qqbot的secret"
+  },
+  "role": {
+    "admin_id": ["admin的ID (不是QQ号)"],
+    "mod_id": ["mod的ID (不是QQ号)"]
+  },
+  "modules": {
+    "general": {
+      "lib_path": "一般指Peeper-Board-Generator等第三方模块的父文件夹",
+      "output_path": "生成的图片等文件的缓存路径",
+      "http_proxy": "http代理地址，不需要代理时留空",
+      "https_proxy": "https代理地址，不需要代理时留空"
+    },
+    "clist": {
+      "apikey": "ApiKey username:xxxxxxx"
+    },
+    "uptime": {
+      "apikey": "xxx"
+    },
+    "peeper": {
+      "exclude_group_id": ["禁用榜单的群组id (不是QQ群号)"],
+      "configs": {
+        "此处为群组id，下面的配置参考Peeper-Board-Generator": {
+          "use_as_default": true,
+          "handler": "Hydro",
+          "credentials": {
+            "uname": "[Your-Hydro-Admin-UserName]",
+            "password": "[Your-Password]"
+          },
+          "excludeUid": [],
+          "excludeRegDate": "YYYY-MM-DD",
+          "show_unrated": true,
+          "data": "data",
+          "url": "[Your-OJ-Base-URL]",
+          "id": "[Identifier-With-No-Space]",
+          "board_name": "[Your-Board-Name]"
+        }
+      }
+    }
+  }
+}

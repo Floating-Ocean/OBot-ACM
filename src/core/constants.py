@@ -1,8 +1,19 @@
+import json
 import os
 from dataclasses import dataclass
 
 from botpy import logging
-from botpy.ext.cog_yaml import read
+
+
+@dataclass
+class ModulesConfig:
+    general: dict
+    clist: dict
+    uptime: dict
+    peeper: dict
+
+    def get_lib_path(self, lib_name: str):
+        return os.path.join(self.general["lib_path"], lib_name)
 
 
 @dataclass(frozen=True)
@@ -20,11 +31,21 @@ class HelpStrList(list):
         return (str(item) for item in super().__iter__())
 
 
+def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
+    with open(path) as f:
+        conf = json.load(f)
+        botpy_conf = conf.get('botpy', dict())
+        role_conf = conf.get('role', dict())
+        modules_conf = conf.get('modules', dict())
+        return botpy_conf, role_conf, ModulesConfig(**modules_conf)
+
+
 class Constants:
     log = logging.get_logger()
-    config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
+    botpy_conf, role_conf, modules_conf = (
+        _load_conf(os.path.join(os.path.dirname(__file__), "..", "..", "config.json")))
 
-    core_version = "v3.9.0"
+    core_version = "v3.9.1.beta1_06282308"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [

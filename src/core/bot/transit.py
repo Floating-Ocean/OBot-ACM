@@ -145,9 +145,10 @@ def handle_message(message: RobotMessage, message_id: MessageID):
                                f"试图发起操作 {message_id.command}.")
             raise UnauthorizedError("权限不足，操作被拒绝" if func != "/去死" else "阿米诺斯")
 
+        peeper_conf = Constants.modules_conf.peeper
         if (need_to_check_exclude and
                 message.message_type == MessageType.GROUP and
-                message.message.group_openid in Constants.config['exclude_group_id']):
+                message.message.group_openid in peeper_conf['exclude_group_id']):
             Constants.log.info(f"[obot-core] 操作被禁用: {message.message.group_openid} "
                                f"试图发起操作 {message_id.command}.")
             raise UnauthorizedError("榜单功能被禁用")
