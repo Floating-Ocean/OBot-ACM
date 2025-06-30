@@ -47,7 +47,7 @@ class MyClient(Client):
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在频道 {message.channel_id} "
+        Constants.log.info(f"[obot-act] 在 guild_channel_{message.channel_id} "
                            f"收到@消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
@@ -57,7 +57,7 @@ class MyClient(Client):
     async def on_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在频道 {message.channel_id} "
+        Constants.log.info(f"[obot-act] 在 guild_channel_{message.channel_id} "
                            f"收到公共消息: {message.content}"
                            f"{attachment_info}")
         content = message.content
@@ -71,8 +71,8 @@ class MyClient(Client):
     async def on_group_at_message_create(self, message: GroupMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在群聊 {message.group_openid} "
-                           f"收到消息: {message.content}"
+        Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
+                           f"收到群聊消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_group_message(self.loop, message)
@@ -81,7 +81,7 @@ class MyClient(Client):
     async def on_c2c_message_create(self, message: C2CMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在用户 {message.author.user_openid} "
+        Constants.log.info(f"[obot-act] 在 c2c_{message.author.user_openid} "
                            f"收到私聊消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
