@@ -17,7 +17,7 @@ from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg
 from src.render.pixie.render_color_card import ColorCardRenderer
 
-_lib_path = os.path.join(Constants.config["lib_path"], "Color-Rand")
+_lib_path = Constants.modules_conf.get_lib_path("Color-Rand")
 __color_rand_version__ = "v1.1.1"
 
 _colors = []

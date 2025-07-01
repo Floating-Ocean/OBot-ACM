@@ -43,12 +43,13 @@ def run_shell(shell: str) -> str:
 def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw: bool = True,
               method: str = 'post') -> Response | int:
     proxies = {}  # 配置代理
-    if ('http_proxy' in Constants.config and
-            Constants.config['http_proxy'] is not None and len(Constants.config['http_proxy']) > 0):
-        proxies['http'] = Constants.config['http_proxy']
-    if ('https_proxy' in Constants.config and
-            Constants.config['https_proxy'] is not None and len(Constants.config['https_proxy']) > 0):
-        proxies['https'] = Constants.config['https_proxy']
+    general_conf = Constants.modules_conf.general
+    if ('http_proxy' in general_conf and
+            general_conf['http_proxy'] is not None and len(general_conf['http_proxy']) > 0):
+        proxies['http'] = general_conf['http_proxy']
+    if ('https_proxy' in general_conf and
+            general_conf['https_proxy'] is not None and len(general_conf['https_proxy']) > 0):
+        proxies['https'] = general_conf['https_proxy']
     if len(proxies) == 0:
         proxies = None
 

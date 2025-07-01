@@ -6,7 +6,7 @@ from easy_pixie import pick_gradient_color, GradientColor, darken_color, hex_to_
 from src.core.constants import Constants
 from src.render.html.markdown import render_md_html
 
-_lib_path = os.path.join(Constants.config["lib_path"], "How-To-Cook")
+_lib_path = Constants.modules_conf.get_lib_path("How-To-Cook")
 _css_path = os.path.join(_lib_path, "style", "index.css")
 
 

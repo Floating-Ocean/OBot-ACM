@@ -1,8 +1,20 @@
+import json
 import os
 from dataclasses import dataclass
 
 from botpy import logging
-from botpy.ext.cog_yaml import read
+
+
+@dataclass
+class ModulesConfig:
+    general: dict
+    clist: dict
+    uptime: dict
+    game: dict
+    peeper: dict
+
+    def get_lib_path(self, lib_name: str):
+        return os.path.join(self.general["lib_path"], lib_name)
 
 
 @dataclass(frozen=True)
@@ -20,11 +32,21 @@ class HelpStrList(list):
         return (str(item) for item in super().__iter__())
 
 
+def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
+    with open(path, "r", encoding="utf-8") as f:
+        conf = json.load(f)
+        botpy_conf = conf.get('botpy', {})
+        role_conf = conf.get('role', {})
+        modules_conf = conf.get('modules', {})
+        return botpy_conf, role_conf, ModulesConfig(**modules_conf)
+
+
 class Constants:
     log = logging.get_logger()
-    config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
+    botpy_conf, role_conf, modules_conf = (
+        _load_conf(os.path.join(os.path.dirname(__file__), "..", "..", "config.json")))
 
-    core_version = "v3.9.0"
+    core_version = "v3.9.1"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -49,7 +71,8 @@ class Constants:
         [["我喜欢你"], ["你喜欢我"]],
         [["学我说话"], ["可惜我不是复读机", "人类的本质...哎我不是人来着", "学我说话"]],
         [["猫"], ["喵"]],
-        [["好"], ["好"]]
+        [["好"], ["好"]],
+        [["掐楼", "ciallo"], ["Ciallo~", "柚子厨蒸鹅心"]]
     ]
 
     modal_words = ["喵", "呢", "捏", "qaq"]

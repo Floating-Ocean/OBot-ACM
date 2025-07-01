@@ -8,7 +8,7 @@ from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg
 from src.render.html.render_how_to_cook import render_how_to_cook
 
-_lib_path = os.path.join(Constants.config["lib_path"], "How-To-Cook")
+_lib_path = Constants.modules_conf.get_lib_path("How-To-Cook")
 __how_to_cook_version__ = "v1.5.0"
 
 _dishes_path = os.path.join(_lib_path, "lib", "dishes")

@@ -12,9 +12,9 @@ from botpy.message import Message, GroupMessage, C2CMessage
 
 from src.core.bot.command import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
-from src.core.bot.transit import clear_message_queue, distribute_message
+from src.core.bot.transit import clear_message_queue, dispatch_message
 from src.core.constants import Constants
-from src.module.cp.peeper import daily_update_job, noon_report_job
+from src.module.cp.peeper import daily_update_job
 
 daily_sched = BlockingScheduler()
 noon_sched = BlockingScheduler()
@@ -23,11 +23,6 @@ noon_sched = BlockingScheduler()
 def daily_sched_thread():
     daily_sched.add_job(daily_update_job, "cron", hour=0, minute=0, args=[])
     daily_sched.start()
-
-
-def noon_sched_thread(client: Client):
-    noon_sched.add_job(noon_report_job, "cron", hour=13, minute=0, args=[client])
-    noon_sched.start()
 
 
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
@@ -52,17 +47,17 @@ class MyClient(Client):
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在频道 {message.channel_id} "
+        Constants.log.info(f"[obot-act] 在 guild_channel_{message.channel_id} "
                            f"收到@消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_guild_message(self.loop, message)
-        distribute_message(packed_message)
+        dispatch_message(packed_message)
 
     async def on_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在频道 {message.channel_id} "
+        Constants.log.info(f"[obot-act] 在 guild_channel_{message.channel_id} "
                            f"收到公共消息: {message.content}"
                            f"{attachment_info}")
         content = message.content
@@ -71,33 +66,34 @@ class MyClient(Client):
         packed_message.setup_guild_message(self.loop, message, is_public=True)
 
         if not re.search(r'<@!\d+>', content):
-            distribute_message(packed_message)
+            dispatch_message(packed_message)
 
     async def on_group_at_message_create(self, message: GroupMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在群聊 {message.group_openid} "
-                           f"收到消息: {message.content}"
+        Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
+                           f"收到群聊消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_group_message(self.loop, message)
-        distribute_message(packed_message)
+        dispatch_message(packed_message)
 
     async def on_c2c_message_create(self, message: C2CMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在用户 {message.author.user_openid} "
+        Constants.log.info(f"[obot-act] 在 c2c_{message.author.user_openid} "
                            f"收到私聊消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_c2c_message(self.loop, message)
-        distribute_message(packed_message)
+        dispatch_message(packed_message)
 
 
 def check_path_in_config():
     for path in ["lib_path", "output_path"]:
-        if not os.path.isdir(Constants.config[path]):
-            raise FileNotFoundError(Constants.config[path])
+        general_conf = Constants.modules_conf.general
+        if not os.path.isdir(general_conf[path]):
+            raise FileNotFoundError(general_conf[path])
 
 
 def open_robot_session():
@@ -109,8 +105,5 @@ def open_robot_session():
 
     # 更新每日排行榜
     threading.Thread(target=daily_sched_thread, args=[]).start()
-    
-    # 午间推送机制
-    threading.Thread(target=noon_sched_thread, args=[client]).start()
 
-    client.run(appid=Constants.config["appid"], secret=Constants.config["secret"])
+    client.run(appid=Constants.botpy_conf["appid"], secret=Constants.botpy_conf["secret"])
