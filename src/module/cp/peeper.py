@@ -56,11 +56,6 @@ def _wrap_conf_id(uuid: str, conf: dict) -> dict:
     return new_conf
 
 
-def _get_all_conf() -> dict:
-    execute_conf = Constants.modules_conf.peeper["configs"]
-    return {uuid: _wrap_conf_id(uuid, conf) for uuid, conf in execute_conf.items()}
-
-
 def _get_specified_conf(specified_uuid: str) -> dict:
     execute_conf = Constants.modules_conf.peeper["configs"]
 
@@ -68,7 +63,8 @@ def _get_specified_conf(specified_uuid: str) -> dict:
     for uuid, conf in execute_conf.items():
         if conf["use_as_default"]:
             if default_conf is not None:
-                raise RuntimeError("Duplicate default configs.")
+                raise RuntimeError("Duplicate default configs detected in "
+                                   f"{default_conf['id']} and {conf['id']}.")
             default_conf = _wrap_conf_id(uuid, conf)
     if default_conf is None:
         raise RuntimeError("No default config found.")
@@ -116,10 +112,10 @@ def _call_lib_method(message: RobotMessage | str, prop: str,
 
 
 def daily_update_job():
-    all_conf = _get_all_conf()
-    Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(all_conf)} 个榜单')
+    all_uuid = Constants.modules_conf.peeper["configs"].keys()
+    Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(all_uuid)} 个榜单')
 
-    for uuid, conf in all_conf.items():
+    for uuid in all_uuid:
         cached_prefix = get_cached_prefix('Peeper-Board-Generator')
         _call_lib_method(uuid, f"--full --output {cached_prefix}.png")
 
@@ -141,7 +137,7 @@ def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
         message.reply(f"[{type_id.capitalize()} {content}]\n\n{result}", modal_words=False)
 
 
-@command(tokens=['评测榜单', 'verdict'], need_check_exclude=True)
+@command(tokens=['评测榜单', 'verdict'])
 def send_now_board_with_verdict(message: RobotMessage):
     content = message.tokens[1] if len(message.tokens) == 2 else ""
     single_col = (message.tokens[2] == "single") if len(
@@ -163,7 +159,7 @@ def send_now_board_with_verdict(message: RobotMessage):
     message.reply(f"今日 {verdict} 榜单", png2jpg(f"{cached_prefix}.png"))
 
 
-@command(tokens=['今日题数', 'today'], need_check_exclude=True)
+@command(tokens=['今日题数', 'today'])
 def send_today_board(message: RobotMessage):
     single_col = (message.tokens[1] == "single") \
         if len(message.tokens) == 2 else False
@@ -178,7 +174,7 @@ def send_today_board(message: RobotMessage):
     message.reply("今日题数", png2jpg(f"{cached_prefix}.png"))
 
 
-@command(tokens=['昨日总榜', 'yesterday', 'full'], need_check_exclude=True)
+@command(tokens=['昨日总榜', 'yesterday', 'full'])
 def send_yesterday_board(message: RobotMessage):
     single_col = (message.tokens[1] == "single") \
         if len(message.tokens) == 2 else False
@@ -217,7 +213,7 @@ def send_version_info(message: RobotMessage):
                       f"Random {__rand_version__}", modal_words=False)
 
 
-@command(tokens=['user'], need_check_exclude=True)
+@command(tokens=['user'])
 def send_oj_user(message: RobotMessage):
     content = message.tokens
     if len(content) < 3:

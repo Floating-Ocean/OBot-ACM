@@ -20,8 +20,13 @@
     "uptime": {
       "apikey": "xxx"
     },
+    "game": {
+      "exclude": {
+        "禁用游戏的群组等id (不是QQ群号)": "禁用原因"
+      }
+    },
     "peeper": {
-      "exclude_group_id": ["禁用榜单的群组id (不是QQ群号)"],
+      "exclude_id": ["禁用榜单的群组等id (不是QQ群号)"],
       "configs": {
         "此处为群组id，下面的配置参考Peeper-Board-Generator": {
           "use_as_default": true,

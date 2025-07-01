@@ -12,7 +12,7 @@ from botpy.message import Message, GroupMessage, C2CMessage
 
 from src.core.bot.command import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
-from src.core.bot.transit import clear_message_queue, distribute_message
+from src.core.bot.transit import clear_message_queue, dispatch_message
 from src.core.constants import Constants
 from src.module.cp.peeper import daily_update_job
 
@@ -52,7 +52,7 @@ class MyClient(Client):
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_guild_message(self.loop, message)
-        distribute_message(packed_message)
+        dispatch_message(packed_message)
 
     async def on_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
@@ -66,7 +66,7 @@ class MyClient(Client):
         packed_message.setup_guild_message(self.loop, message, is_public=True)
 
         if not re.search(r'<@!\d+>', content):
-            distribute_message(packed_message)
+            dispatch_message(packed_message)
 
     async def on_group_at_message_create(self, message: GroupMessage):
         attachment_info = (f" | {message.attachments}"
@@ -76,7 +76,7 @@ class MyClient(Client):
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_group_message(self.loop, message)
-        distribute_message(packed_message)
+        dispatch_message(packed_message)
 
     async def on_c2c_message_create(self, message: C2CMessage):
         attachment_info = (f" | {message.attachments}"
@@ -86,7 +86,7 @@ class MyClient(Client):
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_c2c_message(self.loop, message)
-        distribute_message(packed_message)
+        dispatch_message(packed_message)
 
 
 def check_path_in_config():

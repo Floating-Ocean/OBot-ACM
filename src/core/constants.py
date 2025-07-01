@@ -10,6 +10,7 @@ class ModulesConfig:
     general: dict
     clist: dict
     uptime: dict
+    game: dict
     peeper: dict
 
     def get_lib_path(self, lib_name: str):
@@ -32,11 +33,11 @@ class HelpStrList(list):
 
 
 def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
-    with open(path) as f:
+    with open(path, "r", encoding="utf-8") as f:
         conf = json.load(f)
-        botpy_conf = conf.get('botpy', dict())
-        role_conf = conf.get('role', dict())
-        modules_conf = conf.get('modules', dict())
+        botpy_conf = conf.get('botpy', {})
+        role_conf = conf.get('role', {})
+        modules_conf = conf.get('modules', {})
         return botpy_conf, role_conf, ModulesConfig(**modules_conf)
 
 
@@ -45,7 +46,7 @@ class Constants:
     botpy_conf, role_conf, modules_conf = (
         _load_conf(os.path.join(os.path.dirname(__file__), "..", "..", "config.json")))
 
-    core_version = "v3.9.1.beta1_06282308"
+    core_version = "v3.9.1"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [

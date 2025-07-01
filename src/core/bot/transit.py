@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from src.core.bot.command import __commands__
 from src.core.bot.interact import reply_key_words, no_reply
-from src.core.bot.message import RobotMessage, MessageType
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
 
@@ -47,7 +47,7 @@ def get_message_id(message: RobotMessage) -> MessageID:
             for cmd in module_commands:
                 starts_with = cmd[-1] == '*' and func.startswith(cmd[:-1])
                 if starts_with or cmd == func:
-                    original_command, _, is_command, _, multi_thread = module_commands[cmd]
+                    original_command, _, is_command, multi_thread = module_commands[cmd]
 
                     if not is_command and message.is_guild_public():
                         # 对频道无at消息的过滤，避免spam
@@ -76,7 +76,7 @@ def get_message_id(message: RobotMessage) -> MessageID:
         return MessageID("default.manual", "no_reply")
 
 
-def distribute_message(message: RobotMessage):
+def dispatch_message(message: RobotMessage):
     """
     分发消息
     """
@@ -137,21 +137,9 @@ def handle_message(message: RobotMessage, message_id: MessageID):
 
         func = message.tokens[0].lower()
 
-        (original_command, execute_level,
-         _, need_to_check_exclude, _) = __commands__[message_id.module][message_id.command]
+        (original_command, execute_level, _, _) = __commands__[message_id.module][message_id.command]
 
-        if message.user_permission_level < execute_level:
-            Constants.log.info(f"[obot-core] 操作越权: {message.author_id} "
-                               f"试图发起操作 {message_id.command}.")
-            raise UnauthorizedError("权限不足，操作被拒绝" if func != "/去死" else "阿米诺斯")
-
-        peeper_conf = Constants.modules_conf.peeper
-        if (need_to_check_exclude and
-                message.message_type == MessageType.GROUP and
-                message.message.group_openid in peeper_conf['exclude_group_id']):
-            Constants.log.info(f"[obot-core] 操作被禁用: {message.message.group_openid} "
-                               f"试图发起操作 {message_id.command}.")
-            raise UnauthorizedError("榜单功能被禁用")
+        _check_permission(execute_level, func, message, message_id)
 
         try:
             starts_with = message_id.command[-1] == '*' and func.startswith(message_id.command[:-1])
@@ -170,6 +158,27 @@ def handle_message(message: RobotMessage, message_id: MessageID):
         return None
 
 
+def _check_permission(execute_level, func, message, message_id):
+    if message.user_permission_level < execute_level:
+        Constants.log.info(f"[obot-core] 操作越权: {message.author_id} "
+                           f"试图发起操作 {message_id.command}.")
+        raise UnauthorizedError("权限不足，操作被拒绝" if func != "/去死" else "阿米诺斯")
+
+    peeper_conf = Constants.modules_conf.peeper
+    if (message_id.module == 'src.module.cp.peeper' and
+            message.uuid in peeper_conf['exclude_id']):
+        Constants.log.info(f"[obot-core] 操作被禁用: {message.uuid} 内用户"
+                           f"试图发起操作 {message_id.command}.")
+        raise UnauthorizedError("榜单功能被禁用")
+
+    game_conf = Constants.modules_conf.game
+    if (message_id.module.startswith('src.module.game') and
+            message.uuid in game_conf['exclude']):
+        Constants.log.info(f"[obot-core] 操作被禁用: {message.uuid} 内用户"
+                           f"试图发起操作 {message_id.command}.")
+        raise UnauthorizedError(game_conf['exclude'][message.uuid])
+
+
 def clear_message_queue():
     global _terminate_signal
     with _terminate_lock:
@@ -179,9 +188,9 @@ def clear_message_queue():
             try:
                 queued_message: tuple[RobotMessage, MessageID] = module_query_queue.get_nowait()
                 message, message_id = queued_message
+                message.reply("O宝被爆了！等待一段时间后再试试")
             except queue.Empty:
                 break
-            message.reply("O宝被爆了！等待一段时间后再试试")
 
 
 def queue_up_handler(worker_id: str):
