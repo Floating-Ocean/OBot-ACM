@@ -144,7 +144,7 @@ def send_now_board_with_verdict(message: RobotMessage):
         message.tokens) == 3 else False
     verdict = _classify_verdicts(content)
     if verdict == "":
-        message.reply(f"请在 /评测榜单 后面添加正确的参数，如 ac, Accepted, TimeExceeded, WrongAnswer")
+        message.reply("请在 /评测榜单 后面添加正确的参数，如 ac, Accepted, TimeExceeded, WrongAnswer")
         return
 
     message.reply(f"正在查询今日 {verdict} 榜单，请稍等")
@@ -152,7 +152,7 @@ def send_now_board_with_verdict(message: RobotMessage):
     single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                          f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
+                           f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
     if run is None:
         return
 
@@ -163,7 +163,7 @@ def send_now_board_with_verdict(message: RobotMessage):
 def send_today_board(message: RobotMessage):
     single_col = (message.tokens[1] == "single") \
         if len(message.tokens) == 2 else False
-    message.reply(f"正在查询今日题数，请稍等")
+    message.reply("正在查询今日题数，请稍等")
 
     single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
@@ -178,7 +178,7 @@ def send_today_board(message: RobotMessage):
 def send_yesterday_board(message: RobotMessage):
     single_col = (message.tokens[1] == "single") \
         if len(message.tokens) == 2 else False
-    message.reply(f"正在查询昨日总榜，请稍等")
+    message.reply("正在查询昨日总榜，请稍等")
 
     single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
@@ -191,7 +191,7 @@ def send_yesterday_board(message: RobotMessage):
 
 @command(tokens=['api'])
 def send_version_info(message: RobotMessage):
-    message.reply(f"正在查询各模块版本，请稍等")
+    message.reply("正在查询各模块版本，请稍等")
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message, f"--version --output {cached_prefix}.txt", no_id=True)
@@ -200,7 +200,7 @@ def send_version_info(message: RobotMessage):
 
     with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
         result = f.read()
-        message.reply(f"[API Version]\n\n"
+        message.reply("[API Version]\n\n"
                       f"Core {Constants.core_version}\n"
                       f"AtCoder {__atc_version__}\n"
                       f"Codeforces {__cf_version__}\n"
