@@ -436,7 +436,7 @@ class Codeforces(CompetitivePlatform):
             return False, 0
 
         accepted = False
-        penality = 0
+        penalty = 0
 
         skip_verdicts = [
             "COMPILATION_ERROR", "SKIPPED", "TESTING", "SUBMITTED"
@@ -450,12 +450,12 @@ class Codeforces(CompetitivePlatform):
             if submission['creationTimeSeconds'] < establish_time:
                 break
             if submission['verdict'] == 'OK':
-                penality += (submission['creationTimeSeconds'] - establish_time) // 60
+                penalty += (submission['creationTimeSeconds'] - establish_time) // 60
                 accepted = True
                 break
-            penality += 20
+            penalty += 20
 
-        return accepted, penality
+        return accepted, penalty
 
     @classmethod
     def get_user_rank(cls, handle: str) -> str | None:

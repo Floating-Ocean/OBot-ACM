@@ -77,6 +77,7 @@ class Module(unittest.TestCase):
         print(json.dumps(asdict(contest), ensure_ascii=False, indent=4))
         self.assertTrue(True)  # 因为没啥好断言的
 
+    @unittest.skip("需要手动提交，仅供手动测试使用")
     def test_cf_binding(self):
         handle = "FloatingOcean"
         establish_time = int(time.time())
@@ -90,7 +91,7 @@ class Module(unittest.TestCase):
         excludes = set()
         excludes.update(Codeforces.get_user_submit_prob_id(duel_a))
         excludes.update(Codeforces.get_user_submit_prob_id(duel_b))
-        self.assertIsNot(len(excludes), 0)
+        self.assertNotEqual(len(excludes), 0)
         print(len(excludes), excludes)
 
         pickup_prob = Codeforces.get_prob_filtered("all", excludes=excludes)
