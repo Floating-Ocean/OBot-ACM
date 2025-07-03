@@ -1,4 +1,5 @@
 import json
+import time
 import unittest
 from dataclasses import asdict
 from datetime import datetime
@@ -75,6 +76,27 @@ class Module(unittest.TestCase):
         )
         print(json.dumps(asdict(contest), ensure_ascii=False, indent=4))
         self.assertTrue(True)  # 因为没啥好断言的
+
+    def test_cf_binding(self):
+        handle = "FloatingOcean"
+        establish_time = int(time.time())
+        _ = input("发起绑定，请在10分钟内于P1A提交一发CE后任意键继续\n")
+        bind_result = Codeforces.validate_binding(handle, establish_time)
+        self.assertTrue(bind_result)
+
+    def test_cf_duel_exclude(self):
+        duel_a, duel_b = "FloatingOcean", "Kepy"
+
+        excludes = set()
+        excludes.update(Codeforces.get_user_submit_prob_id(duel_a))
+        excludes.update(Codeforces.get_user_submit_prob_id(duel_b))
+        self.assertIsNot(len(excludes), 0)
+        print(len(excludes), excludes)
+
+        pickup_prob = Codeforces.get_prob_filtered("all", excludes=excludes)
+        self.assertIsInstance(pickup_prob, dict)
+        print(pickup_prob)
+
 
 
 if __name__ == '__main__':

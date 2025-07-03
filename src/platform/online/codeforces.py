@@ -384,7 +384,11 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def get_prob_filtered(cls, tag_needed: str, limit: str = None, newer: bool = False,
-                          on_tag_chosen=None) -> dict | int:
+                          on_tag_chosen=None, excludes: set[str] | None = None) -> dict | int:
+        """
+        根据tag、是否非远古题、难度范围和排除题目进行随机选题
+        excludes 列表项格式为 contestId + index
+        """
         if tag_needed == "all":
             problems = cls._api('problemset.problems')
         else:
@@ -415,7 +419,43 @@ class Codeforces(CompetitivePlatform):
         if newer:
             filtered_data = [prob for prob in filtered_data if prob['contestId'] >= 1000]
 
+        if excludes is not None:
+            filtered_data = [prob for prob in filtered_data
+                             if f'{prob["contestId"]}{prob["index"]}' not in excludes]
+
         return random.choice(filtered_data) if len(filtered_data) > 0 else 0
+
+    @classmethod
+    def get_prob_status(cls, handle: str, establish_time: int,
+                        contest_id: int, index: str) -> tuple[bool, int]:
+        """
+        获取过题状态以及罚时 (类ICPC，错误提交*1 = 罚时20min, AC之后的提交不计)
+        """
+        submissions = cls._api('contest.status', contestId=contest_id, handle=handle)
+        if isinstance(submissions, int) or len(submissions) == 0:
+            return False, 0
+
+        accepted = False
+        penality = 0
+
+        skip_verdicts = [
+            "COMPILATION_ERROR", "SKIPPED", "TESTING", "SUBMITTED"
+        ]
+
+        for submission in submissions:
+            if submission['problem']['index'] != index:
+                continue
+            if 'verdict' not in submission or submission['verdict'] in skip_verdicts:
+                continue
+            if submission['creationTimeSeconds'] < establish_time:
+                break
+            if submission['verdict'] == 'OK':
+                penality += (submission['creationTimeSeconds'] - establish_time) // 60
+                accepted = True
+                break
+            penality += 20
+
+        return accepted, penality
 
     @classmethod
     def get_user_rank(cls, handle: str) -> str | None:
@@ -560,6 +600,18 @@ class Codeforces(CompetitivePlatform):
         return len(total_set), len(weekly_set), len(daily_set)
 
     @classmethod
+    def get_user_submit_prob_id(cls, handle: str) -> set[str]:
+        """获取用户提交过的所有题目，列表项格式为 contestId + index"""
+        status = cls._api('user.status', handle=handle)
+
+        if isinstance(status, int):
+            return set()
+
+        prob_id = [(f'{submission["problem"]["contestId"]}'
+                    f'{submission["problem"]["index"]}') for submission in status]
+        return set(prob_id)
+
+    @classmethod
     def get_user_contest_standings(cls, handle: str, contest_id: str) -> tuple[str, list[str] | None]:
         standings = cls._api('contest.standings', handles=handle, contestId=contest_id, showUnofficial=True)
 
@@ -572,3 +624,25 @@ class Codeforces(CompetitivePlatform):
         standings_info = [cls._format_standing(standing, contest_id) for standing in standings['rows']]
 
         return contest_info, standings_info
+
+    @classmethod
+    def validate_binding(cls, handle: str, establish_time: int) -> bool:
+        """
+        验证发起绑定后10分钟内在P1A有一发CE提交
+        """
+        submissions = cls._api('contest.status', contestId=1, handle=handle, count=1)
+        if isinstance(submissions, int) or len(submissions) == 0:
+            return False
+
+        last_submission = submissions[-1]
+        if last_submission['problem']['index'] != 'A':
+            return False
+
+        if ('verdict' not in last_submission or
+                last_submission['verdict'] != 'COMPILATION_ERROR'):
+            return False
+
+        if not establish_time <= last_submission['creationTimeSeconds'] <= establish_time + 10 * 60:
+            return False
+
+        return True
