@@ -1,20 +1,57 @@
 import re
+import threading
 import traceback
+from dataclasses import dataclass
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, get_simple_qrcode, png2jpg
+from src.data.cf_duel import CFUser, get_binding, establish_binding, accept_binding
+from src.data.model.binding import BindStatus
 from src.platform.online.codeforces import Codeforces
 
-__cf_version__ = "v3.1.2"
+__cf_version__ = "v5.0.0"
 
 _CF_HELP = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
 
 
 def register_module():
     pass
+
+
+@dataclass
+class DuelistInfo:
+    user_id: str
+    user_data: CFUser
+    opponent_user_id: str
+    problem: dict
+
+
+_duelist_info = {}
+_duelist_info_lock = threading.Lock()
+
+
+def send_binding(message: RobotMessage):
+    user = get_binding(message.author_id)
+    reply_tip = ""
+    if user.bind_status == BindStatus.UNBOUNDED:
+        message.reply("你当前未绑定任何 Codeforces 账号，请使用 /cf bind [handle] 进行绑定")
+        return None
+    if user.bind_status == BindStatus.BINDING:
+        validate_status = Codeforces.validate_binding(user.handle, user.establish_binding_time)
+        if validate_status:
+            validate_status &= (accept_binding(message.author_id, user) == 0)
+        if not validate_status:
+            message.reply("绑定失败，请确保你使用了正确的账号，并在绑定开始的 10 分钟内完成了提交")
+            return None
+        reply_tip = "绑定成功！\n"
+
+    message.reply(f"{reply_tip}你当前绑定的账号 [{user.handle}]\n\n"
+                  f"潜力值：{user.ptt}\n"
+                  f"对战数：{len(user.contest_history)}", modal_words=False)
+    return None
 
 
 def send_user_id_card(message: RobotMessage, handle: str):
@@ -152,6 +189,29 @@ def send_logo(message: RobotMessage):
     message.reply("[Codeforces] 网站当前的图标", img_url=Codeforces.logo_url)
 
 
+def start_binding(message: RobotMessage, handle: str):
+    user = get_binding(message.author_id)
+    establish_status = establish_binding(message.author_id, user, handle)
+    if establish_status == -1:
+        message.reply("你已经开始绑定，请不要重复操作")
+        return None
+    if establish_status == -2:
+        message.reply("你已经绑定账号，请不要重复绑定。\n"
+                      "如需切换账号，请先使用 /cf unbind 进行解绑。解绑后你的对战数据会保留。")
+        return None
+
+    cached_prefix = get_cached_prefix('QRCode-Generator')
+    qr_img = get_simple_qrcode(
+        f"https://codeforces.com/contest/1/submit")
+    qr_img.save(f"{cached_prefix}.png")
+
+    message.reply(f"你当前正在绑定 [{user.handle}]\n\n"
+                  "请在 10 分钟内，使用该账号在 P1A 提交一发 CE (编译错误)\n"
+                  "提交成功后，请回复 /cf bind 以确认绑定",
+                  png2jpg(f"{cached_prefix}.png"), modal_words=False)
+    return None
+
+
 @command(tokens=['cf', 'codeforces'])
 def reply_cf_request(message: RobotMessage):
     try:
@@ -219,6 +279,12 @@ def reply_cf_request(message: RobotMessage):
 
         elif func == "logo" or func == "icon":
             send_logo(message)
+
+        elif func == "bind":
+            if len(content) == 2:
+                send_binding(message)
+            else:
+                start_binding(message, content[2])
 
         else:
             message.reply(f'[Codeforces]\n\n{_CF_HELP}', modal_words=False)
