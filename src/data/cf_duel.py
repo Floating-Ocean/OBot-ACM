@@ -30,7 +30,7 @@ def _save_data(current_data: dict[str, CFUser]):
             json.dump(raw_data, f, ensure_ascii=False, indent=4)
         os.replace(tmp_path, _data_path)
     except Exception as e:
-        raise RuntimeError(f"Failed to save data: {e}")
+        raise RuntimeError(f"Failed to save data: {e}") from e
 
 
 def _fetch_data() -> dict[str, CFUser]:

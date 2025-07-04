@@ -21,8 +21,8 @@ __cf_version__ = "v5.0.0"
 _CF_HELP = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
 _CF_DUEL_HELP = '\n'.join([
     ("/cf duel start [标签|all] (难度) (new): "
-    "开始对战，题目从 Codeforces 上随机选取. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
-    "末尾加上 new 参数则会忽视 P1000A 以前的题."),
+     "开始对战，题目从 Codeforces 上随机选取. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
+     "末尾加上 new 参数则会忽视 P1000A 以前的题."),
     "/cf duel accept [pair_code]: 同意对战请求",
     "/cf duel finish: 结束本次对战"
 ])
@@ -234,7 +234,7 @@ def start_binding(message: RobotMessage, handle: str):
     qr_img = get_simple_qrcode("https://codeforces.com/contest/1/submit")
     qr_img.save(f"{cached_prefix}.png")
 
-    message.reply(f"你当前正在绑定 [{user.handle}]\n\n"
+    message.reply(f"你当前正在绑定 [{handle}]\n\n"
                   "请在 10 分钟内，使用该账号在 P1A 提交一发 CE (编译错误)\n"
                   "提交成功后，请回复 /cf bind 以确认绑定",
                   png2jpg(f"{cached_prefix}.png"), modal_words=False)
@@ -272,7 +272,7 @@ def start_duel_pairing(message: RobotMessage, prob_info: ProbInfo):
             return None
 
         pair_code = ""
-        while len(pair_code) == 0 or pair_code in _duel_pairing_info.keys():
+        while len(pair_code) == 0 or pair_code in _duel_pairing_info:
             pair_code = ''.join(random.choices(string.hexdigits, k=6))
 
         _duel_pairing_info[pair_code] = PairingInfo(user_id, prob_info)
@@ -492,7 +492,7 @@ def reply_cf_request(message: RobotMessage):
                     tag=content[3],
                     limit=content[4] if len(content) >= 5 and content[4] != "new" else None,
                     newer=content[4] == "new" if len(content) == 5 else (
-                        content[5] == "new" if len(content) == 6 else False)
+                            content[5] == "new" if len(content) == 6 else False)
                 ))
             else:
                 message.reply(f'Codeforces 对战模块\n\n{_CF_DUEL_HELP}')
