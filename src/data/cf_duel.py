@@ -23,9 +23,14 @@ class CFUser(DuelUser, Binding):
 
 
 def _save_data(current_data: dict[str, CFUser]):
-    raw_data = {key: asdict(val) for key, val in current_data.items()}
-    with open(_data_path, 'w', encoding='utf-8') as f:
-        json.dump(raw_data, f, ensure_ascii=False, indent=4)
+    try:
+        raw_data = {key: asdict(val) for key, val in current_data.items()}
+        tmp_path = f"{_data_path}.tmp"
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(raw_data, f, ensure_ascii=False, indent=4)
+        os.replace(tmp_path, _data_path)
+    except Exception as e:
+        raise RuntimeError(f"Failed to save data: {e}")
 
 
 def _fetch_data() -> dict[str, CFUser]:

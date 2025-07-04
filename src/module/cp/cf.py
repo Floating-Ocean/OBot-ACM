@@ -20,9 +20,9 @@ __cf_version__ = "v5.0.0"
 
 _CF_HELP = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
 _CF_DUEL_HELP = '\n'.join([
-    "/cf duel start [标签|all] (难度) (new): "
+    ("/cf duel start [标签|all] (难度) (new): "
     "开始对战，题目从 Codeforces 上随机选取. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
-    "末尾加上 new 参数则会忽视 P1000A 以前的题.",
+    "末尾加上 new 参数则会忽视 P1000A 以前的题."),
     "/cf duel accept [pair_code]: 同意对战请求",
     "/cf duel finish: 结束本次对战"
 ])
@@ -492,7 +492,7 @@ def reply_cf_request(message: RobotMessage):
                     tag=content[3],
                     limit=content[4] if len(content) >= 5 and content[4] != "new" else None,
                     newer=content[4] == "new" if len(content) == 5 else (
-                    content[5] == "new" if len(content) == 6 else False)
+                        content[5] == "new" if len(content) == 6 else False)
                 ))
             else:
                 message.reply(f'Codeforces 对战模块\n\n{_CF_DUEL_HELP}')
