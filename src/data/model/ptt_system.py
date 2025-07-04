@@ -37,7 +37,7 @@ class PttSystem:
         :return: (delta_a, delta_b)
         """
         # 题难，加多扣少
-        difficulty_factor = (difficulty - 800) / (3000 - 800)
+        difficulty_factor = difficulty / 3000
         inc_k = 2 * (difficulty_factor ** 0.9)
         dec_k = difficulty_factor ** 1.6
 
@@ -81,7 +81,7 @@ class PttSystem:
             delta = new_calc_ptt - calc_ptt
 
         user.ptt += delta
-        user.contest_history.append(calc_ptt)
+        user.contest_history.append(user.ptt)
 
     @classmethod
     def process_duel(cls, user_a: DuelUser, user_b: DuelUser, outcome: int, difficulty: int):

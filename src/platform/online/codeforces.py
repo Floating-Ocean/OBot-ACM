@@ -1,6 +1,7 @@
 import random
 import re
 import time
+from dataclasses import dataclass
 
 import pixie
 from thefuzz import process
@@ -10,6 +11,13 @@ from src.core.util.tools import fetch_url_json, format_timestamp, get_week_start
     format_timestamp_diff, format_seconds, format_int_delta, decode_range, check_intersect, get_today_timestamp_range
 from src.platform.model import CompetitivePlatform, Contest
 from src.render.pixie.render_user_card import UserCardRenderer
+
+
+@dataclass
+class ProbInfo:
+    tag: str
+    limit: str | None
+    newer: bool
 
 
 class Codeforces(CompetitivePlatform):
@@ -383,40 +391,25 @@ class Codeforces(CompetitivePlatform):
         return tags
 
     @classmethod
-    def get_prob_filtered(cls, tag_needed: str, limit: str = None, newer: bool = False,
-                          on_tag_chosen=None, excludes: set[str] | None = None) -> dict | int:
+    def get_prob_filtered(cls, prob_info: ProbInfo, excludes: set[str] | None = None) -> dict | int:
         """
         根据tag、是否非远古题、难度范围和排除题目进行随机选题
         excludes 列表项格式为 contestId + index
         """
-        if tag_needed == "all":
+        if prob_info.tag == "all":
             problems = cls._api('problemset.problems')
         else:
-            all_tags = cls.get_prob_tags_all()
-            if all_tags is None:
-                return -2
-            if tag_needed not in all_tags:  # 模糊匹配
-                closet_tag = process.extract(tag_needed, all_tags, limit=1)[0]
-                if closet_tag[1] < 60:
-                    return -3
-                tag_needed = closet_tag[0]
-                if on_tag_chosen is not None:
-                    on_tag_chosen(f"标签最佳匹配: {tag_needed}")
-            problems = cls._api('problemset.problems', tags=tag_needed.replace("-", " "))
+            problems = cls._api('problemset.problems', tags=prob_info.tag.replace("-", " "))
 
         if isinstance(problems, int) or len(problems) == 0:
             return -1
 
         filtered_data = problems['problems']
-        if limit is not None:
-            min_point, max_point = decode_range(limit, length=(3, 4))
-            if min_point == -2:
-                return -1
-            if min_point == -3:
-                return 0
+        if prob_info.limit is not None:
+            min_point, max_point = decode_range(prob_info.limit, length=(3, 4))
             filtered_data = [prob for prob in problems['problems']
                              if 'rating' in prob and min_point <= prob['rating'] <= max_point]
-        if newer:
+        if prob_info.newer:
             filtered_data = [prob for prob in filtered_data if prob['contestId'] >= 1000]
 
         if excludes is not None:
@@ -441,6 +434,8 @@ class Codeforces(CompetitivePlatform):
         skip_verdicts = [
             "COMPILATION_ERROR", "SKIPPED", "TESTING", "SUBMITTED"
         ]
+        submissions = list(submissions)
+        submissions.reverse()
 
         for submission in submissions:
             if submission['problem']['index'] != index:
@@ -448,11 +443,13 @@ class Codeforces(CompetitivePlatform):
             if 'verdict' not in submission or submission['verdict'] in skip_verdicts:
                 continue
             if submission['creationTimeSeconds'] < establish_time:
-                break
+                continue
             if submission['verdict'] == 'OK':
                 penalty += (submission['creationTimeSeconds'] - establish_time) // 60
                 accepted = True
                 break
+            if submission['passedTestCount'] == 0:  # 排除样例1错误带来的罚时
+                continue
             penalty += 20
 
         return accepted, penalty
@@ -470,6 +467,19 @@ class Codeforces(CompetitivePlatform):
 
         return (f"{info['rating']} "
                 f"{next((rk for (l, r), rk in cls.rated_rks.items() if l <= info['rating'] < r), 'N')}")
+
+    @classmethod
+    def get_user_rating(cls, handle: str) -> int | None:
+        info = cls._api('user.info', handles=handle)
+
+        if info == -1:
+            return None
+        if info == 0 or len(info) == 0:
+            return None
+
+        info = info[-1]
+
+        return info['rating']
 
     @classmethod
     def get_user_id_card(cls, handle: str) -> pixie.Image | str:
@@ -644,5 +654,29 @@ class Codeforces(CompetitivePlatform):
 
         if not establish_time <= last_submission['creationTimeSeconds'] <= establish_time + 10 * 60:
             return False
+
+        return True
+
+    @classmethod
+    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen = None) -> bool:
+        """
+        校验筛选条件，标签替换为匹配到的
+        """
+        if prob_info.tag != "all":
+            all_tags = cls.get_prob_tags_all()
+            if all_tags is None:
+                return False
+            if prob_info.tag not in all_tags:  # 模糊匹配
+                closet_tag = process.extract(prob_info.tag, all_tags, limit=1)[0]
+                if closet_tag[1] < 60:
+                    return False
+                prob_info.tag = closet_tag[0]
+                if on_tag_chosen is not None:
+                    on_tag_chosen(f"标签最佳匹配: {prob_info.tag}")
+
+        if prob_info.limit is not None:
+            min_point, max_point = decode_range(prob_info.limit, length=(3, 4))
+            if min_point in [-2, -3]:
+                return False
 
         return True

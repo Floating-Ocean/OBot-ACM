@@ -24,7 +24,7 @@ class Constants:
     log = logging.get_logger()
     config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
 
-    core_version = "v3.9.2.seg_beta1_07032212"
+    core_version = "v3.9.2.seg_beta2_07041531"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -76,6 +76,8 @@ class Constants:
             Help("/添加(来只) [what]", "添加一个类别为 what 的表情包，需要管理员审核.")
         ],
         'codeforces': [
+            Help("/cf bind [handle]", "绑定用户名为 handle 的 Codeforces 账号."),
+            Help("/cf duel", "Codeforces 对战模块."),
             Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
             Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
             Help("/cf recent [handle] (count)", "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),

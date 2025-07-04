@@ -93,7 +93,7 @@ def unbound(user_id: str, target: CFUser) -> int:
     return 0
 
 
-def finish_duel(user_a_id: str, target_a: CFUser, user_b_id: str, target_b: CFUser,
+def settle_duel(user_a_id: str, target_a: CFUser, user_b_id: str, target_b: CFUser,
                 outcome: int, difficulty: int) -> int:
     if target_a.bind_status != BindStatus.BOUND or target_b.bind_status != BindStatus.BOUND:
         return -1

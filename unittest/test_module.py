@@ -11,7 +11,7 @@ from src.core.util.exception import handle_exception, UnauthorizedError, ModuleR
 from src.core.util.tools import decode_range
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
-from src.platform.online.codeforces import Codeforces
+from src.platform.online.codeforces import Codeforces, ProbInfo
 
 
 class Module(unittest.TestCase):
@@ -94,7 +94,7 @@ class Module(unittest.TestCase):
         self.assertNotEqual(len(excludes), 0)
         print(len(excludes), excludes)
 
-        pickup_prob = Codeforces.get_prob_filtered("all", excludes=excludes)
+        pickup_prob = Codeforces.get_prob_filtered(ProbInfo("all", None, False), excludes=excludes)
         self.assertIsInstance(pickup_prob, dict)
         print(pickup_prob)
 
