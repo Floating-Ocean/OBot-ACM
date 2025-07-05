@@ -17,7 +17,6 @@ from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 from src.render.pixie.render_uptime import UptimeRenderer
-from src.render.svg.render_uptime_status import render_uptime_status
 
 
 class Render(unittest.TestCase):
@@ -95,9 +94,9 @@ class Render(unittest.TestCase):
     def test_uptime(self):
         status = fetch_url_json("https://stats.uptimerobot.com/api/getMonitorList/BAPG4sPMZr",
                                 method='GET')
-        uptime_img = UptimeRenderer(status, f'test_uptime_monitor').render()
+        uptime_img = UptimeRenderer(status, 'test_uptime_monitor').render()
         self.assertIsNotNone(uptime_img)
-        uptime_img.write_file(f"test_uptime.png")
+        uptime_img.write_file("test_uptime.png")
 
 if __name__ == '__main__':
     unittest.main()

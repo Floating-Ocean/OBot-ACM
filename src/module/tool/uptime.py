@@ -15,7 +15,7 @@ def register_module():
 @command(tokens=['alive', 'uptime'])
 def reply_alive(message: RobotMessage):
     message.reply("正在查询服务状态，请稍等")
-    status = fetch_url_json("https://stats.uptimerobot.com/api/getMonitorList/BAPG4sPMZr",
+    status = fetch_url_json(f"https://stats.uptimerobot.com/api/getMonitorList/{_page_id}",
                             method='GET')
 
     cached_prefix = get_cached_prefix('Uptime')
