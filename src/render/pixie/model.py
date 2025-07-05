@@ -4,7 +4,7 @@ from abc import abstractmethod
 from datetime import datetime
 
 import pixie
-from easy_pixie import load_img, apply_tint, change_img_alpha
+from easy_pixie import load_img, apply_tint, change_img_alpha, draw_img, Loc
 
 from src.core.constants import Constants
 
@@ -24,7 +24,7 @@ class Renderer(abc.ABC):
                           tint_ratio: int = 1, alpha_ratio: float = -1) -> pixie.Image:
         img_path = os.path.join(_lib_path, f"{img_name}.png")
         if not os.path.exists(img_path):
-            img_path = os.path.join(_lib_path, "Unknown.png")
+            img_path = os.path.join(_lib_path, "Dot.png")
 
         # 防止 Unknown 也不存在
         if not os.path.exists(img_path):
@@ -62,3 +62,65 @@ class RenderableSection(abc.ABC):
     @abstractmethod
     def get_height(self):
         pass
+
+
+class RenderableSvgSection(RenderableSection, abc.ABC):
+
+    @abstractmethod
+    def _generate_svg(self) -> tuple[str, int, int]:
+        """渲染 svg，获取文本，宽度，高度"""
+        pass
+
+    @abstractmethod
+    def _get_max_width(self) -> int:
+        """获取可伸展最大宽度"""
+        pass
+
+    def __init__(self, svg_ts_path: str, width: int = -1, height: int = -1):
+        self.svg_ts_path = f'{svg_ts_path}.svg'
+        tetris_svg, self.original_width, self.original_height = self._generate_svg()
+        with open(self.svg_ts_path, 'w') as f:
+            f.write(tetris_svg)
+        self.tetris_map = pixie.read_image(self.svg_ts_path)
+
+        # 计算目标尺寸和居中偏移
+        self._calculate_dimensions(width, height)
+
+    def _calculate_dimensions(self, target_width, target_height):
+        aspect_ratio = self.original_width / self.original_height
+
+        if target_width == -1 and target_height == -1:
+            target_width = self._get_max_width()
+
+        if target_width == -1:
+            self.render_width = int(target_height * aspect_ratio)
+            self.render_height = target_height
+        elif target_height == -1:
+            self.render_width = target_width
+            self.render_height = int(target_width / aspect_ratio)
+        else:
+            # 同时指定宽高时，居中显示而非拉伸
+            container_ratio = target_width / target_height
+            if aspect_ratio > container_ratio:
+                self.render_width = target_width
+                self.render_height = int(target_width / aspect_ratio)
+            else:
+                self.render_height = target_height
+                self.render_width = int(target_height * aspect_ratio)
+
+        self.container_width = target_width if target_width != -1 else self.render_width
+        self.container_height = target_height if target_height != -1 else self.render_height
+
+    def render(self, img: pixie.Image, x: int, y: int) -> int:
+        current_x, current_y = x, y
+        current_x += (self.container_width - self.render_width) // 2
+        current_y += (self.container_height - self.render_height) // 2
+
+        draw_img(img, self.tetris_map,
+                 Loc(current_x, current_y, self.render_width, self.render_height))
+        current_y = y + self.container_height
+
+        return current_y
+
+    def get_height(self):
+        return self.container_height
