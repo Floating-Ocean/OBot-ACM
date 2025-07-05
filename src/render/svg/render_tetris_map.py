@@ -5,7 +5,7 @@ _colors = ["#000000", "#ec407a", "#ab47bc", "#7986cb", "#29b6f6",
            "#4db6ac", "#d4e157", "#ffa726", "#282828"]
 
 
-def render_tetris_svg(tetris_map: list[list[int]]) -> tuple[str, int, int]:
+def render_tetris_map(tetris_map: list[list[int]]) -> tuple[str, int, int]:
     """
     渲染俄罗斯方块当前状态的 svg
     返回 svg 文本，宽度，高度

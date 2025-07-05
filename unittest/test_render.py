@@ -3,7 +3,7 @@ import random
 import unittest
 
 from src.core.constants import Constants
-from src.core.util.tools import png2jpg
+from src.core.util.tools import png2jpg, fetch_url_json
 from src.module.game.tetris import BLOCKS
 from src.module.tool.color_rand import load_colors, _colors, transform_color, add_qrcode
 from src.module.tool.how_to_cook import __how_to_cook_version__
@@ -16,6 +16,8 @@ from src.render.pixie.render_color_card import ColorCardRenderer
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
+from src.render.pixie.render_uptime import UptimeRenderer
+from src.render.svg.render_uptime_status import render_uptime_status
 
 
 class Render(unittest.TestCase):
@@ -90,6 +92,12 @@ class Render(unittest.TestCase):
             self.assertIsNotNone(tetris_next_block_img)
             tetris_next_block_img.write_file(f"test_tetris_next_block_{idx}.png")
 
+    def test_uptime(self):
+        status = fetch_url_json("https://stats.uptimerobot.com/api/getMonitorList/BAPG4sPMZr",
+                                method='GET')
+        uptime_img = UptimeRenderer(status, f'test_uptime_monitor').render()
+        self.assertIsNotNone(uptime_img)
+        uptime_img.write_file(f"test_uptime.png")
 
 if __name__ == '__main__':
     unittest.main()
