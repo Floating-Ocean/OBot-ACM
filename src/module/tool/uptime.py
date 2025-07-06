@@ -1,15 +1,12 @@
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import fetch_url_json, png2jpg
 from src.render.pixie.render_uptime import UptimeRenderer
 
 _page_id = Constants.config["uptime_page_id"]
-
-
-def register_module():
-    pass
 
 
 @command(tokens=['alive', 'uptime'])
@@ -22,3 +19,11 @@ def reply_alive(message: RobotMessage):
     uptime_img = UptimeRenderer(status, cached_prefix).render()
     uptime_img.write_file(f"{cached_prefix}.png")
     message.reply("当前服务状态", png2jpg(f"{cached_prefix}.png"))
+
+
+@module(
+    name="Uptime-Robot",
+    version="v2.0.0"
+)
+def register_module():
+    pass

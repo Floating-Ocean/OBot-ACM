@@ -4,17 +4,13 @@ from datetime import datetime
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.bot.perm import PermissionLevel
 from src.core.constants import Constants
 from src.core.util.tools import is_valid_date, check_is_int
 from src.platform.model import DynamicContest
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")
-__contest_list_renderer_version__ = "v1.0.1"
-
-
-def register_module():
-    pass
 
 
 @command(tokens=["导入比赛"], permission_level=PermissionLevel.MOD)
@@ -84,3 +80,11 @@ def reply_manual_add_contest(message: RobotMessage):
         message.reply("出现错误，导入比赛失败")
         Constants.log.warn("[manual] 导入自定义比赛失败.")
         Constants.log.error(f"[manual] {e}")
+
+
+@module(
+    name="Contest-List-Renderer",
+    version="v1.0.1"
+)
+def register_module():
+    pass

@@ -7,24 +7,13 @@ from thefuzz import process
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
-from src.module.cp.atc import __atc_version__
-from src.module.cp.cf import __cf_version__
-from src.module.cp.contest_manual import __contest_list_renderer_version__
-from src.module.cp.nk import __nk_version__
-from src.module.tool.color_rand import __color_rand_version__
-from src.module.tool.how_to_cook import __how_to_cook_version__
-from src.module.tool.pick_one import __pick_one_version__
-from src.module.tool.rand import __rand_version__
 
 _lib_path = os.path.join(Constants.config["lib_path"], "Peeper-Board-Generator")
-
-
-def register_module():
-    pass
 
 
 def classify_verdicts(content: str) -> str:
@@ -72,8 +61,8 @@ def call_lib_method(message: RobotMessage, prop: str, no_id: bool = False) -> st
     return execute_lib_method(prop, message, no_id)
 
 
-def call_lib_method_directly(prop: str) -> str | None:
-    return execute_lib_method(prop, None, False)
+def call_lib_method_directly(prop: str, no_id: bool = False) -> str | None:
+    return execute_lib_method(prop, None, no_id)
 
 
 def daily_update_job():
@@ -179,28 +168,15 @@ def send_yesterday_board(message: RobotMessage):
     message.reply("昨日卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
 
 
-@command(tokens=['api'])
-def send_version_info(message: RobotMessage):
-    message.reply(f"正在查询各模块版本，请稍等")
-
+def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = call_lib_method(message, f"--version --output {cached_prefix}.txt", no_id=True)
+    run = call_lib_method_directly(f"--version --output {cached_prefix}.txt", no_id=True)
     if run is None:
-        return
+        return "Unknown"
 
     with open(f"{cached_prefix}.txt", encoding="utf-8") as f:
         result = f.read()
-        message.reply(f"[API Version]\n\n"
-                      f"Core {Constants.core_version}\n"
-                      f"AtCoder {__atc_version__}\n"
-                      f"Codeforces {__cf_version__}\n"
-                      f"Color-Rand {__color_rand_version__}\n"
-                      f"Contest-List-Renderer {__contest_list_renderer_version__}\n"
-                      f"How-To-Cook {__how_to_cook_version__}\n"
-                      f"NowCoder {__nk_version__}\n"
-                      f"{result}\n"
-                      f"Pick-One {__pick_one_version__}\n"
-                      f"Random {__rand_version__}", modal_words=False)
+        return result.split(' ', 1)[1]
 
 
 @command(tokens=['user'], need_check_exclude=True)
@@ -218,3 +194,11 @@ def oj_user(message: RobotMessage):
     else:
         message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
         return None
+
+
+@module(
+    name="Peeper-Board-Generator",
+    version=get_version_info
+)
+def register_module():
+    pass

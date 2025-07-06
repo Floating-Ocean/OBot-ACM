@@ -9,6 +9,7 @@ from thefuzz import process
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import get_all_modules_info
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, check_is_int
@@ -16,6 +17,7 @@ from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
 from src.platform.online.nowcoder import NowCoder
+from src.render.pixie.render_about import AboutRenderer
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 
@@ -240,3 +242,17 @@ def reply_help(message: RobotMessage):
     contest_list_img.write_file(f"{cached_prefix}.png")
 
     message.reply("帮助手册", png2jpg(f"{cached_prefix}.png"))
+
+
+@command(tokens=['api', 'about', '版本', '关于'])
+def reply_about(message: RobotMessage):
+    message.reply("O宝正在画画，稍等一下")
+
+    cached_prefix = get_cached_prefix('About-Renderer')
+    about_img = AboutRenderer(
+        ("OBot Core", Constants.core_version),
+        get_all_modules_info()
+    ).render()
+    about_img.write_file(f"{cached_prefix}.png")
+
+    message.reply("当前各模块版本", png2jpg(f"{cached_prefix}.png"))

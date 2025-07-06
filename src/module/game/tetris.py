@@ -8,12 +8,11 @@ from typing import Optional
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import HelpStrList, Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, png2jpg
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
-
-__tetris_version__ = "v1.1.0"
 
 _TETRIS_HELP = '\n'.join(HelpStrList(Constants.help_contents["tetris"]))
 
@@ -82,10 +81,6 @@ BLOCKS = [
         ]
     }
 ]
-
-
-def register_module():
-    pass
 
 
 class GameStatus(Enum):
@@ -427,3 +422,11 @@ def reply_tetris(message: RobotMessage):
             put_block(message)
 
         return None
+
+
+@module(
+    name="Tetris-Project",
+    version="v1.1.0"
+)
+def register_module():
+    pass

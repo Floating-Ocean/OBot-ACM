@@ -106,20 +106,24 @@ class _UptimeMonitorItem(RenderableSection):
             status_info, 'H', 40, padding_bottom=16, font_color=status_color
         )
         self.status_section = _UptimeStatusSection(monitor_status["dailyRatios"], svg_ts_path)
+        self.dot_path = Renderer.load_img_resource("Dot", status_color)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
         status_text_width = calculate_width(self.status_text)
 
         draw_text(img, self.name_text, current_x, current_y)
-        current_y = draw_text(img, self.status_text,
-                              _CONTENT_WIDTH + 64 - current_x - status_text_width, current_y)
+        current_x = _CONTENT_WIDTH + 64 - current_x - status_text_width
+        draw_img(img, self.dot_path, Loc(current_x - 48, current_y + 6, 40, 40))
+        current_y = draw_text(img, self.status_text, current_x, current_y)
+
+        current_x = x
         current_y = self.status_section.render(img, current_x, current_y)
 
         return current_y
 
     def get_height(self):
-        return calculate_height([self.status_text]) + self.status_section.get_height()
+        return calculate_height(self.status_text) + self.status_section.get_height()
 
 
 class _UptimeMonitorSection(RenderableSection):

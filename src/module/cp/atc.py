@@ -3,18 +3,13 @@ import traceback
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants, HelpStrList
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import get_simple_qrcode, png2jpg
 from src.platform.online.atcoder import AtCoder
 
-__atc_version__ = "v1.3.1"
-
 _ATC_HELP = '\n'.join(HelpStrList(Constants.help_contents["atcoder"]))
-
-
-def register_module():
-    pass
 
 
 def send_user_id_card(message: RobotMessage, handle: str):
@@ -138,3 +133,11 @@ def reply_atc_request(message: RobotMessage):
 
     except Exception as e:
         message.report_exception('AtCoder', traceback.format_exc(), e)
+
+
+@module(
+    name="AtCoder",
+    version="v1.3.1"
+)
+def register_module():
+    pass

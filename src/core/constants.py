@@ -24,7 +24,7 @@ class Constants:
     log = logging.get_logger()
     config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
 
-    core_version = "v3.9.3.seg_beta1_07060056"
+    core_version = "v3.9.3.seg_beta2_07062311"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -100,7 +100,8 @@ class Constants:
         ],
         'random': [
             Help("/rand [num/int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
-            Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500].")
+            Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500]."),
+            Help("/rand color", "获取一个色卡."),
         ],
         'guess-interval': [
             Help("/guess", "开始区间猜数字."),
@@ -124,7 +125,6 @@ class Constants:
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
             Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
             Help("/sleep", "进行一种 Minecraft 风格的睡觉."),
-            Help("/color", "获取一个色卡."),
             Help("/help", "获取本图.")
         ],
     }
