@@ -65,7 +65,7 @@ class _CopyrightSection(RenderableSection):
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
         current_y = draw_text(img, self.generator_text, current_x, current_y)
-        draw_text(img, self.generation_info_text, current_x, current_y)
+        current_y = draw_text(img, self.generation_info_text, current_x, current_y)
 
         return current_y
 

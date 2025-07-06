@@ -1,9 +1,7 @@
 import pixie
-from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
-    pick_gradient_color, draw_gradient_rect, GradientDirection, draw_mask_rect, tuple_to_color, \
-    change_alpha, hex_to_color, lighten_color
+from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_img, \
+    draw_mask_rect, tuple_to_color
 
-from src.core.constants import Constants, Help
 from src.render.pixie.model import Renderer, RenderableSection
 
 _CONTENT_WIDTH = 1200
@@ -12,8 +10,6 @@ _BOTTOM_PADDING = 128
 _SIDE_PADDING = 108
 _CELL_PADDING = 32
 _SECTION_PADDING = 108
-
-_SPLIT_POINT = 5
 
 
 class _ModuleItem(RenderableSection):
