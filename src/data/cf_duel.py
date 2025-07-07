@@ -7,7 +7,7 @@ from src.core.constants import Constants
 from src.data.model.binding import Binding, BindStatus
 from src.data.model.ptt_system import DuelUser, PttSystem
 
-_lib_path = os.path.join(Constants.config["lib_path"], "Duel")
+_lib_path = Constants.modules_conf.get_lib_path("Duel")
 _data_path = os.path.join(_lib_path, "codeforces.json")
 
 _MAX_BINDING_DURATION = 10 * 60
