@@ -20,8 +20,8 @@ class PermissionLevel(IntEnum):
 
     @staticmethod
     def distribute_permission(qq_id: str):
-        admin_ids = Constants.config.get('admin_qq_id', set())
-        mod_ids = Constants.config.get('mod_qq_id', set())
+        admin_ids = Constants.role_conf.get('admin_id', set())
+        mod_ids = Constants.role_conf.get('mod_id', set())
         return (
             PermissionLevel.ADMIN if qq_id in admin_ids else
             PermissionLevel.MOD if qq_id in mod_ids else
