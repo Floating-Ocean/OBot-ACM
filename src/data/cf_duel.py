@@ -15,10 +15,6 @@ _MAX_BINDING_DURATION = 10 * 60
 
 @dataclass
 class CFUser(DuelUser, Binding):
-    establish_binding_time: int
-    bind_status: int
-    ptt: int
-    contest_history: list[int]
     handle: str
 
 
@@ -42,24 +38,24 @@ def _fetch_data() -> dict[str, CFUser]:
         return {key: CFUser(**val) for key, val in raw_data.items()}
 
 
-def _update_user(user_id: str, target: CFUser):
+def _update_user(user_id: str, target: CFUser, no_save: bool = False):
     current_data = _fetch_data()
     current_data[user_id] = target
-    _save_data(current_data)
+    if not no_save:  # 避免频繁写
+        _save_data(current_data)
 
 
 def _refresh_bind_status(target: CFUser):
-    if target.bind_status == BindStatus.BINDING:
-        if time.time() - target.establish_binding_time > _MAX_BINDING_DURATION:
-            target.bind_status = BindStatus.UNBOUNDED
+    if (target.bind_status == BindStatus.BINDING and
+            time.time() - target.establish_binding_time > _MAX_BINDING_DURATION):
+        target.bind_status = BindStatus.UNBOUNDED
 
 
 def get_binding(user_id: str) -> CFUser:
     current_data = _fetch_data()
     if user_id in current_data:
         return current_data[user_id]
-    else:
-        return CFUser(-1, BindStatus.UNBOUNDED, 0, [], "")
+    return CFUser(0, BindStatus.UNBOUNDED, 0, [], "")
 
 
 def establish_binding(user_id: str, target: CFUser, handle: str) -> int:
@@ -105,6 +101,6 @@ def settle_duel(user_a_id: str, target_a: CFUser, user_b_id: str, target_b: CFUs
 
     PttSystem.process_duel(target_a, target_b, outcome, difficulty)
 
-    _update_user(user_a_id, target_a)
+    _update_user(user_a_id, target_a, no_save=True)
     _update_user(user_b_id, target_b)
     return 0
