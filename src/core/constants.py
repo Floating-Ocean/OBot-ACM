@@ -150,7 +150,6 @@ class Constants:
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
             Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
             Help("/sleep", "进行一种 Minecraft 风格的睡觉."),
-            Help("/color", "获取一个色卡."),
             Help("/help", "获取本图.")
         ],
     }

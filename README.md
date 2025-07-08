@@ -1,4 +1,4 @@
-<h1 align="center">OBot's ACM</h1>
+<h1 align="center"><img src="/img/obot_logo_overlay.png" width="40%" alt="OBot's ACM"/></h1>
 <div align="center">
   <strong>A.k.a. O宝的AC梦 · 基于PBG等项目的QQ机器人</strong><br>
 </div><br>
