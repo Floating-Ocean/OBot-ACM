@@ -1,3 +1,4 @@
+<br>
 <h1 align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="/img/obot_logo_inv.png">
@@ -18,7 +19,7 @@
 <div align="center">
   <a href="https://github.com/Floating-Ocean/OBot-ACM/commits"><img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/Floating-Ocean/OBot-ACM?style=flat-square"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/commits"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/y/Floating-Ocean/OBot-ACM?style=flat-square"></a>
-</div>
+</div><br>
 
 ## 开始之前
 
