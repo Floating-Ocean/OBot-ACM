@@ -1,4 +1,5 @@
 import json
+import time
 import unittest
 from dataclasses import asdict
 from datetime import datetime
@@ -10,7 +11,7 @@ from src.core.util.exception import handle_exception, UnauthorizedError, ModuleR
 from src.core.util.tools import decode_range
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
-from src.platform.online.codeforces import Codeforces
+from src.platform.online.codeforces import Codeforces, ProbInfo
 
 
 class Module(unittest.TestCase):
@@ -75,6 +76,28 @@ class Module(unittest.TestCase):
         )
         print(json.dumps(asdict(contest), ensure_ascii=False, indent=4))
         self.assertTrue(True)  # 因为没啥好断言的
+
+    @unittest.skip("需要手动提交，仅供手动测试使用")
+    def test_cf_binding(self):
+        handle = "FloatingOcean"
+        establish_time = int(time.time())
+        _ = input("发起绑定，请在10分钟内于P1A提交一发CE后任意键继续\n")
+        bind_result = Codeforces.validate_binding(handle, establish_time)
+        self.assertTrue(bind_result)
+
+    def test_cf_duel_exclude(self):
+        duel_a, duel_b = "FloatingOcean", "Kepy"
+
+        excludes = set()
+        excludes.update(Codeforces.get_user_submit_prob_id(duel_a))
+        excludes.update(Codeforces.get_user_submit_prob_id(duel_b))
+        self.assertNotEqual(len(excludes), 0)
+        print(len(excludes), excludes)
+
+        pickup_prob = Codeforces.get_prob_filtered(ProbInfo("all", None, False), excludes=excludes)
+        self.assertIsInstance(pickup_prob, dict)
+        print(pickup_prob)
+
 
 
 if __name__ == '__main__':

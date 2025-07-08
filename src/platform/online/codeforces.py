@@ -1,6 +1,7 @@
 import random
 import re
 import time
+from dataclasses import dataclass
 
 import pixie
 from thefuzz import process
@@ -10,6 +11,13 @@ from src.core.util.tools import fetch_url_json, format_timestamp, get_week_start
     format_timestamp_diff, format_seconds, format_int_delta, decode_range, check_intersect, get_today_timestamp_range
 from src.platform.model import CompetitivePlatform, Contest
 from src.render.pixie.render_user_card import UserCardRenderer
+
+
+@dataclass
+class ProbInfo:
+    tag: str
+    limit: str | None
+    newer: bool
 
 
 class Codeforces(CompetitivePlatform):
@@ -383,39 +391,68 @@ class Codeforces(CompetitivePlatform):
         return tags
 
     @classmethod
-    def get_prob_filtered(cls, tag_needed: str, limit: str = None, newer: bool = False,
-                          on_tag_chosen=None) -> dict | int:
-        if tag_needed == "all":
+    def get_prob_filtered(cls, prob_info: ProbInfo, excludes: set[str] | None = None) -> dict | int:
+        """
+        根据tag、是否非远古题、难度范围和排除题目进行随机选题
+        excludes 列表项格式为 contestId + index
+        """
+        if prob_info.tag == "all":
             problems = cls._api('problemset.problems')
         else:
-            all_tags = cls.get_prob_tags_all()
-            if all_tags is None:
-                return -2
-            if tag_needed not in all_tags:  # 模糊匹配
-                closet_tag = process.extract(tag_needed, all_tags, limit=1)[0]
-                if closet_tag[1] < 60:
-                    return -3
-                tag_needed = closet_tag[0]
-                if on_tag_chosen is not None:
-                    on_tag_chosen(f"标签最佳匹配: {tag_needed}")
-            problems = cls._api('problemset.problems', tags=tag_needed.replace("-", " "))
+            problems = cls._api('problemset.problems', tags=prob_info.tag.replace("-", " "))
 
         if isinstance(problems, int) or len(problems) == 0:
             return -1
 
         filtered_data = problems['problems']
-        if limit is not None:
-            min_point, max_point = decode_range(limit, length=(3, 4))
-            if min_point == -2:
-                return -1
-            if min_point == -3:
-                return 0
+        if prob_info.limit is not None:
+            min_point, max_point = decode_range(prob_info.limit, length=(3, 4))
             filtered_data = [prob for prob in problems['problems']
                              if 'rating' in prob and min_point <= prob['rating'] <= max_point]
-        if newer:
+        if prob_info.newer:
             filtered_data = [prob for prob in filtered_data if prob['contestId'] >= 1000]
 
+        if excludes is not None:
+            filtered_data = [prob for prob in filtered_data
+                             if f'{prob["contestId"]}{prob["index"]}' not in excludes]
+
         return random.choice(filtered_data) if len(filtered_data) > 0 else 0
+
+    @classmethod
+    def get_prob_status(cls, handle: str, establish_time: int,
+                        contest_id: int, index: str) -> tuple[bool | None, int]:
+        """
+        获取过题状态以及罚时 (类ICPC，错误提交*1 = 罚时20min, AC之后的提交不计)
+        """
+        submissions = cls._api('contest.status', contestId=contest_id, handle=handle)
+        if isinstance(submissions, int) or len(submissions) == 0:
+            return None, 0
+
+        accepted = False
+        penalty = 0
+
+        skip_verdicts = [
+            "COMPILATION_ERROR", "SKIPPED", "TESTING", "SUBMITTED"
+        ]
+        submissions = list(submissions)
+        submissions.reverse()
+
+        for submission in submissions:
+            if submission['problem']['index'] != index:
+                continue
+            if 'verdict' not in submission or submission['verdict'] in skip_verdicts:
+                continue
+            if submission['creationTimeSeconds'] < establish_time:
+                continue
+            if submission['verdict'] == 'OK':
+                penalty += (submission['creationTimeSeconds'] - establish_time) // 60
+                accepted = True
+                break
+            if submission['passedTestCount'] == 0:  # 排除样例1错误带来的罚时
+                continue
+            penalty += 20
+
+        return accepted, penalty
 
     @classmethod
     def get_user_rank(cls, handle: str) -> str | None:
@@ -430,6 +467,19 @@ class Codeforces(CompetitivePlatform):
 
         return (f"{info['rating']} "
                 f"{next((rk for (l, r), rk in cls.rated_rks.items() if l <= info['rating'] < r), 'N')}")
+
+    @classmethod
+    def get_user_rating(cls, handle: str) -> int | None:
+        info = cls._api('user.info', handles=handle)
+
+        if info == -1:
+            return None
+        if info == 0 or len(info) == 0:
+            return None
+
+        info = info[-1]
+
+        return info['rating']
 
     @classmethod
     def get_user_id_card(cls, handle: str) -> pixie.Image | str:
@@ -560,6 +610,18 @@ class Codeforces(CompetitivePlatform):
         return len(total_set), len(weekly_set), len(daily_set)
 
     @classmethod
+    def get_user_submit_prob_id(cls, handle: str) -> set[str]:
+        """获取用户提交过的所有题目，列表项格式为 contestId + index"""
+        status = cls._api('user.status', handle=handle)
+
+        if isinstance(status, int):
+            return set()
+
+        prob_id = [(f'{submission["problem"]["contestId"]}'
+                    f'{submission["problem"]["index"]}') for submission in status]
+        return set(prob_id)
+
+    @classmethod
     def get_user_contest_standings(cls, handle: str, contest_id: str) -> tuple[str, list[str] | None]:
         standings = cls._api('contest.standings', handles=handle, contestId=contest_id, showUnofficial=True)
 
@@ -572,3 +634,49 @@ class Codeforces(CompetitivePlatform):
         standings_info = [cls._format_standing(standing, contest_id) for standing in standings['rows']]
 
         return contest_info, standings_info
+
+    @classmethod
+    def validate_binding(cls, handle: str, establish_time: int) -> bool:
+        """
+        验证发起绑定后10分钟内在P1A有一发CE提交
+        """
+        submissions = cls._api('contest.status', contestId=1, handle=handle, count=1)
+        if isinstance(submissions, int) or len(submissions) == 0:
+            return False
+
+        last_submission = submissions[-1]
+        if last_submission['problem']['index'] != 'A':
+            return False
+
+        if ('verdict' not in last_submission or
+                last_submission['verdict'] != 'COMPILATION_ERROR'):
+            return False
+
+        if not establish_time <= last_submission['creationTimeSeconds'] <= establish_time + 10 * 60:
+            return False
+
+        return True
+
+    @classmethod
+    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen = None) -> bool:
+        """
+        校验筛选条件，标签替换为匹配到的
+        """
+        if prob_info.tag != "all":
+            all_tags = cls.get_prob_tags_all()
+            if all_tags is None:
+                return False
+            if prob_info.tag not in all_tags:  # 模糊匹配
+                closet_tag = process.extract(prob_info.tag, all_tags, limit=1)[0]
+                if closet_tag[1] < 60:
+                    return False
+                prob_info.tag = closet_tag[0]
+                if on_tag_chosen is not None:
+                    on_tag_chosen(f"标签最佳匹配: {prob_info.tag}")
+
+        if prob_info.limit is not None:
+            min_point, max_point = decode_range(prob_info.limit, length=(3, 4))
+            if min_point in [-2, -3]:
+                return False
+
+        return True
