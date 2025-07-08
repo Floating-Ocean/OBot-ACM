@@ -221,6 +221,13 @@ def send_prob_pick_help(message: RobotMessage, func_prefix: str):
 
 def start_binding(message: RobotMessage, handle: str):
     user = get_binding(message.author_id)
+
+    # 验证用户名是否存在
+    user_info, _ = Codeforces.get_user_info(handle)
+    if user_info is None:
+        message.reply(f"用户 [{handle}] 不存在，请检查用户名是否正确")
+        return None
+
     establish_status = establish_binding(message.author_id, user, handle)
     if establish_status == -1:
         message.reply("你已经开始绑定，请不要重复操作")
@@ -306,10 +313,16 @@ def accept_duel_pairing(message: RobotMessage, pair_code: str):
         pairing_info = copy.deepcopy(_duel_pairing_info[pair_code])
         del _duel_pairing_info[pair_code]
 
-    message.reply("成功接受对战，正在进行随机选题")
-
     opponent_id = pairing_info.user_id
     opponent = get_binding(opponent_id)
+
+    # 验证对手绑定状态
+    if opponent.bind_status != BindStatus.BOUND:
+        message.reply("对手账号状态异常，无法开始对战")
+        return None
+
+    message.reply("成功接受对战，正在进行随机选题")
+
     r_a, r_b = Codeforces.get_user_rating(user.handle), Codeforces.get_user_rating(opponent.handle)
     r_avg = (r_a + r_b) // 2
 
@@ -375,18 +388,22 @@ def finish_duel(message: RobotMessage):
 
         duel_info = copy.deepcopy(_duelist_info[user_id])
         opponent_id = duel_info.opponent_user_id
+        opponent = get_binding(duel_info.opponent_user_id)
+        ac_me, penalty_me = Codeforces.get_prob_status(user.handle,
+                                                       duel_info.establish_time,
+                                                       duel_info.problem['contestId'],
+                                                       duel_info.problem['index'])
+        ac_op, penalty_op = Codeforces.get_prob_status(opponent.handle,
+                                                       duel_info.establish_time,
+                                                       duel_info.problem['contestId'],
+                                                       duel_info.problem['index'])
+
+        if ac_me is None or ac_op is None:
+            message.reply("获取提交状态失败，请稍后重试")
+            return None
+
         del _duelist_info[user_id]
         del _duelist_info[opponent_id]
-
-    opponent = get_binding(duel_info.opponent_user_id)
-    ac_me, penalty_me = Codeforces.get_prob_status(user.handle,
-                                                   duel_info.establish_time,
-                                                   duel_info.problem['contestId'],
-                                                   duel_info.problem['index'])
-    ac_op, penalty_op = Codeforces.get_prob_status(opponent.handle,
-                                                   duel_info.establish_time,
-                                                   duel_info.problem['contestId'],
-                                                   duel_info.problem['index'])
 
     if not ac_me and not ac_op:
         message.reply("对战结束，无人过题")

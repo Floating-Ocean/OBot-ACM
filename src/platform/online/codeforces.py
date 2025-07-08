@@ -420,13 +420,13 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def get_prob_status(cls, handle: str, establish_time: int,
-                        contest_id: int, index: str) -> tuple[bool, int]:
+                        contest_id: int, index: str) -> tuple[bool | None, int]:
         """
         获取过题状态以及罚时 (类ICPC，错误提交*1 = 罚时20min, AC之后的提交不计)
         """
         submissions = cls._api('contest.status', contestId=contest_id, handle=handle)
         if isinstance(submissions, int) or len(submissions) == 0:
-            return False, 0
+            return None, 0
 
         accepted = False
         penalty = 0
