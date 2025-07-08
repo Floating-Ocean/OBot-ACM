@@ -12,7 +12,7 @@ from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, get_simple_qrcode, png2jpg, format_int_delta
-from src.data.cf_duel import CFUser, get_binding, establish_binding, accept_binding, settle_duel
+from src.data.cf_duel import CFUser, get_binding, establish_binding, accept_binding, settle_duel, unbind
 from src.data.model.binding import BindStatus
 from src.platform.online.codeforces import Codeforces, ProbInfo
 
@@ -238,6 +238,17 @@ def start_binding(message: RobotMessage, handle: str):
                   "请在 10 分钟内，使用该账号在 P1A 提交一发 CE (编译错误)\n"
                   "提交成功后，请回复 /cf bind 以确认绑定",
                   png2jpg(f"{cached_prefix}.png"), modal_words=False)
+    return None
+
+
+def start_unbinding(message: RobotMessage):
+    user = get_binding(message.author_id)
+    unbind_status = unbind(message.author_id, user)
+    if unbind_status == -1:
+        message.reply("你还未绑定账号，无法解绑")
+        return None
+
+    message.reply("解绑成功")
     return None
 
 
@@ -476,6 +487,9 @@ def reply_cf_request(message: RobotMessage):
                 send_binding(message)
             else:
                 start_binding(message, content[2])
+
+        elif func == "unbind":
+            start_unbinding(message)
 
         elif func == "duel":
             user_id = message.author_id

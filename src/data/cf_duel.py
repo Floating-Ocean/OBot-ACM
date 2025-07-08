@@ -84,7 +84,7 @@ def accept_binding(user_id: str, target: CFUser) -> int:
     return 0
 
 
-def unbound(user_id: str, target: CFUser) -> int:
+def unbind(user_id: str, target: CFUser) -> int:
     if target.bind_status != BindStatus.BOUND:
         return -1
 
