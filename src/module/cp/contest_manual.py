@@ -10,7 +10,7 @@ from src.core.constants import Constants
 from src.core.util.tools import is_valid_date, check_is_int
 from src.platform.model import DynamicContest
 
-_lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")
+_lib_path = Constants.modules_conf.get_lib_path("Contest-List-Renderer")
 
 
 @command(tokens=["导入比赛"], permission_level=PermissionLevel.MOD)

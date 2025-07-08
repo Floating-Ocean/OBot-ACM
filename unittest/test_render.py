@@ -57,7 +57,7 @@ class Render(unittest.TestCase):
         contest_list_img.write_file("test_contest_list.png")
 
     def test_cook_md(self):
-        _lib_path = os.path.join(Constants.config["lib_path"], "How-To-Cook")
+        _lib_path = Constants.modules_conf.get_lib_path("How-To-Cook")
         dish_path = os.path.join(_lib_path, "lib", "dishes", "vegetable_dish", "西红柿豆腐汤羹", "西红柿豆腐汤羹.md")
         self.assertTrue(os.path.exists(dish_path))
         render_how_to_cook("1.5.0", dish_path, "西红柿豆腐汤羹.png")

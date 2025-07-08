@@ -7,7 +7,7 @@ from src.core.constants import Constants
 from src.core.util.tools import check_intersect, get_today_timestamp_range
 from src.platform.model import CompetitivePlatform, Contest, DynamicContest, DynamicContestPhase
 
-_lib_path = os.path.join(Constants.config["lib_path"], "Contest-List-Renderer")
+_lib_path = Constants.modules_conf.get_lib_path("Contest-List-Renderer")
 
 
 class ManualPlatform(CompetitivePlatform):

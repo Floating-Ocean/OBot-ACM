@@ -1,8 +1,20 @@
+import json
 import os
 from dataclasses import dataclass
 
 from botpy import logging
-from botpy.ext.cog_yaml import read
+
+
+@dataclass
+class ModulesConfig:
+    general: dict
+    clist: dict
+    uptime: dict
+    game: dict
+    peeper: dict
+
+    def get_lib_path(self, lib_name: str):
+        return os.path.join(self.general["lib_path"], lib_name)
 
 
 @dataclass(frozen=True)
@@ -20,11 +32,21 @@ class HelpStrList(list):
         return (str(item) for item in super().__iter__())
 
 
+def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
+    with open(path, "r", encoding="utf-8") as f:
+        conf = json.load(f)
+        botpy_conf = conf.get('botpy', {})
+        role_conf = conf.get('role', {})
+        modules_conf = conf.get('modules', {})
+        return botpy_conf, role_conf, ModulesConfig(**modules_conf)
+
+
 class Constants:
     log = logging.get_logger()
-    config = read(os.path.join(os.path.dirname(__file__), "..", "..", "config.yaml"))
+    botpy_conf, role_conf, modules_conf = (
+        _load_conf(os.path.join(os.path.dirname(__file__), "..", "..", "config.json")))
 
-    core_version = "v3.9.3.seg_beta2_07062311"
+    core_version = "v3.9.3"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -49,7 +71,8 @@ class Constants:
         [["我喜欢你"], ["你喜欢我"]],
         [["学我说话"], ["可惜我不是复读机", "人类的本质...哎我不是人来着", "学我说话"]],
         [["猫"], ["喵"]],
-        [["好"], ["好"]]
+        [["好"], ["好"]],
+        [["掐楼", "ciallo"], ["Ciallo~", "柚子厨蒸鹅心"]]
     ]
 
     modal_words = ["喵", "呢", "捏", "qaq"]
@@ -76,6 +99,8 @@ class Constants:
             Help("/添加(来只) [what]", "添加一个类别为 what 的表情包，需要管理员审核.")
         ],
         'codeforces': [
+            Help("/cf bind [handle]", "绑定用户名为 handle 的 Codeforces 账号."),
+            Help("/cf duel", "Codeforces 对战模块."),
             Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
             Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
             Help("/cf recent [handle] (count)", "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
@@ -101,7 +126,7 @@ class Constants:
         'random': [
             Help("/rand [num/int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
             Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500]."),
-            Help("/rand color", "获取一个色卡."),
+            Help("/rand color", "获取一个色卡.")
         ],
         'guess-interval': [
             Help("/guess", "开始区间猜数字."),
@@ -125,6 +150,7 @@ class Constants:
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
             Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
             Help("/sleep", "进行一种 Minecraft 风格的睡觉."),
+            Help("/color", "获取一个色卡."),
             Help("/help", "获取本图.")
         ],
     }

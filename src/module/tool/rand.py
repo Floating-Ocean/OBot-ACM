@@ -27,7 +27,7 @@ from src.render.pixie.render_color_card import ColorCardRenderer
 _RAND_HELP = '\n'.join(HelpStrList(Constants.help_contents["random"]))
 
 _colors = []
-_colors_lib_path = os.path.join(Constants.config["lib_path"], "Color-Rand")
+_colors_lib_path = Constants.modules_conf.get_lib_path("Color-Rand")
 
 
 def get_rand_num(range_min: int, range_max: int) -> int:

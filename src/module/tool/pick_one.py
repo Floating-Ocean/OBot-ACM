@@ -12,7 +12,7 @@ from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.util.tools import save_img, rand_str_len32, get_md5, read_image_with_opencv
 
-_lib_path = os.path.join(Constants.config["lib_path"], "Pick-One")
+_lib_path = Constants.modules_conf.get_lib_path("Pick-One")
 
 _lib_config, _match_dict, _ids = {}, {}, []
 

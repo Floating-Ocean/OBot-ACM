@@ -368,7 +368,7 @@ def _calculate_score(current_info: GameInfo, eliminated_lines_count: int) -> int
     base_score = eliminated_lines_count * eliminated_lines_count
 
     level = max(0, current_info.score // 25)  # 每25分升一级
-    factor = 1 + math.sqrt(level) / 2   # 平方根增长，避免指数爆炸
+    factor = 1 + math.sqrt(level) / 2  # 平方根增长，避免指数爆炸
 
     return int(base_score * factor)
 

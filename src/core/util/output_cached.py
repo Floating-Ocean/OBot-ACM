@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from src.core.constants import Constants
 from src.core.util.tools import check_is_float
 
-_output_path = Constants.config["output_path"]
+_output_path = Constants.modules_conf.general["output_path"]
 
 
 def clean_tmp_hours_ago(category: str):

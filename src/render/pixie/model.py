@@ -8,7 +8,7 @@ from easy_pixie import load_img, apply_tint, change_img_alpha, draw_img, Loc
 
 from src.core.constants import Constants
 
-_lib_path = os.path.join(Constants.config["lib_path"], "Render-Images")
+_lib_path = Constants.modules_conf.get_lib_path("Render-Images")
 _img_load_cache: dict[str, tuple[float, pixie.Image]] = {}
 
 
