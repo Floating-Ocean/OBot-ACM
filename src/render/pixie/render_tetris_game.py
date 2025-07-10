@@ -3,8 +3,8 @@ from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_img,
     draw_mask_rect, tuple_to_color
 
 from src.core.constants import Constants
-from src.render.html.render_tetris_svg import render_tetris_svg
-from src.render.pixie.model import Renderer, RenderableSection
+from src.render.svg.render_tetris_map import render_tetris_map
+from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection
 
 _CONTENT_WIDTH = 1024
 _TOP_PADDING = 168
@@ -63,57 +63,18 @@ class _CopyrightSection(RenderableSection):
         return calculate_height([self.generator_text, self.generation_info_text])
 
 
-class _TetrisMapSection(RenderableSection):
+class _TetrisMapSection(RenderableSvgSection):
+
+    def _get_max_width(self) -> int:
+        return _CONTENT_WIDTH + 64 - _SIDE_PADDING * 2
+
+    def _generate_svg(self) -> tuple[str, int, int]:
+        return render_tetris_map(self.current_map)
 
     def __init__(self, current_map: list[list[int]], svg_ts_path: str,
                  width: int = -1, height: int = -1):
-        self.svg_ts_path = f'{svg_ts_path}.svg'
-        tetris_svg, self.original_width, self.original_height = render_tetris_svg(current_map)
-        with open(self.svg_ts_path, 'w') as f:
-            f.write(tetris_svg)
-        self.tetris_map = pixie.read_image(self.svg_ts_path)
-
-        # 计算目标尺寸和居中偏移
-        self._calculate_dimensions(width, height)
-
-    def _calculate_dimensions(self, target_width, target_height):
-        aspect_ratio = self.original_width / self.original_height
-
-        if target_width == -1 and target_height == -1:
-            target_width = _CONTENT_WIDTH + 64 - _SIDE_PADDING * 2
-
-        if target_width == -1:
-            self.render_width = int(target_height * aspect_ratio)
-            self.render_height = target_height
-        elif target_height == -1:
-            self.render_width = target_width
-            self.render_height = int(target_width / aspect_ratio)
-        else:
-            # 同时指定宽高时，居中显示而非拉伸
-            container_ratio = target_width / target_height
-            if aspect_ratio > container_ratio:
-                self.render_width = target_width
-                self.render_height = int(target_width / aspect_ratio)
-            else:
-                self.render_height = target_height
-                self.render_width = int(target_height * aspect_ratio)
-
-        self.container_width = target_width if target_width != -1 else self.render_width
-        self.container_height = target_height if target_height != -1 else self.render_height
-
-    def render(self, img: pixie.Image, x: int, y: int) -> int:
-        current_x, current_y = x, y
-        current_x += (self.container_width - self.render_width) // 2
-        current_y += (self.container_height - self.render_height) // 2
-
-        draw_img(img, self.tetris_map,
-                 Loc(current_x, current_y, self.render_width, self.render_height))
-        current_y = y + self.container_height
-
-        return current_y
-
-    def get_height(self):
-        return self.container_height
+        self.current_map = current_map
+        super().__init__(svg_ts_path, width, height)
 
 
 class _TetrisNextSection(RenderableSection):

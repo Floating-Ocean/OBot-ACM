@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants, HelpStrList
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, get_simple_qrcode, png2jpg, format_int_delta
@@ -26,10 +27,6 @@ _CF_DUEL_HELP = '\n'.join([
     "/cf duel accept [pair_code]: 同意对战请求",
     "/cf duel finish: 结束本次对战"
 ])
-
-
-def register_module():
-    pass
 
 
 @dataclass
@@ -533,3 +530,11 @@ def reply_cf_request(message: RobotMessage):
 
     except Exception as e:
         message.report_exception('Codeforces', traceback.format_exc(), e)
+
+
+@module(
+    name="Codeforces",
+    version="v3.1.2"
+)
+def register_module():
+    pass

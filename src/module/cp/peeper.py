@@ -6,24 +6,13 @@ from thefuzz import process
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
-from src.module.cp.atc import __atc_version__
-from src.module.cp.cf import __cf_version__
-from src.module.cp.contest_manual import __contest_list_renderer_version__
-from src.module.cp.nk import __nk_version__
-from src.module.tool.color_rand import __color_rand_version__
-from src.module.tool.how_to_cook import __how_to_cook_version__
-from src.module.tool.pick_one import __pick_one_version__
-from src.module.tool.rand import __rand_version__
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
-
-
-def register_module():
-    pass
 
 
 def _classify_verdicts(content: str) -> str:
@@ -69,10 +58,11 @@ def _get_specified_conf(specified_uuid: str) -> dict:
     if default_conf is None:
         raise RuntimeError("No default config found.")
 
-    if specified_uuid in execute_conf:
-        return _wrap_conf_id(specified_uuid, execute_conf[specified_uuid])
+    if len(specified_uuid) > 0:
+        if specified_uuid in execute_conf:
+            return _wrap_conf_id(specified_uuid, execute_conf[specified_uuid])
+        Constants.log.warn("[peeper] 未配置榜单来源，默认选取 FJNUACM Online Judge")
 
-    Constants.log.warn("[peeper] 未配置榜单来源，默认选取 FJNUACM Online Judge")
     return default_conf
 
 
@@ -189,28 +179,16 @@ def send_yesterday_board(message: RobotMessage):
     message.reply("昨日卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
 
 
-@command(tokens=['api'])
-def send_version_info(message: RobotMessage):
-    message.reply("正在查询各模块版本，请稍等")
-
+def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--version --output {cached_prefix}.txt", no_id=True)
+    run = _call_lib_method("",  # 留空 uuid，选择默认
+                           f"--version --output {cached_prefix}.txt", no_id=True)
     if run is None:
-        return
+        return "Unknown"
 
     with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
         result = f.read()
-        message.reply("[API Version]\n\n"
-                      f"Core {Constants.core_version}\n"
-                      f"AtCoder {__atc_version__}\n"
-                      f"Codeforces {__cf_version__}\n"
-                      f"Color-Rand {__color_rand_version__}\n"
-                      f"Contest-List-Renderer {__contest_list_renderer_version__}\n"
-                      f"How-To-Cook {__how_to_cook_version__}\n"
-                      f"NowCoder {__nk_version__}\n"
-                      f"{result}\n"
-                      f"Pick-One {__pick_one_version__}\n"
-                      f"Random {__rand_version__}", modal_words=False)
+        return result.split(' ', 1)[1]
 
 
 @command(tokens=['user'])
@@ -228,3 +206,11 @@ def send_oj_user(message: RobotMessage):
     else:
         message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
         return None
+
+
+@module(
+    name="Peeper-Board-Generator",
+    version=get_version_info
+)
+def register_module():
+    pass

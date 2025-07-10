@@ -5,16 +5,11 @@ from enum import Enum
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int
 
-__guess_1a2b_version__ = "v1.0.1"
-
 _GUESS_1A2B_HELP = '\n'.join(HelpStrList(Constants.help_contents["guess-1a2b"]))
-
-
-def register_module():
-    pass
 
 
 class GuessStatus(Enum):
@@ -133,3 +128,11 @@ def reply_guess_1a2b(message: RobotMessage):
             try_guess(message)
 
         return None
+
+
+@module(
+    name="Guess-1A2B",
+    version="v1.0.1"
+)
+def register_module():
+    pass

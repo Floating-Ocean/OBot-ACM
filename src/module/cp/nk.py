@@ -3,18 +3,13 @@ import traceback
 
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants, HelpStrList
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, png2jpg
 from src.platform.online.nowcoder import NowCoder
 
-__nk_version__ = "v1.2.1"
-
 _NK_HELP = '\n'.join(HelpStrList(Constants.help_contents["nowcoder"]))
-
-
-def register_module():
-    pass
 
 
 def send_user_id_card(message: RobotMessage, handle: str):
@@ -100,3 +95,11 @@ def reply_nk_request(message: RobotMessage):
 
     except Exception as e:
         message.report_exception('NowCoder', traceback.format_exc(), e)
+
+
+@module(
+    name="NowCoder",
+    version="v1.2.1"
+)
+def register_module():
+    pass

@@ -3,21 +3,17 @@ import os
 from src.core.bot.command import command
 from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg
 from src.render.html.render_how_to_cook import render_how_to_cook
 
 _lib_path = Constants.modules_conf.get_lib_path("How-To-Cook")
-__how_to_cook_version__ = "v1.5.0"
-
 _dishes_path = os.path.join(_lib_path, "lib", "dishes")
+_version = "1.5.0"
 
 _dishes: dict[str, str] = {}
-
-
-def register_module():
-    pass
 
 
 def _load_dishes():
@@ -42,7 +38,15 @@ def reply_how_to_cook(message: RobotMessage):
 
     def reply_ok(query_tag: str, query_more_tip: str, picked: str):
         cached_prefix = get_cached_prefix('How-To-Cook')
-        render_how_to_cook(__how_to_cook_version__, _dishes[picked], f"{cached_prefix}.png")
+        render_how_to_cook(_version, _dishes[picked], f"{cached_prefix}.png")
         message.reply(f"帮你找到了{query_tag}一个菜谱【{picked}】{query_more_tip}", png2jpg(f"{cached_prefix}.png"))
 
     reply_fuzzy_matching(message, list(_dishes.keys()), "菜谱", 1, reply_ok)
+
+
+@module(
+    name="How-to-Cook",
+    version=_version
+)
+def register_module():
+    pass

@@ -1,4 +1,11 @@
-<h1 align="center">OBot's ACM</h1>
+<br>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="/img/obot_logo_inv.png">
+    <source media="(prefers-color-scheme: light)" srcset="/img/obot_logo.png">
+    <img alt="OBot's ACM" width="40%" src="/img/obot_logo.png">
+  </picture>
+</h1>
 <div align="center">
   <strong>A.k.a. O宝的AC梦 · 基于PBG等项目的QQ机器人</strong><br>
 </div><br>
@@ -12,7 +19,7 @@
 <div align="center">
   <a href="https://github.com/Floating-Ocean/OBot-ACM/commits"><img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/Floating-Ocean/OBot-ACM?style=flat-square"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/commits"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/y/Floating-Ocean/OBot-ACM?style=flat-square"></a>
-</div>
+</div><br>
 
 ## 开始之前
 
@@ -32,11 +39,11 @@
 
 - 实用功能，基于算法竞赛平台 API 实现：
   
-  | 可用功能       | 比赛清单图        | 用户信息图   | 随机选题    | 最近提交记录  | 比赛表现实时预估     |
-  |------------|--------------|---------|---------|---------|--------------|
-  | Codeforces | &#9745;      | &#9745; | &#9745; | &#9745; | &#9745; $^2$ |
-  | AtCoder    | &#9745; $^1$ | &#9745; | &#9745; |         |              |
-  | NowCoder   | &#9745;      | &#9745; |         |         |              |
+  | 可用功能       | 近日比赛         | 用户信息    | 随机选题    | 玩家对战    | 最近提交记录  | 比赛表现实时预估     |
+  |------------|--------------|---------|---------|---------|---------|--------------|
+  | Codeforces | &#9745;      | &#9745; | &#9745; | &#9745; | &#9745; | &#9745; $^2$ |
+  | AtCoder    | &#9745; $^1$ | &#9745; | &#9745; |         |         |              |
+  | NowCoder   | &#9745;      | &#9745; |         |         |         |              |
   
   $^1$ AtCoder 平台的随机选题基于 Clist API；
   

@@ -8,17 +8,13 @@ from thefuzz import process
 from src.core.bot.command import command, PermissionLevel
 from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.util.tools import save_img, rand_str_len32, get_md5, read_image_with_opencv
 
 _lib_path = Constants.modules_conf.get_lib_path("Pick-One")
-__pick_one_version__ = "v3.1.0"
 
 _lib_config, _match_dict, _ids = {}, {}, []
-
-
-def register_module():
-    pass
 
 
 def _get_img_dir_path(img_key: str, audit: bool = False) -> str:
@@ -240,3 +236,11 @@ def audit_accept(message: RobotMessage):
         audit_detail = '\n'.join([f"[{tag}] {ok_count} 张" for tag, ok_count in ok_dict.items()])
         info = f"已审核 {ok} 张图片{failed_info}\n\n{audit_detail}" if ok > 0 else f"没有图片被添加{failed_info}"
         message.reply(info, modal_words=False)
+
+
+@module(
+    name="Pick-One",
+    version="v3.1.0"
+)
+def register_module():
+    pass

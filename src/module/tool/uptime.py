@@ -1,51 +1,29 @@
 from src.core.bot.command import command
 from src.core.bot.message import RobotMessage
+from src.core.bot.module import module
 from src.core.constants import Constants
-from src.core.util.tools import fetch_url_json
+from src.core.util.output_cached import get_cached_prefix
+from src.core.util.tools import fetch_url_json, png2jpg
+from src.render.pixie.render_uptime import UptimeRenderer
 
-_api_key = Constants.modules_conf.uptime["apikey"]
+_page_id = Constants.modules_conf.uptime["page_id"]
 
 
+@command(tokens=['alive', 'uptime'])
+def reply_alive(message: RobotMessage):
+    message.reply("正在查询服务状态，请稍等")
+    status = fetch_url_json(f"https://stats.uptimerobot.com/api/getMonitorList/{_page_id}",
+                            method='GET')
+
+    cached_prefix = get_cached_prefix('Uptime')
+    uptime_img = UptimeRenderer(status, cached_prefix).render()
+    uptime_img.write_file(f"{cached_prefix}.png")
+    message.reply("当前服务状态", png2jpg(f"{cached_prefix}.png"))
+
+
+@module(
+    name="Uptime-Robot",
+    version="v2.0.0"
+)
 def register_module():
     pass
-
-
-@command(tokens=['alive'])
-def alive(message: RobotMessage):
-    message.reply("正在查询服务状态，请稍等")
-    data = fetch_url_json("https://api.uptimerobot.com/v2/getMonitors",
-                          payload={"api_key": _api_key})
-
-    checker_urls = [
-        "https://fjnuacm.top",
-        "https://codeforces.com",
-        "https://atcoder.jp",
-        "https://www.luogu.com.cn",
-        "https://nowcoder.com",
-        "https://vjudge.net"
-    ]
-    checker_names = ["FjnuOJ", "Codeforces", "AtCoder", "Luogu", "NowCoder", "VJudge"]
-    checker_results = [-1] * len(checker_urls)
-
-    if data["stat"] == "ok":
-        monitors = data["monitors"]
-        for monitor in monitors:
-            url = monitor["url"]
-            if url in checker_urls:
-                checker_results[checker_urls.index(url)] = 1 if monitor["status"] == 2 else 0  # 1 活着, 0 似了
-
-    if min(checker_results) == -1:
-        message.reply("[UptimeRobot Api] Api 异常")
-        return
-
-    info = "[UptimeRobot Api] "
-    if min(checker_results) == 1:
-        info += "所有服务均正常\n"
-    else:
-        info += "部分服务存在异常\n"
-
-    for i in range(len(checker_results)):
-        status_text = "正常" if checker_results[i] == 1 else "异常"
-        info += f"\n[{checker_names[i]}] {status_text}"
-
-    message.reply(info, modal_words=False)

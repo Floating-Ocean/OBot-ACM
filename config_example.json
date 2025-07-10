@@ -18,7 +18,7 @@
       "apikey": "ApiKey username:xxxxxxx"
     },
     "uptime": {
-      "apikey": "xxx"
+      "page_id": "xxx"
     },
     "game": {
       "exclude": {
