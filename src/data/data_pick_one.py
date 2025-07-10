@@ -38,7 +38,10 @@ def get_pick_one_data() -> PickOne:
     pick_one_conf = load_data({}, _conf_data_path, PickOneConfJson)
     for key, value in pick_one_conf.items():  # 方便匹配
         key_path = str(os.path.join(_lib_path, key))
-        ids.append([value.id, len(os.listdir(key_path))])
+        if os.path.exists(key_path):
+            ids.append([value.id, len(os.listdir(key_path))])
+        else:
+            ids.append([value.id, 0])
         for keys in value.key:
             match_dict[keys] = key
     ids.sort(key=lambda s: s[1], reverse=True)  # 按图片数量降序排序
@@ -106,11 +109,12 @@ def accept_attachment(img_key: str, need_audit: bool, attachments: list[str]) ->
     cnt, ok, duplicate = len(attachments), 0, 0
 
     for attach in attachments:
-        if not attach.__dict__['content_type'].startswith('image'):
+        if not getattr(attach, 'content_type', '').startswith('image'):
             continue  # 不是图片
 
+        # 全都保存为 *.gif，客户端会自动解析，且这样便于判重
         file_path = os.path.join(dir_path, f"{rand_str_len32()}.gif")
-        response = download_img(attach.__dict__['url'], file_path)
+        response = download_img(getattr(attach, 'url'), file_path)
 
         if response:
             md5 = get_md5(file_path)

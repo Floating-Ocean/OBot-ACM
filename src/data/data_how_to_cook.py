@@ -13,5 +13,9 @@ def load_dishes():
             if file.endswith(".md"):
                 full_path = os.path.join(root, file)
                 dish_name = os.path.splitext(file)[0]
-                dishes[dish_name] = full_path
+                # 只保留一个，其余的撞名了没必要留下
+                if dish_name in dishes:
+                    Constants.log.warn(f"Duplicate dish name detected: {dish_name}")
+                else:
+                    dishes[dish_name] = full_path
     return dishes

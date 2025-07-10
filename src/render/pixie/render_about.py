@@ -98,7 +98,7 @@ class _TitleSection(RenderableSection):
 
     def __init__(self):
         self.logo_path = Renderer.load_img_resource("OBot_Logo", (0, 0, 0))
-
+        # 不支持 letter_spacing 而手动加空格的无奈之举
         self.subtitle_text = StyledString(
             ' '.join("Integrated Bot for Competitive Programming and More"), 'H', 23,
             max_width=1032

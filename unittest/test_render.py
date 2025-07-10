@@ -5,15 +5,16 @@ import unittest
 from src.core.bot.decorator import get_all_modules_info
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg, fetch_url_json
+from src.data.data_color_rand import get_colors
 from src.module.game.tetris import BLOCKS
-from src.module.tool.rand import transform_color, load_colors, _colors, add_qrcode
+from src.module.tool.rand import transform_color, add_qrcode
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
 from src.platform.online.nowcoder import NowCoder
 from src.render.html.render_how_to_cook import render_how_to_cook
 from src.render.pixie.render_about import AboutRenderer
-from src.render.pixie.render_color_card import ColorCardRenderer
+from src.render.pixie.render_color_card import ColorCardRenderer, COLOR_QRCODE_COORD
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
@@ -23,21 +24,21 @@ from src.render.pixie.render_uptime import UptimeRenderer
 class Render(unittest.TestCase):
 
     def test_color_rand(self):
-        load_colors()
-        picked_color = random.choice(_colors)
+        colors = get_colors("chinese_traditional")
+        picked_color = random.choice(colors)
         hex_raw_text, rgb_raw_text, hsv_raw_text = transform_color(picked_color)
         color_card = ColorCardRenderer(picked_color, hex_raw_text, rgb_raw_text, hsv_raw_text).render()
         self.assertIsNotNone(color_card)
         color_card.write_file("test_color_rand.png")
 
     def test_color_qrcode(self):
-        load_colors()
-        picked_color = random.choice(_colors)
+        colors = get_colors("chinese_traditional")
+        picked_color = random.choice(colors)
         hex_raw_text, rgb_raw_text, hsv_raw_text = transform_color(picked_color)
         color_card = ColorCardRenderer(picked_color, hex_raw_text, rgb_raw_text, hsv_raw_text).render()
         self.assertIsNotNone(color_card)
         color_card.write_file("test_color_qrcode.png")
-        add_qrcode("test_color_qrcode.png", picked_color)
+        add_qrcode("test_color_qrcode.png", picked_color, COLOR_QRCODE_COORD)
         png2jpg("test_color_qrcode.png")
 
     def test_contest_list(self):

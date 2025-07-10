@@ -18,6 +18,8 @@ class ManualContest:
     supplement: str
 
     def __eq__(self, other):
+        # 仅基于开始时间、平台和名称判断比赛的唯一性
+        # duration 和 supplement 可能会更新，不影响比赛的唯一标识
         return (self.start_time == other.start_time and
                 self.platform == other.platform and
                 self.name == other.name)

@@ -6,6 +6,14 @@ from src.data.data_color_rand import Colors
 from src.render.pixie.model import Renderer
 
 
+COLOR_QRCODE_COORD = (1215, 618)
+
+_CONTENT_WIDTH = 1600
+_CONTENT_HEIGHT = 986
+_SIDE_PADDING_HORIZONTAL = 144
+_SIDE_PADDING_VERTICAL = 120
+
+
 class ColorCardRenderer(Renderer):
     """渲染色卡"""
 
@@ -16,12 +24,12 @@ class ColorCardRenderer(Renderer):
         self._hsv_raw_text = hsv_raw_text
 
     def render(self) -> pixie.Image:
-        img = pixie.Image(1664, 1050)
+        img = pixie.Image(_CONTENT_WIDTH + 64, _CONTENT_HEIGHT + 64)
         draw_full(img, (0, 0, 0))
 
         paint_bg = pixie.Paint(pixie.SOLID_PAINT)
         paint_bg.color = hex_to_color(self._color.hex)
-        draw_rect(img, paint_bg, Loc(32, 32, 1600, 986), 96)
+        draw_rect(img, paint_bg, Loc(32, 32, _CONTENT_WIDTH, _CONTENT_HEIGHT), 96)
 
         text_color = choose_text_color(paint_bg.color)
         title_raw_text = f"Color Collect - {self._color.pinyin}"
@@ -51,7 +59,7 @@ class ColorCardRenderer(Renderer):
             "HSV", 'R', 48, font_color=text_color, padding_bottom=56
         )
 
-        current_x, current_y = 144 + 32, 120 + 32
+        current_x, current_y = _SIDE_PADDING_HORIZONTAL + 32, _SIDE_PADDING_VERTICAL + 32
         current_y = draw_text(img, title_text, current_x, current_y)
         current_y = draw_text(img, name_text, current_x, current_y)
         draw_text(img, hex_text, current_x, current_y)

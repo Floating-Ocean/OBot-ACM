@@ -1,33 +1,34 @@
 import abc
 import json
 import os
+from typing import Any
 
 
 class JsonSerializer(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def serialize(cls, target: any) -> any:
+    def serialize(cls, target: Any) -> Any:
         pass
 
     @classmethod
     @abc.abstractmethod
-    def deserialize(cls, target: any) -> any:
+    def deserialize(cls, target: Any) -> Any:
         pass
 
 
 class NoSerialize(JsonSerializer):
 
     @classmethod
-    def serialize(cls, target: any) -> any:
+    def serialize(cls, target: Any) -> Any:
         return target
 
     @classmethod
-    def deserialize(cls, target: any) -> any:
+    def deserialize(cls, target: Any) -> Any:
         return target
 
 
-def save_data(current_data: any, data_path: str, serializer: type[JsonSerializer]):
+def save_data(current_data: Any, data_path: str, serializer: type[JsonSerializer]):
     try:
         raw_data = serializer.serialize(current_data)
         tmp_path = f"{data_path}.tmp"
@@ -38,7 +39,7 @@ def save_data(current_data: any, data_path: str, serializer: type[JsonSerializer
         raise RuntimeError(f"Failed to save data: {e}") from e
 
 
-def load_data(default_data: any, data_path: str, serializer: type[JsonSerializer]) -> any:
+def load_data(default_data: Any, data_path: str, serializer: type[JsonSerializer]) -> Any:
     try:
         if not os.path.exists(data_path):
             save_data(default_data, data_path, serializer)

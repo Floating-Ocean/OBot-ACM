@@ -20,7 +20,7 @@ from src.data.data_cache import get_cached_prefix
 from src.data.data_color_rand import get_colors, Colors
 from src.module.cp.atc import reply_atc_request
 from src.module.cp.cf import reply_cf_request
-from src.render.pixie.render_color_card import ColorCardRenderer
+from src.render.pixie.render_color_card import ColorCardRenderer, COLOR_QRCODE_COORD
 
 _RAND_HELP = '\n'.join(HelpStrList(Constants.help_contents["random"]))
 
@@ -141,13 +141,15 @@ def reply_hitokoto(message: RobotMessage):
 
 def transform_color(color: Colors) -> tuple[str, str, str]:
     hex_text = "#FF" + color.hex.upper()[1:]
-    rgb_text = ", ".join([f"{val}" for val in color.RGB])
-    h, s, v = rgb_to_hsv(color.RGB[0], color.RGB[1], color.RGB[2])
-    hsv_text = ", ".join([f"{val}" for val in [round(h * 360), round(s * 100), int(v)]])
+    rgb_text = ", ".join(str(val) for val in color.RGB)
+    # 归一化
+    r_norm, g_norm, b_norm = (val / 255 for val in color.RGB)
+    h, s, v = rgb_to_hsv(r_norm, g_norm, b_norm)
+    hsv_text = ", ".join(str(val) for val in [round(h * 360), round(s * 100), round(v * 100)])
     return hex_text, rgb_text, hsv_text
 
 
-def add_qrcode(target_path: str, color: Colors):
+def add_qrcode(target_path: str, color: Colors, paste_coord: tuple[int, int]):
     qr = QRCode(error_correction=1,  # ERROR_CORRECT_L
                 box_size=8)
 
@@ -162,7 +164,7 @@ def add_qrcode(target_path: str, color: Colors):
                                                              color_to_tuple(font_color)))
 
     target_img = Image.open(target_path)
-    target_img.paste(qrcode_img, (1215, 618), qrcode_img)
+    target_img.paste(qrcode_img, paste_coord, qrcode_img)
     target_img.save(target_path)
 
 
@@ -177,7 +179,7 @@ def reply_color_rand(message: RobotMessage):
 
     color_card = ColorCardRenderer(picked_color, hex_text, rgb_text, hsv_text).render()
     color_card.write_file(img_path)
-    add_qrcode(img_path, picked_color)
+    add_qrcode(img_path, picked_color, COLOR_QRCODE_COORD)
 
     name = picked_color.name
     pinyin = picked_color.pinyin

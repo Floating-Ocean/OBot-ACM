@@ -12,7 +12,10 @@ _page_id = Constants.modules_conf.uptime["page_id"]
 def reply_alive(message: RobotMessage):
     message.reply("正在查询服务状态，请稍等")
     status = fetch_url_json(f"https://stats.uptimerobot.com/api/getMonitorList/{_page_id}",
-                            method='GET')
+                            method='GET', throw=False)
+    if isinstance(status, int):
+        message.reply("API异常，请稍后重试")
+        return
 
     cached_prefix = get_cached_prefix('Uptime')
     uptime_img = UptimeRenderer(status, cached_prefix).render()
