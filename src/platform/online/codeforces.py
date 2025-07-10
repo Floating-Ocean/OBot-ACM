@@ -658,7 +658,7 @@ class Codeforces(CompetitivePlatform):
         return True
 
     @classmethod
-    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen = None) -> bool:
+    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen=None) -> bool:
         """
         校验筛选条件，标签替换为匹配到的
         """

@@ -3,9 +3,8 @@ import threading
 from dataclasses import dataclass
 from enum import Enum
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int
 

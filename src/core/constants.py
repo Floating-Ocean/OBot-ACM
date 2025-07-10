@@ -46,7 +46,7 @@ class Constants:
     botpy_conf, role_conf, modules_conf = (
         _load_conf(os.path.join(os.path.dirname(__file__), "..", "..", "config.json")))
 
-    core_version = "v3.9.3"
+    core_version = "v3.9.4.beta1_07101400"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [

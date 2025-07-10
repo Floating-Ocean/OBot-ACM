@@ -7,12 +7,11 @@ from typing import Callable
 from pypinyin import pinyin, Style
 from thefuzz import process
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, get_all_modules_info
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import get_all_modules_info
 from src.core.constants import Constants
-from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, check_is_int
+from src.data.data_cache import get_cached_prefix
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces

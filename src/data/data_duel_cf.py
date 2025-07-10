@@ -1,10 +1,10 @@
-import json
 import os
 import time
 from dataclasses import dataclass, asdict
 
 from src.core.constants import Constants
 from src.data.model.binding import Binding, BindStatus
+from src.data.model.json_storage import JsonSerializer, load_data, save_data
 from src.data.model.ptt_system import DuelUser, PttSystem
 
 _lib_path = Constants.modules_conf.get_lib_path("Duel")
@@ -18,31 +18,22 @@ class CFUser(DuelUser, Binding):
     handle: str
 
 
-def _save_data(current_data: dict[str, CFUser]):
-    try:
-        raw_data = {key: asdict(val) for key, val in current_data.items()}
-        tmp_path = f"{_data_path}.tmp"
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            json.dump(raw_data, f, ensure_ascii=False, indent=4)
-        os.replace(tmp_path, _data_path)
-    except Exception as e:
-        raise RuntimeError(f"Failed to save data: {e}") from e
+class CFUserJson(JsonSerializer):
 
+    @classmethod
+    def serialize(cls, target: dict[str, CFUser]) -> dict:
+        return {key: asdict(val) for key, val in target.items()}
 
-def _fetch_data() -> dict[str, CFUser]:
-    if not os.path.exists(_data_path):
-        _save_data({})
-
-    with open(_data_path, 'r', encoding='utf-8') as f:
-        raw_data = json.load(f)
-        return {key: CFUser(**val) for key, val in raw_data.items()}
+    @classmethod
+    def deserialize(cls, target: dict) -> dict[str, CFUser]:
+        return {key: CFUser(**val) for key, val in target.items()}
 
 
 def _update_user(user_id: str, target: CFUser, no_save: bool = False):
-    current_data = _fetch_data()
+    current_data = load_data({}, _data_path, CFUserJson)
     current_data[user_id] = target
     if not no_save:  # 避免频繁写
-        _save_data(current_data)
+        save_data(current_data, _data_path, CFUserJson)
 
 
 def _refresh_bind_status(target: CFUser):
@@ -52,7 +43,7 @@ def _refresh_bind_status(target: CFUser):
 
 
 def get_binding(user_id: str) -> CFUser:
-    current_data = _fetch_data()
+    current_data = load_data({}, _data_path, CFUserJson)
     if user_id in current_data:
         return current_data[user_id]
     return CFUser(0, BindStatus.UNBOUNDED, 0, [], "")

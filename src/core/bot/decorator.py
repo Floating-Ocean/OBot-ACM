@@ -1,6 +1,9 @@
+from typing import Callable
+
 from src.core.bot.perm import PermissionLevel
 
 __commands__ = {}
+__modules__ = {}
 
 
 def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
@@ -31,3 +34,30 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
         return func
 
     return decorator
+
+
+def module(name: str,
+           version: str | Callable[[], str]):
+    """
+        注册一个模块。
+
+        :param name: 模块名
+        :param version: 模块版本号，可以为返回版本号的函数
+    """
+
+    def decorator(func):
+        __modules__[name] = version
+        return func
+
+    return decorator
+
+
+def get_all_modules_info() -> list[tuple[str, str]]:
+    all_modules_info = []
+    for name, version in __modules__.items():
+        if isinstance(version, Callable):
+            version = version()
+        all_modules_info.append((name, version))
+
+    all_modules_info.sort()
+    return all_modules_info

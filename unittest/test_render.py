@@ -2,7 +2,7 @@ import os
 import random
 import unittest
 
-from src.core.bot.module import get_all_modules_info
+from src.core.bot.decorator import get_all_modules_info
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg, fetch_url_json
 from src.module.game.tetris import BLOCKS

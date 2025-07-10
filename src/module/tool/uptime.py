@@ -1,9 +1,8 @@
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.constants import Constants
-from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import fetch_url_json, png2jpg
+from src.data.data_cache import get_cached_prefix
 from src.render.pixie.render_uptime import UptimeRenderer
 
 _page_id = Constants.modules_conf.uptime["page_id"]

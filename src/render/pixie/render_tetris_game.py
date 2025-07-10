@@ -1,10 +1,9 @@
 import pixie
-from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_img, \
-    draw_mask_rect, tuple_to_color
+from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_mask_rect, tuple_to_color
 
 from src.core.constants import Constants
-from src.render.svg.render_tetris_map import render_tetris_map
 from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection
+from src.render.svg.render_tetris_map import render_tetris_map
 
 _CONTENT_WIDTH = 1024
 _TOP_PADDING = 168

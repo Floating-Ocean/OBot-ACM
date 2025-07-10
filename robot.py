@@ -10,7 +10,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from botpy import Client, Intents
 from botpy.message import Message, GroupMessage, C2CMessage
 
-from src.core.bot.command import command, PermissionLevel
+from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, dispatch_message
 from src.core.constants import Constants

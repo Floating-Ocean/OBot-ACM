@@ -2,13 +2,14 @@ import pixie
 from easy_pixie import draw_rect, Loc, choose_text_color, StyledString, draw_text, calculate_width, \
     draw_full, hex_to_color
 
+from src.data.data_color_rand import Colors
 from src.render.pixie.model import Renderer
 
 
 class ColorCardRenderer(Renderer):
     """渲染色卡"""
 
-    def __init__(self, color: dict, hex_raw_text: str, rgb_raw_text: str, hsv_raw_text: str):
+    def __init__(self, color: Colors, hex_raw_text: str, rgb_raw_text: str, hsv_raw_text: str):
         self._color = color
         self._hex_raw_text = hex_raw_text
         self._rgb_raw_text = rgb_raw_text
@@ -19,17 +20,17 @@ class ColorCardRenderer(Renderer):
         draw_full(img, (0, 0, 0))
 
         paint_bg = pixie.Paint(pixie.SOLID_PAINT)
-        paint_bg.color = hex_to_color(self._color["hex"])
+        paint_bg.color = hex_to_color(self._color.hex)
         draw_rect(img, paint_bg, Loc(32, 32, 1600, 986), 96)
 
         text_color = choose_text_color(paint_bg.color)
-        title_raw_text = f"Color Collect - {self._color['pinyin']}"
+        title_raw_text = f"Color Collect - {self._color.pinyin}"
 
         title_text = StyledString(
             title_raw_text, 'H', 48, font_color=text_color, padding_bottom=52
         )
         name_text = StyledString(
-            self._color['name'], 'H', 144, font_color=text_color, padding_bottom=60
+            self._color.name, 'H', 144, font_color=text_color, padding_bottom=60
         )
         hex_text = StyledString(
             self._hex_raw_text, 'M', 72, font_color=text_color, padding_bottom=80

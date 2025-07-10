@@ -23,7 +23,7 @@ class _ModuleItem(RenderableSection):
         self.version_text = StyledString(
             version.lstrip('v'),
             'B', 20, font_color=(0, 0, 0, 108),
-            max_width = -1 if no_limit else item_width
+            max_width=-1 if no_limit else item_width
         )
         self._real_width, self._real_height = -1, -1
 
