@@ -142,9 +142,10 @@ def format_timestamp_diff(diff: int) -> str:
     return f"{info}{'后' if diff < 0 else '前'}"
 
 
-def format_timestamp(timestamp: int) -> str:
+def format_timestamp(timestamp: int, chinese_weekday_format: bool = True) -> str:
     # fix: 修复在 windows 上设置 locale 导致的堆异常
-    weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    weekdays = (['周一', '周二', '周三', '周四', '周五', '周六', '周日'] if chinese_weekday_format else
+                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
     tm = time.localtime(timestamp)
     weekday = weekdays[tm.tm_wday]
     return time.strftime('%y/%m/%d ', tm) + f'{weekday} ' + time.strftime('%H:%M:%S', tm)

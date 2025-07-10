@@ -577,9 +577,11 @@ class Codeforces(CompetitivePlatform):
                        if 'verdict' in submit else "In queue")
             points = f" *{int(submit['problem']['rating'])}" if 'rating' in submit['problem'] else ""
             time_consumed = f" {submit['timeConsumedMillis']}ms" if 'timeConsumedMillis' in submit else ""
+            time_formatted = format_timestamp(submit['creationTimeSeconds'],
+                                              chinese_weekday_format=False)
             info += (f"\n[{submit['id']}] {verdict} "
                      f"P{submit['problem']['contestId']}{submit['problem']['index']}{points}{time_consumed} "
-                     f"{format_timestamp(submit['creationTimeSeconds'])}")
+                     f"{time_formatted}")
 
         return info
 
