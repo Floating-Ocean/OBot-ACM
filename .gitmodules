@@ -1,0 +1,6 @@
+[submodule "lib/How-To-Cook/lib/HowToCook"]
+	path = lib/How-To-Cook/lib/HowToCook
+	url = https://github.com/Anduin2017/HowToCook.git
+[submodule "lib/Peeper-Board-Generator"]
+	path = lib/Peeper-Board-Generator
+	url = https://github.com/qwedc001/Peeper-Board-Generator.git

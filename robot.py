@@ -89,17 +89,7 @@ class MyClient(Client):
         dispatch_message(packed_message)
 
 
-def check_path_in_config():
-    for path in ["lib_path", "output_path"]:
-        general_conf = Constants.modules_conf.general
-        if not os.path.isdir(general_conf[path]):
-            raise FileNotFoundError(general_conf[path])
-
-
 def open_robot_session():
-    # 检查配置文件中的目录是否合法，防止错误配置和命令意外执行
-    check_path_in_config()
-
     intents = botpy.Intents.default()  # 对目前已支持的所有事件进行监听
     client = MyClient(intents=intents, timeout=60)
 

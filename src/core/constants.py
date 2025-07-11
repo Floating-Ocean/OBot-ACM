@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from botpy import logging
 
+_project_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
+
 
 @dataclass
 class ModulesConfig:
@@ -13,8 +15,16 @@ class ModulesConfig:
     game: dict
     peeper: dict
 
-    def get_lib_path(self, lib_name: str):
-        return os.path.join(self.general["lib_path"], lib_name)
+    @classmethod
+    def get_lib_path(cls, lib_name: str) -> str:
+        return os.path.join(_project_dir, 'lib', lib_name)
+
+    @classmethod
+    def get_cache_path(cls) -> str:
+        cache_path = os.path.join(_project_dir, 'cache')
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
+        return cache_path
 
 
 @dataclass(frozen=True)
@@ -43,8 +53,7 @@ def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
 
 class Constants:
     log = logging.get_logger()
-    botpy_conf, role_conf, modules_conf = (
-        _load_conf(os.path.join(os.path.dirname(__file__), "..", "..", "config.json")))
+    botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
     core_version = "v3.9.4.beta1_07101400"
 
@@ -153,3 +162,7 @@ class Constants:
             Help("/help", "获取本图.")
         ],
     }
+
+    def reload_conf(self):
+        self.botpy_conf, self.role_conf, self.modules_conf = (
+            _load_conf(os.path.join(_project_dir, "config.json")))

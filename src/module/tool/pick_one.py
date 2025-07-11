@@ -54,10 +54,10 @@ def _decode_img_key(data: PickOne, what: str) -> str | None:
     elif what in data.match_dict:
         img_key = data.match_dict[what]
     else:  # 支持一下模糊匹配
-        matches = process.extract(what, data.match_dict.keys(), limit=1)[0]
-        if matches[1] < 60:
+        matches = process.extract(what, data.match_dict.keys(), limit=1)
+        if len(matches) == 0 or matches[0][1] < 60:
             return None
-        img_key = data.match_dict[matches[0]]
+        img_key = data.match_dict[matches[0][0]]
     return img_key
 
 

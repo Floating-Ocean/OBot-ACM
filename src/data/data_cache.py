@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from src.core.constants import Constants
 from src.core.util.tools import check_is_float
 
-_output_path = Constants.modules_conf.general["output_path"]
+_cache_path = Constants.modules_conf.get_cache_path()
 
 
-def clean_tmp_hours_ago(category: str):
-    category_path = os.path.join(_output_path, category)
+def clean_cache_hours_ago(category: str):
+    category_path = os.path.join(_cache_path, category)
     if not os.path.exists(category_path):
         return
 
@@ -22,10 +22,10 @@ def clean_tmp_hours_ago(category: str):
 
 
 def get_cached_prefix(category: str):
-    clean_tmp_hours_ago(category)
+    clean_cache_hours_ago(category)
 
-    category_path = os.path.join(_output_path, category)
+    category_path = os.path.join(_cache_path, category)
     if not os.path.exists(category_path):
-        os.makedirs(os.path.join(_output_path, category))
+        os.makedirs(os.path.join(_cache_path, category))
 
-    return os.path.join(_output_path, category, f"{datetime.now().timestamp()}")
+    return os.path.join(_cache_path, category, f"{datetime.now().timestamp()}")

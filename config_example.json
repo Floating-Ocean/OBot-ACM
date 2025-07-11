@@ -1,47 +1,53 @@
 {
+  "_comment_1": "1. 注意，配置文件中的所有ID都不是真实的ID，请不要直接填写QQ号和群号",
+  "_comment_2": "2. 对话场景ID (Chat-Scene-ID) 可在机器人运行日志中找到，如 group_1a2b3c4d5e...",
+  "_comment_3": "3. 可通过一些越权操作 (如 /accept) 在机器人运行日志中留下用户ID",
   "botpy": {
-    "appid": "[qqbot的appid]",
-    "secret": "[qqbot的secret]"
+    "appid": "<Bot-AppID>",
+    "secret": "<Bot-Secret>"
   },
   "role": {
-    "admin_id": ["[admin的ID (不是QQ号)]"],
-    "mod_id": ["[mod的ID (不是QQ号)]"]
+    "admin_id": ["<Admin-ID-1>", "<Admin-ID-2>", "<And-More>"],
+    "mod_id": ["<Mod-ID-1>", "<Mod-ID-2>", "<And-More>"]
   },
   "modules": {
     "general": {
-      "lib_path": "[一般指Peeper-Board-Generator等第三方模块的父文件夹]",
-      "output_path": "[生成的图片等文件的缓存路径]",
-      "http_proxy": "[http代理地址，不需要代理时留空]",
-      "https_proxy": "[https代理地址，不需要代理时留空]"
+      "_comment": "若不需要代理，请留空",
+      "http_proxy": "(Http-Proxy)",
+      "https_proxy": "(Https-Proxy)"
     },
     "clist": {
-      "apikey": "ApiKey username:xxxxxxx"
+      "_comment": "请填写完整，示例：Apikey FloatingOcean: 1a2b3c4d5e...",
+      "apikey": "<Full-Clist-Api-Key-Starts-With-ApiKey-And-UserName>"
     },
     "uptime": {
-      "page_id": "[非apikey，可在StatusPage的url中找到]"
+      "_comment": "填写StatusPage网址上的标识符，而非ApiKey",
+      "page_id": "<UptimeRobot-Status-Page-ID-In-URL>"
     },
     "game": {
       "exclude": {
-        "[禁用游戏的群组等id (不是QQ群号)]": "[禁用原因]"
+        "<Chat-Scene-ID-To-Turn-Off-Game-Feature>": "<Reply-Content-Of-Reasons-For-Turning-Off>"
       }
     },
     "peeper": {
-      "exclude_id": ["[禁用榜单的群组等id (不是QQ群号)]"],
+      "exclude_id": ["<Chat-Scene-ID-To-Turn-Off-PBG-Feature>"],
       "configs": {
-        "[此处为群组id，下面的配置参考Peeper-Board-Generator]": {
+        "<Chat-Scene-ID-1>": {
+          "_comment_1": "1. 可参考Peeper-Board-Generator中的config_example.json进行配置",
+          "_comment_2": "2. 相较前者，额外添加use_as_default字段用于指定默认配置，注意默认配置有且只能有一个",
           "use_as_default": true,
           "handler": "Hydro",
           "credentials": {
-            "uname": "[Your-Hydro-Admin-UserName]",
-            "password": "[Your-Password]"
+            "uname": "<Your-Hydro-Admin-UserName>",
+            "password": "<Your-Password>"
           },
           "excludeUid": [],
           "excludeRegDate": "YYYY-MM-DD",
           "show_unrated": true,
           "data": "data",
-          "url": "[Your-OJ-Base-URL]",
-          "id": "[Identifier-With-No-Space]",
-          "board_name": "[Your-Board-Name]"
+          "url": "<Your-OJ-Base-URL>",
+          "id": "<Identifier-With-No-Space>",
+          "board_name": "<Your-Board-Name>"
         }
       }
     }
