@@ -3,7 +3,7 @@ import os
 from src.core.constants import Constants
 
 _lib_path = Constants.modules_conf.get_lib_path("How-To-Cook")
-_dishes_path = os.path.join(_lib_path, "lib", "dishes")
+_dishes_path = os.path.join(_lib_path, "lib", "HowToCook", "dishes")
 
 
 def load_dishes():
