@@ -35,6 +35,13 @@ def reply_restart_bot(message: RobotMessage):
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
+@command(tokens=["配置重载", "reload_conf"], permission_level=PermissionLevel.ADMIN)
+def reply_reload_conf(message: RobotMessage):
+    Constants.reload_conf()
+    message.reply("已重载配置文件")
+    Constants.log.info("[obot-core] 已重载配置文件")
+
+
 class MyClient(Client):
     def __init__(self, intents: Intents, timeout: int = 5, is_sandbox=False,
                  log_config: Union[str, dict] = None, log_format: str = None, log_level: int = None,

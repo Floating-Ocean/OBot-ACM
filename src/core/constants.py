@@ -55,7 +55,7 @@ class Constants:
     log = logging.get_logger()
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
-    core_version = "v3.9.4.beta1_07101400"
+    core_version = "v3.9.4"
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -163,6 +163,7 @@ class Constants:
         ],
     }
 
-    def reload_conf(self):
-        self.botpy_conf, self.role_conf, self.modules_conf = (
+    @classmethod
+    def reload_conf(cls):
+        cls.botpy_conf, cls.role_conf, cls.modules_conf = (
             _load_conf(os.path.join(_project_dir, "config.json")))
