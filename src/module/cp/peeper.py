@@ -4,13 +4,12 @@ import os
 
 from thefuzz import process
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
-from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
+from src.data.data_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
 

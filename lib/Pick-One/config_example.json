@@ -1,0 +1,6 @@
+{
+  "<Folder-Name>": {
+    "id": "<Identifier-For-This-Collection>",
+    "key": ["<Candidate-Recognition-Word-1>", "<Candidate-Recognition-Word-2>", "<And-More>"]
+  }
+}

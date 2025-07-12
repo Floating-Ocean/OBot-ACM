@@ -10,7 +10,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from botpy import Client, Intents
 from botpy.message import Message, GroupMessage, C2CMessage
 
-from src.core.bot.command import command, PermissionLevel
+from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, dispatch_message
 from src.core.constants import Constants
@@ -33,6 +33,13 @@ def reply_restart_bot(message: RobotMessage):
     time.sleep(2)  # 等待 message 通知消息线程发送回复
     Constants.log.info("[obot-core] 正在重启")
     os.execl(sys.executable, sys.executable, *sys.argv)
+
+
+@command(tokens=["配置重载", "reload_conf"], permission_level=PermissionLevel.ADMIN)
+def reply_reload_conf(message: RobotMessage):
+    Constants.reload_conf()
+    message.reply("已重载配置文件")
+    Constants.log.info("[obot-core] 已重载配置文件")
 
 
 class MyClient(Client):
@@ -89,17 +96,7 @@ class MyClient(Client):
         dispatch_message(packed_message)
 
 
-def check_path_in_config():
-    for path in ["lib_path", "output_path"]:
-        general_conf = Constants.modules_conf.general
-        if not os.path.isdir(general_conf[path]):
-            raise FileNotFoundError(general_conf[path])
-
-
 def open_robot_session():
-    # 检查配置文件中的目录是否合法，防止错误配置和命令意外执行
-    check_path_in_config()
-
     intents = botpy.Intents.default()  # 对目前已支持的所有事件进行监听
     client = MyClient(intents=intents, timeout=60)
 

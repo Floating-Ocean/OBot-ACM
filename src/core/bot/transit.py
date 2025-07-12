@@ -5,7 +5,7 @@ import time
 import traceback
 from dataclasses import dataclass
 
-from src.core.bot.command import __commands__
+from src.core.bot.decorator import __commands__
 from src.core.bot.interact import reply_key_words, no_reply
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants

@@ -217,7 +217,10 @@ class NowCoder(CompetitivePlatform):
 
         finished_contests_last.sort(key=lambda c: -c.start_time)
         if len(finished_contests_today) == 0:
-            finished_contests = [finished_contests_last[0]]
+            if len(finished_contests_last) == 0:
+                finished_contests = []
+            else:
+                finished_contests = [finished_contests_last[0]]
         else:
             finished_contests = finished_contests_today
 

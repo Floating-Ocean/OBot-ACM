@@ -577,9 +577,11 @@ class Codeforces(CompetitivePlatform):
                        if 'verdict' in submit else "In queue")
             points = f" *{int(submit['problem']['rating'])}" if 'rating' in submit['problem'] else ""
             time_consumed = f" {submit['timeConsumedMillis']}ms" if 'timeConsumedMillis' in submit else ""
+            time_formatted = format_timestamp(submit['creationTimeSeconds'],
+                                              chinese_weekday_format=False)
             info += (f"\n[{submit['id']}] {verdict} "
                      f"P{submit['problem']['contestId']}{submit['problem']['index']}{points}{time_consumed} "
-                     f"{format_timestamp(submit['creationTimeSeconds'])}")
+                     f"{time_formatted}")
 
         return info
 
@@ -658,7 +660,7 @@ class Codeforces(CompetitivePlatform):
         return True
 
     @classmethod
-    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen = None) -> bool:
+    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen=None) -> bool:
         """
         校验筛选条件，标签替换为匹配到的
         """

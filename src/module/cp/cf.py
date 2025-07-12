@@ -7,13 +7,12 @@ import time
 import traceback
 from dataclasses import dataclass
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.constants import Constants, HelpStrList
-from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, get_simple_qrcode, png2jpg, format_int_delta
-from src.data.cf_duel import CFUser, get_binding, establish_binding, accept_binding, settle_duel, unbind
+from src.data.data_cache import get_cached_prefix
+from src.data.data_duel_cf import CFUser, get_binding, establish_binding, accept_binding, settle_duel, unbind
 from src.data.model.binding import BindStatus
 from src.platform.online.codeforces import Codeforces, ProbInfo
 
@@ -428,7 +427,6 @@ def finish_duel(message: RobotMessage):
     return None
 
 
-
 @command(tokens=['cf', 'codeforces'])
 def reply_cf_request(message: RobotMessage):
     try:
@@ -520,7 +518,7 @@ def reply_cf_request(message: RobotMessage):
                     tag=content[3],
                     limit=content[4] if len(content) >= 5 and content[4] != "new" else None,
                     newer=content[4] == "new" if len(content) == 5 else (
-                            content[5] == "new" if len(content) == 6 else False)
+                        content[5] == "new" if len(content) == 6 else False)
                 ))
             else:
                 message.reply(f'Codeforces 对战模块\n\n{_CF_DUEL_HELP}')
