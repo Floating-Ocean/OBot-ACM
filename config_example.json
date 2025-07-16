@@ -1,7 +1,7 @@
 {
   "_comment_1": "1. 注意，配置文件中的所有ID都不是真实的ID，请不要直接填写QQ号和群号",
-  "_comment_2": "2. 对话场景ID (Chat-Scene-ID) 可在机器人运行日志中找到，如 group_1a2b3c4d5e...",
-  "_comment_3": "3. 可通过一些越权操作 (如 /accept) 在机器人运行日志中留下用户ID",
+  "_comment_2": "2. 可通过指令 /chat_scene_id 获取当前对话场景ID (Chat-Scene-ID)",
+  "_comment_3": "3. 可通过指令 /my_id 主动获取用户自己的ID，或者通过一些越权指令 (如 /accept) 在Bot的运行日志中留下执行者的ID",
   "botpy": {
     "appid": "<Bot-AppID>",
     "secret": "<Bot-Secret>"

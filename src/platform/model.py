@@ -1,6 +1,5 @@
 import abc
 import time
-from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -76,7 +75,7 @@ class CompetitivePlatform(abc.ABC):
     rks_color: dict[str, str]
 
     @classmethod
-    @abstractmethod
+    @abc.abstractmethod
     def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
         """
         需被重载。
@@ -143,7 +142,7 @@ class CompetitivePlatform(abc.ABC):
         return info
 
     @classmethod
-    @abstractmethod
+    @abc.abstractmethod
     def get_user_id_card(cls, handle: str) -> pixie.Image | str:
         """
         获取指定用户的基础信息卡片
@@ -152,7 +151,7 @@ class CompetitivePlatform(abc.ABC):
         pass
 
     @classmethod
-    @abstractmethod
+    @abc.abstractmethod
     def get_user_info(cls, handle: str) -> tuple[str, str | None]:
         """
         获取指定用户的详细信息

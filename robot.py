@@ -42,6 +42,16 @@ def reply_reload_conf(message: RobotMessage):
     Constants.log.info("[obot-core] 已重载配置文件")
 
 
+@command(tokens=["对话场景ID", "chat_scene_id"])
+def reply_reload_conf(message: RobotMessage):
+    message.reply(f'当前对话场景ID\n\n{message.uuid}', modal_words=False)
+
+
+@command(tokens=["我的ID", "my_id"])
+def reply_reload_conf(message: RobotMessage):
+    message.reply(f'你的ID（不同对话场景下你的ID是不同的）\n\n{message.author_id}', modal_words=False)
+
+
 class MyClient(Client):
     def __init__(self, intents: Intents, timeout: int = 5, is_sandbox=False,
                  log_config: Union[str, dict] = None, log_format: str = None, log_level: int = None,

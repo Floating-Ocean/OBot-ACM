@@ -1,6 +1,5 @@
 import abc
 import os
-from abc import abstractmethod
 from datetime import datetime
 
 import pixie
@@ -18,7 +17,7 @@ class Renderer(abc.ABC):
     成员命名规范：渲染组件公开，可用命名前缀: str_, img_, section_；中间量私有
     """
 
-    @abstractmethod
+    @abc.abstractmethod
     def render(self) -> pixie.Image:
         pass
 
@@ -58,23 +57,23 @@ class RenderableSection(abc.ABC):
         """占几列，重写本方法以实现多列"""
         return 1
 
-    @abstractmethod
+    @abc.abstractmethod
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_height(self):
         pass
 
 
 class RenderableSvgSection(RenderableSection, abc.ABC):
 
-    @abstractmethod
+    @abc.abstractmethod
     def _generate_svg(self) -> tuple[str, int, int]:
         """渲染 svg，获取文本，宽度，高度"""
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def _get_max_width(self) -> int:
         """获取可伸展最大宽度"""
         pass
