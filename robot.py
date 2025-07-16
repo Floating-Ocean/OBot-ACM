@@ -43,12 +43,12 @@ def reply_reload_conf(message: RobotMessage):
 
 
 @command(tokens=["对话场景ID", "chat_scene_id"])
-def reply_reload_conf(message: RobotMessage):
+def reply_chat_scene_id(message: RobotMessage):
     message.reply(f'当前对话场景ID\n\n{message.uuid}', modal_words=False)
 
 
 @command(tokens=["我的ID", "my_id"])
-def reply_reload_conf(message: RobotMessage):
+def reply_my_id(message: RobotMessage):
     message.reply(f'你的ID（不同对话场景下你的ID是不同的）\n\n{message.author_id}', modal_words=False)
 
 
