@@ -13,6 +13,6 @@ aiohttp==3.11.0
 easyocr==1.7.2
 nest-asyncio==1.6.0
 thefuzz==0.22.1
-easy-pixie==0.0.7
+easy-pixie==0.0.8
 markdown2==2.5.3
 imgkit==1.2.3
