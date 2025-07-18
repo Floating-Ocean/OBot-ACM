@@ -272,7 +272,7 @@ class Codeforces(CompetitivePlatform):
         and
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/background.js
         """
-        standings = cls._api('contest.standings', contestId=contest_id, showUnofficial=False)
+        standings = cls._api('contest.standings', contestId=contest_id)
 
         if standings == -1:
             return -1
@@ -289,10 +289,9 @@ class Codeforces(CompetitivePlatform):
                 rated = False
             else:
                 rating_changes = list(rating_changes)
-                if len(rating_changes) == 0:
-                    return -2
-                rated = True
-                old_ratings = cls._adjust_old_ratings(int(contest_id), rating_changes)
+                if len(rating_changes) > 0:
+                    rated = True
+                    old_ratings = cls._adjust_old_ratings(int(contest_id), rating_changes)
 
         if rated is None and cls._is_old_contest(standings['contest']):
             rated = False
