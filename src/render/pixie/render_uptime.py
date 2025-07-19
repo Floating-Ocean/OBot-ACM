@@ -23,54 +23,54 @@ class _TitleSection(RenderableSection):
         status_sub_text = ("Uptime Robot Monitor · Some Systems Down" if down_count > 0 else
                            "Uptime Robot Monitor · All Systems Operational")
 
-        self.logo_path = Renderer.load_img_resource(
+        self.img_dot = Renderer.load_img_resource(
             "Dot",
             hex_to_color(get_percentile_color(100 if down_count == 0 else 98)[0])
         )
-        self.title_text = StyledString(
+        self.str_title = StyledString(
             status_text, 'H', 96, padding_bottom=4
         )
-        self.subtitle_text = StyledString(
+        self.str_subtitle = StyledString(
             status_sub_text, 'H', 28,
             font_color=(0, 0, 0, 136)
         )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        draw_img(img, self.logo_path, Loc(106, 181, 102, 102))
+        draw_img(img, self.img_dot, Loc(106, 181, 102, 102))
 
         current_x, current_y = x, y
-        current_y = draw_text(img, self.title_text, 232, current_y)
-        current_y = draw_text(img, self.subtitle_text, current_x, current_y)
+        current_y = draw_text(img, self.str_title, 232, current_y)
+        current_y = draw_text(img, self.str_subtitle, current_x, current_y)
 
         return current_y
 
     def get_height(self):
-        return calculate_height([self.title_text, self.subtitle_text])
+        return calculate_height([self.str_title, self.str_subtitle])
 
 
 class _CopyrightSection(RenderableSection):
 
     def __init__(self):
-        self.mild_text_color = (0, 0, 0, 156)
-        self.generator_text = StyledString(
+        mild_text_color = (0, 0, 0, 156)
+        self.str_generator = StyledString(
             "Uptime Robot", 'H', 36, padding_bottom=16,
             font_color=(0, 0, 0, 228)
         )
-        self.generation_info_text = StyledString(
+        self.str_generation_info = StyledString(
             f'Status fetched at {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}.\n'
             f"Initiated by OBot's ACM {Constants.core_version}.",
-            'B', 20, line_multiplier=1.32, font_color=self.mild_text_color
+            'B', 20, line_multiplier=1.32, font_color=mild_text_color
         )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
-        current_y = draw_text(img, self.generator_text, current_x, current_y)
-        current_y = draw_text(img, self.generation_info_text, current_x, current_y)
+        current_y = draw_text(img, self.str_generator, current_x, current_y)
+        current_y = draw_text(img, self.str_generation_info, current_x, current_y)
 
         return current_y
 
     def get_height(self):
-        return calculate_height([self.generator_text, self.generation_info_text])
+        return calculate_height([self.str_generator, self.str_generation_info])
 
 
 class _UptimeStatusSection(RenderableSvgSection):
@@ -79,11 +79,11 @@ class _UptimeStatusSection(RenderableSvgSection):
         return _CONTENT_WIDTH + 64 - _SIDE_PADDING * 2
 
     def _generate_svg(self) -> tuple[str, int, int]:
-        return render_uptime_status(self.current_status)
+        return render_uptime_status(self._current_status)
 
     def __init__(self, current_status: list[dict], svg_ts_path: str,
                  width: int = -1, height: int = -1):
-        self.current_status = current_status
+        self._current_status = current_status
         super().__init__(svg_ts_path, width, height)
 
 
@@ -99,48 +99,48 @@ class _UptimeMonitorItem(RenderableSection):
         status_info = ("正常" if raw_status == "success" else
                        "异常" if raw_status == "danger" else "暂停")
 
-        self.name_text = StyledString(
+        self.str_name = StyledString(
             monitor_status["name"], 'H', 40, padding_bottom=16
         )
-        self.status_text = StyledString(
+        self.str_status = StyledString(
             status_info, 'H', 40, padding_bottom=16, font_color=status_color
         )
-        self.status_section = _UptimeStatusSection(monitor_status["dailyRatios"], svg_ts_path)
-        self.dot_path = Renderer.load_img_resource("Dot", status_color)
+        self.section_status = _UptimeStatusSection(monitor_status["dailyRatios"], svg_ts_path)
+        self.img_dot = Renderer.load_img_resource("Dot", status_color)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
-        status_text_width = calculate_width(self.status_text)
+        status_text_width = calculate_width(self.str_status)
 
-        draw_text(img, self.name_text, current_x, current_y)
+        draw_text(img, self.str_name, current_x, current_y)
         current_x = _CONTENT_WIDTH + 64 - current_x - status_text_width
-        draw_img(img, self.dot_path, Loc(current_x - 48, current_y + 6, 40, 40))
-        current_y = draw_text(img, self.status_text, current_x, current_y)
+        draw_img(img, self.img_dot, Loc(current_x - 48, current_y + 6, 40, 40))
+        current_y = draw_text(img, self.str_status, current_x, current_y)
 
         current_x = x
-        current_y = self.status_section.render(img, current_x, current_y)
+        current_y = self.section_status.render(img, current_x, current_y)
 
         return current_y
 
     def get_height(self):
-        return calculate_height(self.status_text) + self.status_section.get_height()
+        return calculate_height(self.str_status) + self.section_status.get_height()
 
 
 class _UptimeMonitorSection(RenderableSection):
 
     def __init__(self, monitors: list[dict], svg_ts_path: str):
-        self.monitor_items = [_UptimeMonitorItem(monitor, f'{svg_ts_path}_{d}')
-                              for d, monitor in enumerate(monitors)]
+        self.section_monitor_items = [_UptimeMonitorItem(monitor, f'{svg_ts_path}_{d}')
+                                      for d, monitor in enumerate(monitors)]
 
     def get_height(self):
-        return (sum(monitor.get_height() for monitor in self.monitor_items) +
-                _UPTIME_SECTION_PADDING * (len(self.monitor_items) - 1))
+        return (sum(monitor.get_height() for monitor in self.section_monitor_items) +
+                _UPTIME_SECTION_PADDING * (len(self.section_monitor_items) - 1))
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
 
         current_y -= _UPTIME_SECTION_PADDING
-        for monitor in self.monitor_items:
+        for monitor in self.section_monitor_items:
             current_y += _UPTIME_SECTION_PADDING
             current_y = monitor.render(img, current_x, current_y)
 
@@ -151,16 +151,16 @@ class UptimeRenderer(Renderer):
     """渲染服务状态"""
 
     def __init__(self, current_status: dict, svg_ts_path: str):
-        self.current_status = current_status
-        self.svg_ts_path = svg_ts_path
+        self._current_status = current_status
+        self._svg_ts_path = svg_ts_path
 
     def render(self) -> pixie.Image:
-        title_section = _TitleSection(self.current_status["statistics"]["counts"]["down"])
-        uptime_monitor_section = _UptimeMonitorSection(self.current_status["psp"]["monitors"],
-                                                       self.svg_ts_path)
-        copyright_section = _CopyrightSection()
+        section_title = _TitleSection(self._current_status["statistics"]["counts"]["down"])
+        section_uptime_monitor = _UptimeMonitorSection(self._current_status["psp"]["monitors"],
+                                                       self._svg_ts_path)
+        section_copyright = _CopyrightSection()
 
-        render_sections = [title_section, uptime_monitor_section, copyright_section]
+        render_sections = [section_title, section_uptime_monitor, section_copyright]
 
         width, height = (_CONTENT_WIDTH,
                          sum(section.get_height() for section in render_sections) +

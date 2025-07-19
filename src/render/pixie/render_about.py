@@ -16,19 +16,19 @@ class _ModuleItem(RenderableSection):
     def __init__(self, name: str, version: str, no_limit: bool = False):
         item_width = (_CONTENT_WIDTH + 56 - _SIDE_PADDING * 2 - _CELL_PADDING * 2) / 3
         item_width -= 64
-        self.name_text = StyledString(
+        self.str_name = StyledString(
             name.replace("-", " "),
             'H', 32, padding_bottom=12, max_width=item_width
         )
-        self.version_text = StyledString(
+        self.str_version = StyledString(
             version.lstrip('v'),
             'B', 20, font_color=(0, 0, 0, 108),
-            max_width = -1 if no_limit else item_width
+            max_width=-1 if no_limit else item_width
         )
         self._real_width, self._real_height = -1, -1
 
     def get_height(self):
-        return calculate_height([self.name_text, self.version_text]) + 96
+        return calculate_height([self.str_name, self.str_version]) + 96
 
     def set_real_size(self, real_width: int, real_height: int):
         self._real_width = real_width
@@ -45,8 +45,8 @@ class _ModuleItem(RenderableSection):
 
         current_x += 32
         current_y += vertical_padding
-        current_y = draw_text(img, self.name_text, current_x, current_y)
-        current_y = draw_text(img, self.version_text, current_x, current_y)
+        current_y = draw_text(img, self.str_name, current_x, current_y)
+        current_y = draw_text(img, self.str_version, current_x, current_y)
         current_y += vertical_padding
 
         return current_y
@@ -54,38 +54,38 @@ class _ModuleItem(RenderableSection):
 
 class _ModuleSection(RenderableSection):
     def __init__(self, core: tuple[str, str], modules: list[tuple[str, str]]):
-        self._core = _ModuleItem(core[0], core[1], True)
-        self._modules_items = [_ModuleItem(name, version) for name, version in modules]
         self._core_width = _CONTENT_WIDTH + 56 - _SIDE_PADDING * 2
         self._modules_width = (self._core_width - _CELL_PADDING * 2) // 3
-        self._chip_logo_path = Renderer.load_img_resource("Chip", (0, 0, 0))
+        self.section_core = _ModuleItem(core[0], core[1], True)
+        self.section_modules_items = [_ModuleItem(name, version) for name, version in modules]
+        self.img_chip = Renderer.load_img_resource("Chip", (0, 0, 0))
 
     def get_height(self):
-        height = self._core.get_height()
-        self._core.set_real_size(self._core_width, self._core.get_height())
+        height = self.section_core.get_height()
+        self.section_core.set_real_size(self._core_width, self.section_core.get_height())
 
-        for it in range(0, len(self._modules_items), 3):
+        for it in range(0, len(self.section_modules_items), 3):
             height += _CELL_PADDING
             line_height = max(module.get_height()
-                              for module in self._modules_items[it:it + 3])
+                              for module in self.section_modules_items[it:it + 3])
             height += line_height
-            for module in self._modules_items[it:it + 3]:
+            for module in self.section_modules_items[it:it + 3]:
                 module.set_real_size(self._modules_width, line_height)
         return height
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
 
-        img_size = self._core.get_height() - 96
-        draw_img(img, self._chip_logo_path,
+        img_size = self.section_core.get_height() - 96
+        draw_img(img, self.img_chip,
                  Loc(current_x + self._core_width - img_size - 32,
                      current_y + 48, img_size, img_size))
 
-        current_y = self._core.render(img, current_x, current_y)
-        for it in range(0, len(self._modules_items), 3):
+        current_y = self.section_core.render(img, current_x, current_y)
+        for it in range(0, len(self.section_modules_items), 3):
             current_y += _CELL_PADDING
             max_y = current_y
-            for module in self._modules_items[it:it + 3]:
+            for module in self.section_modules_items[it:it + 3]:
                 max_y = max(max_y, module.render(img, current_x, current_y))
                 current_x += self._modules_width + _CELL_PADDING
             current_x = x
@@ -97,9 +97,10 @@ class _ModuleSection(RenderableSection):
 class _TitleSection(RenderableSection):
 
     def __init__(self):
-        self.logo_path = Renderer.load_img_resource("OBot_Logo", (0, 0, 0))
+        self.img_obot_logo = Renderer.load_img_resource("OBot_Logo", (0, 0, 0))
 
-        self.subtitle_text = StyledString(
+        # 不支持 letter_spacing 而手动加空格的无奈之举
+        self.str_subtitle = StyledString(
             ' '.join("Integrated Bot for Competitive Programming and More"), 'H', 23,
             max_width=1032
         )
@@ -107,28 +108,28 @@ class _TitleSection(RenderableSection):
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
 
-        draw_img(img, self.logo_path, Loc(current_x, current_y, 1030, 128))
+        draw_img(img, self.img_obot_logo, Loc(current_x, current_y, 1030, 128))
         current_y += 124 + 24
-        current_y = draw_text(img, self.subtitle_text, current_x, current_y)
+        current_y = draw_text(img, self.str_subtitle, current_x, current_y)
 
         return current_y
 
     def get_height(self):
-        return calculate_height(self.subtitle_text) + 128 + 24
+        return calculate_height(self.str_subtitle) + 128 + 24
 
 
 class AboutRenderer(Renderer):
     """渲染关于页"""
 
     def __init__(self, core: tuple[str, str], modules: list[tuple[str, str]]):
-        self._core = core
-        self._modules = modules
+        self.section_core = core
+        self.section_modules = modules
 
     def render(self) -> pixie.Image:
-        title_section = _TitleSection()
-        module_section = _ModuleSection(self._core, self._modules)
+        section_title = _TitleSection()
+        section_module = _ModuleSection(self.section_core, self.section_modules)
 
-        render_sections = [title_section, module_section]
+        render_sections = [section_title, section_module]
 
         width, height = (_CONTENT_WIDTH,
                          sum(section.get_height() for section in render_sections) +

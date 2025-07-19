@@ -272,7 +272,7 @@ class Codeforces(CompetitivePlatform):
         and
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/background.js
         """
-        standings = cls._api('contest.standings', contestId=contest_id, showUnofficial=False)
+        standings = cls._api('contest.standings', contestId=contest_id)
 
         if standings == -1:
             return -1
@@ -289,10 +289,9 @@ class Codeforces(CompetitivePlatform):
                 rated = False
             else:
                 rating_changes = list(rating_changes)
-                if len(rating_changes) == 0:
-                    return -2
-                rated = True
-                old_ratings = cls._adjust_old_ratings(int(contest_id), rating_changes)
+                if len(rating_changes) > 0:
+                    rated = True
+                    old_ratings = cls._adjust_old_ratings(int(contest_id), rating_changes)
 
         if rated is None and cls._is_old_contest(standings['contest']):
             rated = False
@@ -577,9 +576,11 @@ class Codeforces(CompetitivePlatform):
                        if 'verdict' in submit else "In queue")
             points = f" *{int(submit['problem']['rating'])}" if 'rating' in submit['problem'] else ""
             time_consumed = f" {submit['timeConsumedMillis']}ms" if 'timeConsumedMillis' in submit else ""
+            time_formatted = format_timestamp(submit['creationTimeSeconds'],
+                                              chinese_weekday_format=False)
             info += (f"\n[{submit['id']}] {verdict} "
                      f"P{submit['problem']['contestId']}{submit['problem']['index']}{points}{time_consumed} "
-                     f"{format_timestamp(submit['creationTimeSeconds'])}")
+                     f"{time_formatted}")
 
         return info
 
@@ -658,7 +659,7 @@ class Codeforces(CompetitivePlatform):
         return True
 
     @classmethod
-    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen = None) -> bool:
+    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen=None) -> bool:
         """
         校验筛选条件，标签替换为匹配到的
         """

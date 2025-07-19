@@ -1,12 +1,11 @@
 import re
 import traceback
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.constants import Constants, HelpStrList
-from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import get_simple_qrcode, png2jpg
+from src.data.data_cache import get_cached_prefix
 from src.platform.online.atcoder import AtCoder
 
 _ATC_HELP = '\n'.join(HelpStrList(Constants.help_contents["atcoder"]))

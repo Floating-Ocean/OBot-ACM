@@ -9,21 +9,21 @@ originally adapted from Codeforces code to recalculate ratings
 by Mike Mirzayanov (mirzayanovmr@gmail.com) at https://codeforces.com/contest/1/submission/13861109
 """
 from dataclasses import dataclass
+from numbers import Number
 
 import numpy as np
 
 
+@dataclass
 class Contestant:
-    def __init__(self, handle: str, points: float, penalty: int, rating: int, real_change: tuple[int, int] = None):
-        self.handle = handle
-        self.points = points
-        self.penalty = penalty
-        self.rating = rating
-        self.real_change = real_change
-
-        self.rank = None
-        self.delta = None
-        self.performance = None
+    handle: str
+    points: float
+    penalty: int
+    rating: int
+    real_change: tuple[int, int] = None
+    rank: int = None
+    delta: int = None
+    performance: Number = None
 
 
 @dataclass
@@ -31,7 +31,7 @@ class PredictResult:
     rank: int
     rating: int
     delta: int
-    performance: int
+    performance: Number
 
 
 MAX_RATING_LIMIT: int = 6000
@@ -124,8 +124,8 @@ class RatingCalculator:
             c.delta += correction
 
         zero_sum_count = min(4 * int(np.round(np.sqrt(n))), n)
-        delta_sum = sum(self.contestants[i].delta for i in range(zero_sum_count))
-        correction = min(max(int(np.trunc(-delta_sum / zero_sum_count)), -10), 0)
+        delta_sum = -sum(self.contestants[i].delta for i in range(zero_sum_count))
+        correction = min(0, max(-10, int(np.trunc(delta_sum / zero_sum_count))))
         self.adjustment += correction
         for c in self.contestants:
             c.delta += correction

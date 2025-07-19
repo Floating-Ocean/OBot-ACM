@@ -1,5 +1,3 @@
-import json
-import os
 import random
 import re
 import traceback
@@ -12,22 +10,19 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from qrcode.main import QRCode
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.constants import Constants
 from src.core.constants import HelpStrList
-from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, fetch_url_json, fetch_url_text
 from src.core.util.tools import png2jpg
+from src.data.data_cache import get_cached_prefix
+from src.data.data_color_rand import get_colors, Colors
 from src.module.cp.atc import reply_atc_request
 from src.module.cp.cf import reply_cf_request
-from src.render.pixie.render_color_card import ColorCardRenderer
+from src.render.pixie.render_color_card import ColorCardRenderer, COLOR_QRCODE_COORD
 
 _RAND_HELP = '\n'.join(HelpStrList(Constants.help_contents["random"]))
-
-_colors = []
-_colors_lib_path = Constants.modules_conf.get_lib_path("Color-Rand")
 
 
 def get_rand_num(range_min: int, range_max: int) -> int:
@@ -137,35 +132,31 @@ def reply_rand_request(message: RobotMessage):
 
 @command(tokens=["hitokoto", "来句", "来一句", "来句话", "来一句话"])
 def reply_hitokoto(message: RobotMessage):
-    json = fetch_url_json("https://v1.hitokoto.cn/")
-    content = json['hitokoto']
-    where = json['from']
-    author = json['from_who'] if json['from_who'] else ""
+    data = fetch_url_json("https://v1.hitokoto.cn/")
+    content = data['hitokoto']
+    where = data['from']
+    author = data['from_who'] if data['from_who'] else ""
     message.reply(f"[Hitokoto]\n{content}\nBy {author}「{where}」", modal_words=False)
 
 
-def load_colors():
-    with open(os.path.join(_colors_lib_path, "chinese_traditional.json"), 'r', encoding="utf-8") as f:
-        _colors.clear()
-        _colors.extend(json.load(f))
-
-
-def transform_color(color: dict) -> tuple[str, str, str]:
-    hex_text = "#FF" + color["hex"].upper()[1:]
-    rgb_text = ", ".join([f"{val}" for val in color["RGB"]])
-    h, s, v = rgb_to_hsv(color["RGB"][0], color["RGB"][1], color["RGB"][2])
-    hsv_text = ", ".join([f"{val}" for val in [round(h * 360), round(s * 100), int(v)]])
+def transform_color(color: Colors) -> tuple[str, str, str]:
+    hex_text = "#FF" + color.hex.upper()[1:]
+    rgb_text = ", ".join(str(val) for val in color.RGB)
+    # 归一化
+    r_norm, g_norm, b_norm = (val / 255 for val in color.RGB)
+    h, s, v = rgb_to_hsv(r_norm, g_norm, b_norm)
+    hsv_text = ", ".join(str(val) for val in [round(h * 360), round(s * 100), round(v * 100)])
     return hex_text, rgb_text, hsv_text
 
 
-def add_qrcode(target_path: str, color: dict):
+def add_qrcode(target_path: str, color: Colors, paste_coord: tuple[int, int]):
     qr = QRCode(error_correction=1,  # ERROR_CORRECT_L
                 box_size=8)
 
-    hex_clean = color["hex"][1:].lower()
+    hex_clean = color.hex[1:].lower()
     qr.add_data(f"https://gradients.app/zh/color/{hex_clean}")
 
-    font_color = choose_text_color(hex_to_color(color["hex"]))
+    font_color = choose_text_color(hex_to_color(color.hex))
     font_transparent_color = change_alpha(font_color, 0)
     qrcode_img = qr.make_image(image_factory=StyledPilImage,
                                module_drawer=RoundedModuleDrawer(), eye_drawer=RoundedModuleDrawer(),
@@ -173,7 +164,7 @@ def add_qrcode(target_path: str, color: dict):
                                                              color_to_tuple(font_color)))
 
     target_img = Image.open(target_path)
-    target_img.paste(qrcode_img, (1215, 618), qrcode_img)
+    target_img.paste(qrcode_img, paste_coord, qrcode_img)
     target_img.save(target_path)
 
 
@@ -182,16 +173,16 @@ def reply_color_rand(message: RobotMessage):
     cached_prefix = get_cached_prefix('Color-Rand')
     img_path = f"{cached_prefix}.png"
 
-    load_colors()
-    picked_color = random.choice(_colors)
+    colors = get_colors("chinese_traditional")
+    picked_color = random.choice(colors)
     hex_text, rgb_text, hsv_text = transform_color(picked_color)
 
     color_card = ColorCardRenderer(picked_color, hex_text, rgb_text, hsv_text).render()
     color_card.write_file(img_path)
-    add_qrcode(img_path, picked_color)
+    add_qrcode(img_path, picked_color, COLOR_QRCODE_COORD)
 
-    name = picked_color["name"]
-    pinyin = picked_color["pinyin"]
+    name = picked_color.name
+    pinyin = picked_color.pinyin
 
     message.reply(f"[Color] {name} {pinyin}\nHEX: {hex_text}\nRGB: {rgb_text}\nHSV: {hsv_text}",
                   img_path=png2jpg(img_path), modal_words=False)

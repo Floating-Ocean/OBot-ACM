@@ -6,12 +6,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.constants import HelpStrList, Constants
-from src.core.util.output_cached import get_cached_prefix
 from src.core.util.tools import check_is_int, png2jpg
+from src.data.data_cache import get_cached_prefix
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 
 _TETRIS_HELP = '\n'.join(HelpStrList(Constants.help_contents["tetris"]))

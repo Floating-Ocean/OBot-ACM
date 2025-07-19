@@ -1,0 +1,149 @@
+@font-face {
+    font-family: 'OPPOSans-L';
+    src: url('OPPOSans-L.ttf') format('truetype'); /* Light */
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OPPOSans-R';
+    src: url('OPPOSans-R.ttf') format('truetype'); /* Regular */
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OPPOSans-M';
+    src: url('OPPOSans-M.ttf') format('truetype'); /* Medium */
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OPPOSans-B';
+    src: url('OPPOSans-B.ttf') format('truetype'); /* Bold */
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'OPPOSans-H';
+    src: url('OPPOSans-H.ttf') format('truetype'); /* Heavy */
+    font-weight: 500;
+    font-style: normal;
+}
+
+body {
+    background: black;
+    padding: 32px;
+    font-family: 'OPPOSans-M', sans-serif;
+    font-size: 32px;
+    line-height: 1.6;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+.content-wrapper {
+    background: -webkit-gradient(linear, left top, right bottom, ${color_stops});
+    border-radius: 96px;
+}
+
+.content {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 96px;
+    padding: 136px 76px;
+}
+
+h1 {
+    font-family: 'OPPOSans-H', sans-serif;
+    font-weight: 500;
+    font-size: 96px;
+    line-height: 1.4;
+    margin: 0 0 16px 0;
+    color: ${accent_dark_color};
+}
+
+h2 {
+    font-family: 'OPPOSans-B', sans-serif;
+    font-weight: 500;
+    font-size: 64px;
+}
+
+h3 {
+    font-family: 'OPPOSans-B', sans-serif;
+    font-weight: 500;
+    font-size: 48px;
+}
+
+img {
+    border-radius: 72px;
+    margin-bottom: 48px;
+}
+
+a {
+    color: black;
+}
+
+ol, ul {
+    margin: 0;
+    padding: 0;
+    list-style-position: inside;
+}
+
+ol, ul {
+    padding-left: 24px;
+}
+
+b, strong {
+    font-family: 'OPPOSans-B', sans-serif;
+    font-weight: 500;
+}
+
+.tip-container, .copyright-container {
+    padding-top: 64px;
+}
+
+.tip-container, .tool-container {
+    display: -webkit-box; /* 旧版 Flex 语法 */
+    -webkit-box-orient: horizontal;
+    -webkit-box-align: baseline;
+    padding-bottom: 16px;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.tip-name, .tool-name {
+    font-family: 'OPPOSans-H', sans-serif;
+    font-weight: 500;
+    font-size: 36px;
+    color: rgba(0, 0, 0, 0.8157);
+    margin: 0;
+    padding-right: 12px;
+}
+
+.tip-detail {
+    font-family: 'OPPOSans-R', sans-serif;
+    font-weight: 500;
+    font-size: 28px;
+    color: rgba(0, 0, 0, 0.8157);
+    margin: 0;
+}
+
+.tool-version {
+    font-family: 'OPPOSans-B', sans-serif;
+    font-weight: 500;
+    font-size: 20px;
+    color: rgba(0, 0, 0, 0.8157);
+    margin: 0;
+}
+
+.generation-info {
+    font-family: 'OPPOSans-R', sans-serif;
+    font-weight: 500;
+    font-size: 20px;
+    color: rgba(0, 0, 0, 0.5333);
+    margin: 0;
+    line-height: 1.66;
+    padding-bottom: 10px;
+}

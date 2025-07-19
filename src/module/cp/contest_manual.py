@@ -1,16 +1,12 @@
-import json
-import os
+from dataclasses import asdict
 from datetime import datetime
 
-from src.core.bot.command import command
+from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.core.bot.module import module
 from src.core.bot.perm import PermissionLevel
-from src.core.constants import Constants
 from src.core.util.tools import is_valid_date, check_is_int
+from src.data.data_contest_manual import ManualContest, save_contest
 from src.platform.model import DynamicContest
-
-_lib_path = Constants.modules_conf.get_lib_path("Contest-List-Renderer")
 
 
 @command(tokens=["导入比赛"], permission_level=PermissionLevel.MOD)
@@ -42,49 +38,19 @@ def reply_manual_add_contest(message: RobotMessage):
                       f"{help_content}")
         return
 
-    contest = {
-        "platform": platform,
-        "abbr": abbr,
-        "name": name,
-        "start_time": start_time,
-        "duration": duration,
-        "supplement": supplement,
-    }
+    contest = ManualContest(platform, abbr, name, start_time, duration, supplement)
+    save_status = save_contest(contest)
 
-    manual_contests_path = os.path.join(_lib_path, 'manual_contests.json')
-    try:
-        # 检查文件是否存在，不存在则创建
-        if not os.path.exists(manual_contests_path):
-            with open(manual_contests_path, 'w', encoding='utf-8') as f:
-                json.dump([], f)
-        with open(manual_contests_path, 'r+', encoding='utf-8') as f:
-            manual_contests = json.load(f)
-
-        # 检查比赛是否已存在
-        for existing_contest in manual_contests:
-            if (existing_contest.get('platform') == platform and
-                    existing_contest.get('name') == name and
-                    existing_contest.get('start_time') == start_time):
-                message.reply("该比赛已存在，导入失败")
-                return
-
-        manual_contests.append(contest)
-
-        with open(manual_contests_path, 'w', encoding='utf-8') as f:
-            json.dump(manual_contests, f, ensure_ascii=False, indent=4)
-
+    if save_status:
         message.reply("导入比赛成功，比赛解析为\n\n" +
-                      DynamicContest(**contest).format(), modal_words=False)
-
-    except Exception as e:
-        message.reply("出现错误，导入比赛失败")
-        Constants.log.warn("[manual] 导入自定义比赛失败.")
-        Constants.log.error(f"[manual] {e}")
+                      DynamicContest(**asdict(contest)).format(), modal_words=False)
+    else:
+        message.reply("该比赛已存在，导入失败")
 
 
 @module(
     name="Contest-List-Renderer",
-    version="v1.0.1"
+    version="v1.1.0"
 )
 def register_module():
     pass

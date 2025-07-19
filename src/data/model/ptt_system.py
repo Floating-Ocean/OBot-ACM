@@ -50,7 +50,7 @@ class PttSystem:
         exp_b = 1.0 - exp_a
 
         # 确定实际得分
-        if outcome == 0:    # A胜利
+        if outcome == 0:  # A胜利
             delta_a = cls.BASE_K * inc_k * (1.0 - exp_a) * (1 - ptt_factor_a)
             delta_b = cls.BASE_K * dec_k * (0.0 - exp_b) * ptt_factor_b
         elif outcome == 1:  # B胜利
