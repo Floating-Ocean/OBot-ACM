@@ -1,6 +1,7 @@
 # botpy 外层日志
 
 import logging
+import os
 
 logger_handler = logging.StreamHandler()
 logger_handler.setFormatter(logging.Formatter('\033[1;36m[%(levelname)s]\t(%(filename)s:%(lineno)s)%(funcName)s\t\t\033[0m%(message)s'))
@@ -8,6 +9,9 @@ logger = logging.getLogger("entry")
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logger_handler)
 logger.propagate = False
+
+# 解决部分 Windows 系统下日志输出颜色显示异常的问题
+os.system("")
 
 
 # 加载核心组件
@@ -40,7 +44,6 @@ logger.debug("[obot-init] 模块加载完成，正在启动 Bot")
 
 import base64
 import psutil
-import os
 
 LOCK_PATH = os.path.abspath("robot.py.lock")
 ENTRY_SCRIPT = os.path.abspath("entry.py")
