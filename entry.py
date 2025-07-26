@@ -1,39 +1,66 @@
-import base64
+# botpy 外层日志
+
+import logging
+
+logger_handler = logging.StreamHandler()
+logger_handler.setFormatter(logging.Formatter('\033[1;36m[%(levelname)s]\t(%(filename)s:%(lineno)s)%(funcName)s\t\t\033[0m%(message)s'))
+logger = logging.getLogger("entry")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logger_handler)
+logger.propagate = False
+
+
+# 加载核心组件
+logger.debug("[obot-init] 载入核心组件中")
+
 import faulthandler
 import importlib
-import os
-
 import nest_asyncio
-import psutil
 import urllib3
-
-from robot import open_robot_session
-
-LOCK_PATH = os.path.abspath("robot.py.lock")
-ENTRY_SCRIPT = os.path.abspath("entry.py")
 
 nest_asyncio.apply()
 urllib3.disable_warnings()
 faulthandler.enable()
 
+importlib.import_module("easyocr")  # 这个加载巨慢，预先处理一下
+importlib.import_module("src.core")
+from src.core.constants import Constants
+logger.debug(f'[obot-init] 载入核心 Core {Constants.core_version}')
+
+
 # 加载模块
+logger.debug("[obot-init] 载入模块中")
 importlib.import_module("src.module")
+from src.core.bot.decorator import get_command_count, get_module_count
+from robot import open_robot_session
+logger.debug(f'[obot-init] 已载入 {get_module_count()} 个模块，{get_command_count()} 条指令')
 
-if __name__ == '__main__':
-    # 包含 pid 的文件锁
-    if os.path.exists(LOCK_PATH):
-        with open(LOCK_PATH, 'rb') as lock_file:
-            old_pid = int(base64.b85decode(lock_file.read()).decode())
-            if psutil.pid_exists(old_pid):
-                proc = psutil.Process(old_pid)
-                # 验证进程身份，避免误杀
-                if ("python" in proc.name().lower() and
-                        any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
-                    proc.kill()
+logger.debug("[obot-init] 模块加载完成，正在启动 Bot")
 
-    with open(LOCK_PATH, 'wb') as lock_file:
-        lock_file.write(base64.b85encode(str(os.getpid()).encode()))
 
-    open_robot_session()
+import base64
+import psutil
+import os
 
-    os.remove(LOCK_PATH)
+LOCK_PATH = os.path.abspath("robot.py.lock")
+ENTRY_SCRIPT = os.path.abspath("entry.py")
+
+# 包含 pid 的文件锁
+if os.path.exists(LOCK_PATH):
+    with open(LOCK_PATH, 'rb') as lock_file:
+        old_pid = int(base64.b85decode(lock_file.read()).decode())
+        if psutil.pid_exists(old_pid):
+            proc = psutil.Process(old_pid)
+            # 验证进程身份，避免误杀
+            if ("python" in proc.name().lower() and
+                    any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
+                proc.kill()
+
+with open(LOCK_PATH, 'wb') as lock_file:
+    lock_file.write(base64.b85encode(str(os.getpid()).encode()))
+
+open_robot_session()
+
+# 下面的代码不会被执行，找不到什么方法监听 SIGINT，棘手。
+os.remove(LOCK_PATH)
+logger.debug("[obot-init] Bot 进程终止")
