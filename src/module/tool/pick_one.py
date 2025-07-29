@@ -156,7 +156,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v3.2.0"
+    version="v3.3.0"
 )
 def register_module():
     pass
