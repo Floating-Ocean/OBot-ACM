@@ -72,7 +72,7 @@ def check_process_job():
         open_entry()
 
     except Exception as e:
-        Constants.log.warning(f"[daemon] 检查进程异常")
+        Constants.log.warning("[daemon] 检查进程异常")
         Constants.log.exception(f"[daemon] {e}")
 
 
