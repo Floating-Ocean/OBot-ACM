@@ -7,7 +7,7 @@
   </picture>
 </h1>
 <div align="center">
-  <strong>A.k.a. O宝的AC梦 · 基于PBG等项目的QQ机器人</strong><br>
+  <strong>A.k.a. O宝的AC梦 · 算竞平台实时做题记录查询和更多功能</strong><br>
 </div><br>
 
 <div align="center">
@@ -27,8 +27,9 @@
 
 请在运行机器人前，将 [`config_example.json`](config_example.json) 重命名为 [`config.json`](config_example.json)，并根据文件内提示填写相关字段。
 
-> [!WARNING]
-> 部分仓库代码以 git submodule 的形式被引用在项目中，请在 clone 本项目时加上 `--recursive` 参数。
+> [!CAUTION]
+> 1. 官方 `botpy` 过于陈旧，项目依赖 [`修改过的 botpy`](https://github.com/Floating-Ocean/botpy)，请手动替换；
+> 2. 部分仓库代码以 `git submodule` 的形式被引用在项目中，请在克隆本项目时加上 `--recursive` 参数。
 
 [>> 前往 **Nonebot** 侧开发分支](https://github.com/Floating-Ocean/OBot-ACM/tree/dev-nonebot)
 
