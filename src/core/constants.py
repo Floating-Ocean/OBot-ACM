@@ -103,7 +103,8 @@ class Constants:
             Help("/api", "获取当前各模块的构建信息.")
         ],
         'pick_one': [
-            Help("/来只 [what]", "获取一个类别为 what 的随机表情包."),
+            Help("/来只 [what] ([tag] (index))",
+                 "获取一个类别为 what 的随机表情包，可指定关键词 tag，并选择匹配度第 index 的候选."),
             Help("/随便来只", "获取一个随机类别的随机表情包."),
             Help("/添加(来只) [what]", "添加一个类别为 what 的表情包，需要管理员审核.")
         ],
@@ -112,7 +113,8 @@ class Constants:
             Help("/cf duel", "Codeforces 对战模块."),
             Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
             Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
-            Help("/cf recent [handle] (count)", "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
+            Help("/cf recent [handle] (count)",
+                 "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
             Help("/cf pick [标签|all] (难度) (new)",
                  "从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
                  "末尾加上 new 参数则会忽视 P1000A 以前的题."),
