@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Optional, Union
 
 from botpy import BotAPI
-from botpy.message import Message, GroupMessage, C2CMessage
+from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 
 from src.core.bot.perm import PermissionLevel
 from src.core.constants import Constants
@@ -18,6 +18,7 @@ from src.core.util.tools import april_fool_magic
 
 class MessageType(Enum):
     GUILD = "guild"
+    DIRECT = "direct"
     GROUP = "group"
     C2C = "c2c"
 
@@ -28,7 +29,7 @@ class RobotMessage:
     def __init__(self, api: BotAPI):
         self.api = api
         self.message_type: Optional[MessageType] = None
-        self.message: Optional[Union[Message, GroupMessage, C2CMessage]] = None
+        self.message: Optional[Union[Message, GroupMessage, C2CMessage, DirectMessage]] = None
         self.loop = None
 
         self.content = ""
@@ -44,7 +45,8 @@ class RobotMessage:
     def is_guild_public(self):
         return self._public
 
-    def _initial_setup(self, message: Message | GroupMessage | C2CMessage, author_id_path: str):
+    def _initial_setup(self, message: Message | GroupMessage | C2CMessage | DirectMessage,
+                       author_id_path: str):
         self.content = message.content
         self.tokens = re.sub(r'<@!\d+>', '', message.content).strip().split()
         self.author_id = getattr(message.author, author_id_path, "")
@@ -58,7 +60,14 @@ class RobotMessage:
         self.message = message
         self._public = is_public
         self._initial_setup(message, 'id')
-        self.uuid = f"guild_channel_{self.message.channel_id}"
+        self.uuid = f"guild_{self.message.guild_id}"
+
+    def setup_direct_message(self, loop: asyncio.AbstractEventLoop, message: DirectMessage):
+        self.loop = loop
+        self.message_type = MessageType.DIRECT
+        self.message = message
+        self._initial_setup(message, 'id')
+        self.uuid = f"direct_{self.author_id}"
 
     def setup_group_message(self, loop: asyncio.AbstractEventLoop, message: GroupMessage):
         self.loop = loop
@@ -93,20 +102,26 @@ class RobotMessage:
         """统一消息发送入口"""
         Constants.log.info(f"[obot-act] 发起回复: {content}")
 
-        # 处理媒体文件上传
-        media = await self._upload_media(img_path, img_url) \
-            if (img_path or img_url) and self.message_type != MessageType.GUILD else None
+        try:
+            # 处理媒体文件上传
+            media = (await self._upload_media(img_path, img_url)
+                     if (img_path or img_url) and
+                        self.message_type not in [MessageType.GUILD, MessageType.DIRECT] else None)
 
-        base_params = await self._pack_message_params(content, msg_seq, media)
-        if not base_params:
-            return
-        params = base_params
+            base_params = await self._pack_message_params(content, msg_seq, media)
+            if not base_params:
+                return
+            params = base_params
 
-        # 频道api只需传递参数
-        if self.message_type == MessageType.GUILD:
-            params = {**base_params, 'file_image': img_path, 'image': img_url}
+            # 频道api只需传递参数
+            if self.message_type in [MessageType.GUILD, MessageType.DIRECT]:
+                params = {**base_params, 'file_image': img_path, 'image': img_url}
 
-        await self._handle_send_request(params)
+            await self._handle_send_request(params)
+
+        except Exception as e:
+            Constants.log.warn("[obot-act] 发起回复失败.")
+            Constants.log.exception(f"[obot-act] {e}")
 
     async def _upload_media(self, img_path: str, img_url: str) -> dict:
         """带重试机制的媒体上传"""
@@ -122,13 +137,13 @@ class RobotMessage:
                     return received_media
             except Exception as e:
                 Constants.log.warn("[obot-act] 上传媒体文件失败.")
-                Constants.log.error(f"[obot-act] {e}")
+                Constants.log.exception(f"[obot-act] {e}")
         return {'status': 'error', 'data': None}
 
     async def _call_upload_api(self, **kwargs) -> dict:
         """调用对应的文件上传API"""
-        if self.message_type == MessageType.GUILD:
-            raise TypeError("No need to upload images for guild messages.")
+        if self.message_type in [MessageType.GUILD, MessageType.DIRECT]:
+            raise TypeError("No need to upload images for guild and direct messages.")
 
         method_map: dict = {
             MessageType.GROUP: self.api.post_group_file,
@@ -178,6 +193,11 @@ class RobotMessage:
             params['channel_id'] = self.message.channel_id
             intended_params_name.extend(['channel_id', 'image', 'file_image'])
             api_method = self.api.post_message
+        elif self.message_type == MessageType.DIRECT:
+            params['content'] = f"<@{self.message.author.id}>{params['content']}"
+            params['guild_id'] = self.message.guild_id
+            intended_params_name.extend(['guild_id', 'image', 'file_image'])
+            api_method = self.api.post_dms
         elif self.message_type == MessageType.GROUP:
             params['group_openid'] = self.message.group_openid
             intended_params_name.extend(['group_openid', 'msg_type', 'media', 'msg_seq'])
@@ -200,7 +220,7 @@ class RobotMessage:
         }
         await self._handle_send_request(fallback_params)
 
-    def report_exception(self, module_name: str, trace: str, e: Exception):
-        Constants.log.warn(f"[obot-module] 操作失败，模块 {module_name} 出现异常.\n{repr(e)}")
-        Constants.log.error(f"[obot-module] {trace}")
+    def report_exception(self, module_name: str, e: Exception):
+        Constants.log.warn(f"[obot-module] 操作失败，模块 {module_name} 出现异常")
+        Constants.log.exception(f"[obot-module] {e}")
         self.reply(handle_exception(e), modal_words=False)

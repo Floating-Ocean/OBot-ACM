@@ -94,7 +94,7 @@ def _call_lib_method(message: RobotMessage | str, prop: str,
                 return result
 
     if isinstance(message, RobotMessage):
-        message.report_exception('Peeper-Board-Generator', traceback,
+        message.report_exception('Peeper-Board-Generator',
                                  ModuleRuntimeError(traceback.split('\n')[-2]))
 
     return None

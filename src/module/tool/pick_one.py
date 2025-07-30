@@ -34,7 +34,7 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                 data[name] = ocr_result
             except Exception as e:
                 Constants.log.warn("[ocr] 识别出错.")
-                Constants.log.error(f"[ocr] {e}")
+                Constants.log.exception(f"[ocr] {e}")
                 data[name] = ""
 
     save_img_parser(img_key, data)

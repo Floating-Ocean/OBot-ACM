@@ -1,6 +1,5 @@
 import random
 import re
-import traceback
 from colorsys import rgb_to_hsv
 
 from PIL import Image
@@ -127,7 +126,7 @@ def reply_rand_request(message: RobotMessage):
             message.reply(f'[Random]\n\n{_RAND_HELP}', modal_words=False)
 
     except Exception as e:
-        message.report_exception('Random', traceback.format_exc(), e)
+        message.report_exception('Random', e)
 
 
 @command(tokens=["hitokoto", "来句", "来一句", "来句话", "来一句话"])

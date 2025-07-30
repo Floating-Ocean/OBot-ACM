@@ -83,7 +83,7 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
         if throw:
             raise RuntimeError(f"Filed to connect {url}: {e}") from e
         Constants.log.warn("[network] 忽略了一个连接异常.")
-        Constants.log.error(f"[network] {e}")
+        Constants.log.exception(f"[network] {e}")
         return code
 
 
