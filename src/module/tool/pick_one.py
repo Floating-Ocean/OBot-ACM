@@ -33,7 +33,7 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                 ocr_result = ''.join(ocr_reader.readtext(correct_img, detail=0))
                 data[name] = ocr_result
             except Exception as e:
-                Constants.log.warn("[ocr] 识别出错.")
+                Constants.log.warning("[ocr] 识别出错.")
                 Constants.log.exception(f"[ocr] {e}")
                 data[name] = ""
 

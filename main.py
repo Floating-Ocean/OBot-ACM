@@ -44,7 +44,7 @@ def check_process_job():
             try:
                 pid = int(base64.b85decode(raw_data).decode())
             except Exception as e:
-                Constants.log.warn("[daemon] 锁文件解析失败")
+                Constants.log.warning("[daemon] 锁文件解析失败")
                 Constants.log.exception(f"[daemon] {e}")
                 raise psutil.NoSuchProcess(probable_old_pid)
 
@@ -72,7 +72,7 @@ def check_process_job():
         open_entry()
 
     except Exception as e:
-        Constants.log.warn(f"[daemon] 检查进程异常")
+        Constants.log.warning(f"[daemon] 检查进程异常")
         Constants.log.exception(f"[daemon] {e}")
 
 

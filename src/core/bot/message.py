@@ -120,7 +120,7 @@ class RobotMessage:
             await self._handle_send_request(params)
 
         except Exception as e:
-            Constants.log.warn("[obot-act] 发起回复失败.")
+            Constants.log.warning("[obot-act] 发起回复失败.")
             Constants.log.exception(f"[obot-act] {e}")
 
     async def _upload_media(self, img_path: str, img_url: str) -> dict:
@@ -136,7 +136,7 @@ class RobotMessage:
                 if received_media['status'] == 'ok':
                     return received_media
             except Exception as e:
-                Constants.log.warn("[obot-act] 上传媒体文件失败.")
+                Constants.log.warning("[obot-act] 上传媒体文件失败.")
                 Constants.log.exception(f"[obot-act] {e}")
         return {'status': 'error', 'data': None}
 
@@ -221,6 +221,6 @@ class RobotMessage:
         await self._handle_send_request(fallback_params)
 
     def report_exception(self, module_name: str, e: Exception):
-        Constants.log.warn(f"[obot-module] 操作失败，模块 {module_name} 出现异常")
+        Constants.log.warning(f"[obot-module] 操作失败，模块 {module_name} 出现异常")
         Constants.log.exception(f"[obot-module] {e}")
         self.reply(handle_exception(e), modal_words=False)

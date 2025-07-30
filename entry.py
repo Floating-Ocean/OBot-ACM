@@ -49,7 +49,7 @@ LOCK_PATH = os.path.abspath("robot.py.lock")
 ENTRY_SCRIPT = os.path.abspath("entry.py")
 
 # 包含 pid 的文件锁
-if os.path.exists(LOCK_PATH):
+try:
     with open(LOCK_PATH, 'rb') as lock_file:
         old_pid = int(base64.b85decode(lock_file.read()).decode())
         if psutil.pid_exists(old_pid):
@@ -58,9 +58,16 @@ if os.path.exists(LOCK_PATH):
             if ("python" in proc.name().lower() and
                     any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
                 proc.kill()
+except Exception as e:
+    logger.warning("[obot-init] 读取文件锁异常")
+    logger.exception(f"[obot-init] {e}")
 
-with open(LOCK_PATH, 'wb') as lock_file:
-    lock_file.write(base64.b85encode(str(os.getpid()).encode()))
+try:
+    with open(LOCK_PATH, 'wb') as lock_file:
+        lock_file.write(base64.b85encode(str(os.getpid()).encode()))
+except Exception as e:
+    logger.warning("[obot-init] 写入文件锁异常")
+    logger.exception(f"[obot-init] {e}")
 
 open_robot_session()
 
