@@ -22,7 +22,8 @@ def open_entry():
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
     except Exception as e:
-        Constants.log.exception(f"[daemon] 启动失败: {e}")
+        Constants.log.warning("[daemon] 启动失败")
+        Constants.log.exception(f"[daemon] {e}")
     else:
         Constants.log.info("[daemon] 进程创建完成")
 
