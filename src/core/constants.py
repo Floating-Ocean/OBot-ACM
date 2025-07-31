@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 from dataclasses import dataclass
 
 from botpy import logging
@@ -51,11 +52,33 @@ def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
         return botpy_conf, role_conf, ModulesConfig(**modules_conf)
 
 
+def _get_git_commit_hash() -> str:
+    """获取当前 Git 仓库的 commit hash"""
+    if not os.path.exists(os.path.join(_project_dir, ".git")):
+        return "raw_copy_d"
+
+    try:
+        result = subprocess.run(["git", "rev-parse", "HEAD"],
+                                capture_output=True, text=True, check=True, timeout=5)
+        commit_hash = result.stdout.strip()
+        if len(commit_hash) != 40 or not all(c in "0123456789abcdef" for c in commit_hash.lower()):
+            return "raw_copy_i"  # hash 格式错误
+        return commit_hash[:12]
+
+    except FileNotFoundError:
+        return "raw_copy_g"  # 未安装 git
+    except Exception as e:
+        Constants.log.warning("[obot-core] 获取 Git 提交哈希异常")
+        Constants.log.exception(f"[obot-core] {e}")
+        return "raw_copy_e"  # 异常
+
+
 class Constants:
     log = logging.get_logger()
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
-    core_version = "v5.0.0.beta1"
+    core_version = "v5.0.0-beta.1"
+    git_commit_hash = _get_git_commit_hash()
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [

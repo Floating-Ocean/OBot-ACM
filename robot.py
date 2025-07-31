@@ -59,7 +59,8 @@ class MyClient(Client):
         super().__init__(intents, timeout, is_sandbox, log_config, log_format, log_level, bot_log, ext_handlers)
 
     async def on_ready(self):
-        Constants.log.info(f"[obot-core] 机器人上线，版本 {Constants.core_version}.")
+        Constants.log.info("[obot-core] 机器人上线，"
+                           f"版本 {Constants.core_version}-{Constants.git_commit_hash}")
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"

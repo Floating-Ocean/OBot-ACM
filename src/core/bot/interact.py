@@ -249,7 +249,7 @@ def reply_about(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('About-Renderer')
     about_img = AboutRenderer(
-        ("OBot Core", Constants.core_version),
+        ("OBot Core", f"{Constants.core_version}-{Constants.git_commit_hash}"),
         get_all_modules_info()
     ).render()
     about_img.write_file(f"{cached_prefix}.png")
