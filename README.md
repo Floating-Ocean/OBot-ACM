@@ -25,19 +25,19 @@
 
 本仓库包含主项目和一个分支，主项目是一个经过配置后可以独立运行的 **官方 QQ 机器人**，而分支则是一个 **Nonebot 机器人**。
 
-请在运行机器人前，将 [`config_example.json`](config_example.json) 重命名为 [`config.json`](config_example.json)，并根据文件内提示填写相关字段。
+请在运行机器人前，将 **[`config_example.json`](config_example.json)** 重命名为 **[`config.json`](config_example.json)**，并根据文件内提示填写相关字段。
 
 > [!CAUTION]
-> 1. 官方 `botpy` 过于陈旧，项目依赖 [`修改过的 botpy`](https://github.com/Floating-Ocean/botpy)，请手动替换；
+> 1. 官方 `botpy` 过于陈旧，项目依赖 **[`修改过的botpy`](https://github.com/Floating-Ocean/botpy)**，请手动替换；
 > 2. 部分仓库代码以 `git submodule` 的形式被引用在项目中，请在克隆本项目时加上 `--recursive` 参数。
 
-[>> 前往 **Nonebot** 侧开发分支](https://github.com/Floating-Ocean/OBot-ACM/tree/dev-nonebot)
+**[>> 前往 Nonebot 侧开发分支](https://github.com/Floating-Ocean/OBot-ACM/tree/dev-nonebot)**
 
 ## Bot 能做什么
 
 ### 算法竞赛
 
-- 训练榜单图片，基于 [`Peeper-Board-Generator`](https://github.com/qwedc001/Peeper-Board-Generator) 项目；
+- 训练榜单图片，基于 **[`Peeper-Board-Generator`](https://github.com/qwedc001/Peeper-Board-Generator)** 项目；
 
 - 实用功能，基于算法竞赛平台 API 实现：
   
@@ -49,23 +49,23 @@
   
   $^1$ AtCoder 平台的随机选题基于 Clist API；
   
-  $^2$ Codeforces 平台的比赛表现实时预估（ELO）基于 [`Carrot`](https://github.com/meooow25/carrot) 浏览器插件项目；
+  $^2$ Codeforces 平台的比赛表现实时预估（ELO）基于 **[`Carrot`](https://github.com/meooow25/carrot)** 浏览器插件项目；
 
 - 近日比赛清单整合图（可手动导入 XCPC 比赛）；
 
-- 平台可用性查询，基于 [`Uptime Robot`](https://uptimerobot.com/)；
+- 平台可用性查询，基于 **[`Uptime Robot`](https://uptimerobot.com/)**；
 
 ### 实用功能
 
 - 表情包的分类管理、添加、审核、随机，自动识别图片中的文字并打上标签；
 
-- 菜谱查询、随机，基于 [`HowToCook`](https://github.com/Anduin2017/HowToCook)；
+- 菜谱查询、随机，基于 **[`HowToCook`](https://github.com/Anduin2017/HowToCook)**；
 
-- 一言获取，基于 [`Hitokoto`](https://hitokoto.cn/)；
+- 一言获取，基于 **[`Hitokoto`](https://hitokoto.cn/)**；
 
 - 颜色卡片，在中国传统颜色中随机选择；
 
-- 真随机数、随机序列，基于 [`Random.org`](https://www.random.org/)；
+- 真随机数、随机序列，基于 **[`Random.org`](https://www.random.org/)**；
 
 - 二维码图片生成；
 
