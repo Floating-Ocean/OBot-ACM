@@ -60,7 +60,7 @@ def _get_specified_conf(specified_uuid: str) -> dict:
     if len(specified_uuid) > 0:
         if specified_uuid in execute_conf:
             return _wrap_conf_id(specified_uuid, execute_conf[specified_uuid])
-        Constants.log.warn("[peeper] 未配置榜单来源，默认选取 FJNUACM Online Judge")
+        Constants.log.warning("[peeper] 未配置榜单来源，默认选取 FJNUACM Online Judge")
 
     return default_conf
 
@@ -94,7 +94,7 @@ def _call_lib_method(message: RobotMessage | str, prop: str,
                 return result
 
     if isinstance(message, RobotMessage):
-        message.report_exception('Peeper-Board-Generator', traceback,
+        message.report_exception('Peeper-Board-Generator',
                                  ModuleRuntimeError(traceback.split('\n')[-2]))
 
     return None

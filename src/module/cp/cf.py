@@ -4,7 +4,6 @@ import re
 import string
 import threading
 import time
-import traceback
 from dataclasses import dataclass
 
 from src.core.bot.decorator import command, module
@@ -527,7 +526,7 @@ def reply_cf_request(message: RobotMessage):
             message.reply(f'[Codeforces]\n\n{_CF_HELP}', modal_words=False)
 
     except Exception as e:
-        message.report_exception('Codeforces', traceback.format_exc(), e)
+        message.report_exception('Codeforces', e)
 
 
 @module(

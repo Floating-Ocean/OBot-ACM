@@ -1,5 +1,4 @@
 import re
-import traceback
 
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
@@ -93,7 +92,7 @@ def reply_nk_request(message: RobotMessage):
             message.reply(f'[NowCoder]\n\n{_NK_HELP}', modal_words=False)
 
     except Exception as e:
-        message.report_exception('NowCoder', traceback.format_exc(), e)
+        message.report_exception('NowCoder', e)
 
 
 @module(

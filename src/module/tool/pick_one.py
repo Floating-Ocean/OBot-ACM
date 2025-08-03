@@ -12,7 +12,7 @@ from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_p
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
 
 
-def parse_img(message: RobotMessage, img_key: str, notified: bool = False):
+def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
     """解析图片文字"""
     ocr_reader = None
     old_data = get_img_parser(img_key)
@@ -27,29 +27,23 @@ def parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                 notified = True
             try:
                 if ocr_reader is None:
-                    ocr_reader = easyocr.Reader(['en', 'ch_sim'])
+                    ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True)
                 correct_img = read_image_with_opencv(full_path)  # 修复全都修改为 gif 的兼容性问题
                 Constants.log.info(f"[ocr] 正在识别 {full_path}")
                 ocr_result = ''.join(ocr_reader.readtext(correct_img, detail=0))
                 data[name] = ocr_result
             except Exception as e:
-                Constants.log.warn("[ocr] 识别出错.")
-                Constants.log.error(f"[ocr] {e}")
+                Constants.log.warning("[ocr] 识别出错.")
+                Constants.log.exception(f"[ocr] {e}")
                 data[name] = ""
 
     save_img_parser(img_key, data)
 
 
-_what_dict = {
-    '随机来只': 'rand',
-    '随便来只': 'rand',
-    'capoo': 'capoo',
-    '咖波': 'capoo',
-}
-
-
 def _decode_img_key(data: PickOne, what: str) -> str | None:
-    if what == "rand" or what == "随便" or what == "随机":
+    if what is None:
+        return None  # 省的下面还要再跑
+    elif what == "rand" or what == "随便" or what == "随机":
         img_key = random.choice(list(data.conf.keys()))
     elif what in data.match_dict:
         img_key = data.match_dict[what]
@@ -61,14 +55,10 @@ def _decode_img_key(data: PickOne, what: str) -> str | None:
     return img_key
 
 
-@command(tokens=["来只*"] + list(_what_dict.keys()))
-def pick_one(message: RobotMessage):
+@command(tokens=["来只*"])
+def reply_pick_one(message: RobotMessage):
     data = get_pick_one_data()
-
-    func = message.tokens[0][1:]
-    what = _what_dict[func] if func in _what_dict else (
-        message.tokens[1].lower() if len(message.tokens) >= 2 else "")
-    query_idx = 1 if func in _what_dict else 2  # 查询指定表情包
+    what = message.tokens[1].lower() if len(message.tokens) >= 2 else None
 
     img_key = _decode_img_key(data, what)
     if img_key is None:
@@ -79,18 +69,31 @@ def pick_one(message: RobotMessage):
 
     current_config = data.conf[img_key]
 
-    parse_img(message, img_key)
+    # 支持文字检索
+    _parse_img(message, img_key)
     img_parser = get_img_parser(img_key)
 
     def reply_ok(query_tag: str, query_more_tip: str, picked: str):
         message.reply(f"来了一只{query_tag}{current_config.id}{query_more_tip}",
                       img_path=get_img_full_path(img_key, picked))
 
-    reply_fuzzy_matching(message, img_parser, f"{current_config.id} 的图片", query_idx, reply_ok)
+    reply_fuzzy_matching(message, img_parser, f"{current_config.id} 的图片", 2, reply_ok)
+
+
+@command(tokens=["随机来只", "随便来只"])
+def reply_pick_one_rand(message: RobotMessage):
+    message.tokens = ["/来只", "rand"]
+    reply_pick_one(message)
+
+
+@command(tokens=["capoo", "咖波"])
+def reply_pick_one_capoo(message: RobotMessage):
+    message.tokens = ["/来只", "capoo"]
+    reply_pick_one(message)
 
 
 @command(tokens=["添加来只*", "添加*"])
-def save_one(message: RobotMessage):
+def reply_save_one(message: RobotMessage):
     data = get_pick_one_data()
 
     if len(message.tokens) < 2:
@@ -107,7 +110,7 @@ def save_one(message: RobotMessage):
         if cnt == 0:
             message.reply("未识别到图片，请将图片和指令发送在同一条消息中")
         else:
-            parse_img(message, img_key)
+            _parse_img(message, img_key)
             failed_info = ""
             if duplicate > 0:
                 failed_info += f"，重复 {duplicate} 张"
@@ -128,14 +131,14 @@ def save_one(message: RobotMessage):
 
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit"], permission_level=PermissionLevel.MOD)
-def audit_accept(message: RobotMessage):
+def reply_audit_accept(message: RobotMessage):
     cnt = 0
     ok_status: dict[str, int] = {}
 
     notified = False
     for img_key in list_auditable():
         cnt += accept_audit(img_key, ok_status)
-        parse_img(message, img_key, notified)
+        _parse_img(message, img_key, notified)
         notified = True
 
     if cnt == 0:
@@ -153,7 +156,7 @@ def audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v3.2.0"
+    version="v3.3.0"
 )
 def register_module():
     pass

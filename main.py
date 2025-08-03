@@ -22,7 +22,8 @@ def open_entry():
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
     except Exception as e:
-        Constants.log.error(f"[daemon] 启动失败: {str(e)}")
+        Constants.log.warning("[daemon] 启动失败")
+        Constants.log.exception(f"[daemon] {e}")
     else:
         Constants.log.info("[daemon] 进程创建完成")
 
@@ -44,7 +45,8 @@ def check_process_job():
             try:
                 pid = int(base64.b85decode(raw_data).decode())
             except Exception as e:
-                Constants.log.error(f"[daemon] 锁文件解析失败: {str(e)}")
+                Constants.log.warning("[daemon] 锁文件解析失败")
+                Constants.log.exception(f"[daemon] {e}")
                 raise psutil.NoSuchProcess(probable_old_pid)
 
             if not psutil.pid_exists(pid):
@@ -71,7 +73,8 @@ def check_process_job():
         open_entry()
 
     except Exception as e:
-        Constants.log.error(f"[daemon] 检查进程异常: {str(e)}")
+        Constants.log.warning("[daemon] 检查进程异常")
+        Constants.log.exception(f"[daemon] {e}")
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ from typing import Union, List
 import botpy
 from apscheduler.schedulers.blocking import BlockingScheduler
 from botpy import Client, Intents
-from botpy.message import Message, GroupMessage, C2CMessage
+from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 
 from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
@@ -59,12 +59,13 @@ class MyClient(Client):
         super().__init__(intents, timeout, is_sandbox, log_config, log_format, log_level, bot_log, ext_handlers)
 
     async def on_ready(self):
-        Constants.log.info(f"[obot-core] 机器人上线，版本 {Constants.core_version}.")
+        Constants.log.info("[obot-core] 机器人上线，"
+                           f"版本 {Constants.core_version}-{Constants.git_commit_hash}")
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在 guild_channel_{message.channel_id} "
+        Constants.log.info(f"[obot-act] 在 guild_{message.guild_id} "
                            f"收到@消息: {message.content}"
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
@@ -74,7 +75,7 @@ class MyClient(Client):
     async def on_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在 guild_channel_{message.channel_id} "
+        Constants.log.info(f"[obot-act] 在 guild_{message.guild_id} "
                            f"收到公共消息: {message.content}"
                            f"{attachment_info}")
         content = message.content
@@ -84,6 +85,16 @@ class MyClient(Client):
 
         if not re.search(r'<@!\d+>', content):
             dispatch_message(packed_message)
+
+    async def on_direct_message_create(self, message: DirectMessage):
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+        Constants.log.info(f"[obot-act] 在 direct_{message.guild_id} "
+                           f"收到私信消息: {message.content}"
+                           f"{attachment_info}")
+        packed_message = RobotMessage(self.api)
+        packed_message.setup_direct_message(self.loop, message)
+        dispatch_message(packed_message)
 
     async def on_group_at_message_create(self, message: GroupMessage):
         attachment_info = (f" | {message.attachments}"
@@ -107,7 +118,7 @@ class MyClient(Client):
 
 
 def open_robot_session():
-    intents = botpy.Intents.default()  # 对目前已支持的所有事件进行监听
+    intents = botpy.Intents.all()  # 对目前已支持的所有事件进行监听
     client = MyClient(intents=intents, timeout=60)
 
     # 更新每日排行榜

@@ -1,5 +1,4 @@
 import re
-import traceback
 
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
@@ -131,7 +130,7 @@ def reply_atc_request(message: RobotMessage):
             message.reply(f'[AtCoder]\n\n{_ATC_HELP}', modal_words=False)
 
     except Exception as e:
-        message.report_exception('AtCoder', traceback.format_exc(), e)
+        message.report_exception('AtCoder', e)
 
 
 @module(

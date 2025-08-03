@@ -2,7 +2,6 @@ import datetime
 import queue
 import threading
 import time
-import traceback
 from dataclasses import dataclass
 
 from src.core.bot.decorator import __commands__
@@ -72,7 +71,7 @@ def get_message_id(message: RobotMessage) -> MessageID:
             return MessageID("default.manual", "reply_key_words_func")
 
     except Exception as e:
-        message.report_exception('Core.Transit', traceback.format_exc(), e)
+        message.report_exception('Core.Transit', e)
         return MessageID("default.manual", "no_reply")
 
 
@@ -149,12 +148,11 @@ def handle_message(message: RobotMessage, message_id: MessageID):
                 message.tokens = [name] + ([replaced] if replaced else []) + message.tokens[1:]
             original_command(message)
         except Exception as e:
-            message.report_exception(f'{message_id.module}.{message_id.command}',
-                                     traceback.format_exc(), e)
+            message.report_exception(f'{message_id.module}.{message_id.command}', e)
         return None
 
     except Exception as e:
-        message.report_exception('Core.Transit', traceback.format_exc(), e)
+        message.report_exception('Core.Transit', e)
         return None
 
 

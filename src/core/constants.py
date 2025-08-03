@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 from dataclasses import dataclass
 
 from botpy import logging
@@ -51,11 +52,33 @@ def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
         return botpy_conf, role_conf, ModulesConfig(**modules_conf)
 
 
+def _get_git_commit_hash() -> str:
+    """获取当前 Git 仓库的 commit hash"""
+    if not os.path.exists(os.path.join(_project_dir, ".git")):
+        return "raw_copy_d"
+
+    try:
+        result = subprocess.run(["git", "rev-parse", "HEAD"],
+                                capture_output=True, text=True, check=True, timeout=5)
+        commit_hash = result.stdout.strip()
+        if len(commit_hash) != 40 or not all(c in "0123456789abcdef" for c in commit_hash.lower()):
+            return "raw_copy_i"  # hash 格式错误
+        return commit_hash[:12]
+
+    except FileNotFoundError:
+        return "raw_copy_g"  # 未安装 git
+    except Exception as e:
+        Constants.log.warning("[obot-core] 获取 Git 提交哈希异常")
+        Constants.log.exception(f"[obot-core] {e}")
+        return "raw_copy_e"  # 异常
+
+
 class Constants:
     log = logging.get_logger()
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
-    core_version = "v3.9.4"
+    core_version = "v5.0.0-beta.1"
+    git_commit_hash = _get_git_commit_hash()
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
@@ -103,7 +126,8 @@ class Constants:
             Help("/api", "获取当前各模块的构建信息.")
         ],
         'pick_one': [
-            Help("/来只 [what]", "获取一个类别为 what 的随机表情包."),
+            Help("/来只 [what] ([tag] (index))",
+                 "获取一个类别为 what 的随机表情包，可指定关键词 tag，并选择匹配度第 index 的候选."),
             Help("/随便来只", "获取一个随机类别的随机表情包."),
             Help("/添加(来只) [what]", "添加一个类别为 what 的表情包，需要管理员审核.")
         ],
@@ -112,7 +136,8 @@ class Constants:
             Help("/cf duel", "Codeforces 对战模块."),
             Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
             Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
-            Help("/cf recent [handle] (count)", "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
+            Help("/cf recent [handle] (count)",
+                 "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
             Help("/cf pick [标签|all] (难度) (new)",
                  "从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
                  "末尾加上 new 参数则会忽视 P1000A 以前的题."),

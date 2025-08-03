@@ -37,8 +37,8 @@ class ManualPlatform(CompetitivePlatform):
                                                contest.start_time + contest.duration)):
                         finished_contests_today.append(contest)
         except Exception as e:
-            Constants.log.warn("[manual] 配置文件 manual_contests.json 无效.")
-            Constants.log.error(f"[manual] {e}")
+            Constants.log.warning("[manual] 配置文件 manual_contests.json 无效.")
+            Constants.log.exception(f"[manual] {e}")
             return [], [], []
 
         finished_contests_last.sort(key=lambda c: -c.start_time)
