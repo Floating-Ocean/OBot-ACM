@@ -29,7 +29,7 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
             __commands__[module_name] = {}
 
         for token in tokens:
-            token_name = f'/{token}' if is_command else f'{token}'
+            token_name = (f'/{token}' if is_command else f'{token}').lower()  # 忽略大小写直接匹配
             __commands__[module_name][token_name] = (
                 func, permission_level, is_command, multi_thread)
         return func
