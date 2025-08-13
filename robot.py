@@ -14,5 +14,6 @@ driver.register_adapter(QQAdapter)
 # nonebot.load_plugins("src/module")
 nonebot.load_plugin("src.module.maintain")
 nonebot.load_plugin("src.module.cron")
+nonebot.load_plugin("src.module.tool.how_to_cook")
 if __name__ == "__main__":
     nonebot.run()
