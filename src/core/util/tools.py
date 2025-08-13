@@ -210,13 +210,15 @@ def download_img(url: str, file_path: str) -> bool:
     return False
 
 
-def png2jpg(path: str, remove_origin: bool = True) -> str:
+def png2jpg(path: str, remove_origin: bool = True) -> bytes:
     img = Image.open(path)
     new_path = os.path.splitext(path)[0] + '.jpg'
     img.convert('RGB').save(new_path)
     if remove_origin:
         os.remove(path)
-    return new_path
+    with open(new_path, 'rb') as f:
+        image_bytes = f.read()
+    return image_bytes
 
 def fuzzy_matching(query: list | dict, target: str, query_idx: int):
     """
