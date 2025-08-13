@@ -3,7 +3,7 @@ import os
 import subprocess
 from dataclasses import dataclass
 
-from botpy import logging
+from nonebot import logger
 
 _project_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 
@@ -74,7 +74,7 @@ def _get_git_commit_hash() -> str:
 
 
 class Constants:
-    log = logging.get_logger()
+    log = logger
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
     core_version = "v5.0.0-beta.1"

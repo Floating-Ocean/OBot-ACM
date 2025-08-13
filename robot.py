@@ -1,127 +1,20 @@
-﻿import os
-import re
-import sys
-import threading
-import time
-from typing import Union, List
-
-import botpy
-from apscheduler.schedulers.blocking import BlockingScheduler
-from botpy import Client, Intents
-from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
-
-from src.core.bot.decorator import command, PermissionLevel
-from src.core.bot.interact import RobotMessage
-from src.core.bot.transit import clear_message_queue, dispatch_message
+﻿import nonebot
+from nonebot.adapters.onebot.v11 import Adapter as V11Adapter
+from nonebot.adapters.qq import Adapter as QQAdapter
 from src.core.constants import Constants
-from src.module.cp.peeper import daily_update_job
 
-daily_sched = BlockingScheduler()
-noon_sched = BlockingScheduler()
+# 初始化 NoneBot
+nonebot.init(superusers=Constants.role_conf['admin_id'],command_sep={' '})
 
+# 注册适配器
+driver = nonebot.get_driver()
+driver.register_adapter(V11Adapter)
+driver.register_adapter(QQAdapter)
 
-def daily_sched_thread():
-    daily_sched.add_job(daily_update_job, "cron", hour=0, minute=0, args=[])
-    daily_sched.start()
-
-
-@command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
-def reply_restart_bot(message: RobotMessage):
-    message.reply("好的捏，捏？欸我怎么似了" if message.tokens[0] == '/去死' else "好的捏，正在重启bot")
-    Constants.log.info("[obot-core] 正在清空消息队列")
-    clear_message_queue()
-    time.sleep(2)  # 等待 message 通知消息线程发送回复
-    Constants.log.info("[obot-core] 正在重启")
-    os.execl(sys.executable, sys.executable, *sys.argv)
-
-
-@command(tokens=["配置重载", "reload_conf"], permission_level=PermissionLevel.ADMIN)
-def reply_reload_conf(message: RobotMessage):
-    Constants.reload_conf()
-    message.reply("已重载配置文件")
-    Constants.log.info("[obot-core] 已重载配置文件")
-
-
-@command(tokens=["对话场景ID", "chat_scene_id"])
-def reply_chat_scene_id(message: RobotMessage):
-    message.reply(f'当前对话场景ID\n\n{message.uuid}', modal_words=False)
-
-
-@command(tokens=["我的ID", "my_id"])
-def reply_my_id(message: RobotMessage):
-    message.reply(f'你的ID（不同对话场景下你的ID是不同的）\n\n{message.author_id}', modal_words=False)
-
-
-class MyClient(Client):
-    def __init__(self, intents: Intents, timeout: int = 5, is_sandbox=False,
-                 log_config: Union[str, dict] = None, log_format: str = None, log_level: int = None,
-                 bot_log: Union[bool, None] = True, ext_handlers: Union[dict, List[dict], bool] = True):
-        super().__init__(intents, timeout, is_sandbox, log_config, log_format, log_level, bot_log, ext_handlers)
-
-    async def on_ready(self):
-        Constants.log.info("[obot-core] 机器人上线，"
-                           f"版本 {Constants.core_version}-{Constants.git_commit_hash}")
-
-    async def on_at_message_create(self, message: Message):
-        attachment_info = (f" | {message.attachments}"
-                           if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在 guild_{message.guild_id} "
-                           f"收到@消息: {message.content}"
-                           f"{attachment_info}")
-        packed_message = RobotMessage(self.api)
-        packed_message.setup_guild_message(self.loop, message)
-        dispatch_message(packed_message)
-
-    async def on_message_create(self, message: Message):
-        attachment_info = (f" | {message.attachments}"
-                           if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在 guild_{message.guild_id} "
-                           f"收到公共消息: {message.content}"
-                           f"{attachment_info}")
-        content = message.content
-
-        packed_message = RobotMessage(self.api)
-        packed_message.setup_guild_message(self.loop, message, is_public=True)
-
-        if not re.search(r'<@!\d+>', content):
-            dispatch_message(packed_message)
-
-    async def on_direct_message_create(self, message: DirectMessage):
-        attachment_info = (f" | {message.attachments}"
-                           if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在 direct_{message.guild_id} "
-                           f"收到私信消息: {message.content}"
-                           f"{attachment_info}")
-        packed_message = RobotMessage(self.api)
-        packed_message.setup_direct_message(self.loop, message)
-        dispatch_message(packed_message)
-
-    async def on_group_at_message_create(self, message: GroupMessage):
-        attachment_info = (f" | {message.attachments}"
-                           if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
-                           f"收到群聊消息: {message.content}"
-                           f"{attachment_info}")
-        packed_message = RobotMessage(self.api)
-        packed_message.setup_group_message(self.loop, message)
-        dispatch_message(packed_message)
-
-    async def on_c2c_message_create(self, message: C2CMessage):
-        attachment_info = (f" | {message.attachments}"
-                           if len(message.attachments) > 0 else "")
-        Constants.log.info(f"[obot-act] 在 c2c_{message.author.user_openid} "
-                           f"收到私聊消息: {message.content}"
-                           f"{attachment_info}")
-        packed_message = RobotMessage(self.api)
-        packed_message.setup_c2c_message(self.loop, message)
-        dispatch_message(packed_message)
-
-
-def open_robot_session():
-    intents = botpy.Intents.all()  # 对目前已支持的所有事件进行监听
-    client = MyClient(intents=intents, timeout=60)
-
-    # 更新每日排行榜
-    threading.Thread(target=daily_sched_thread, args=[]).start()
-
-    client.run(appid=Constants.botpy_conf["appid"], secret=Constants.botpy_conf["secret"])
+# nonebot.load_plugins("src/module")
+nonebot.load_plugin("src.module.maintain")
+nonebot.load_plugin("src.module.cron")
+nonebot.load_plugin("src.module.tool.how_to_cook")
+nonebot.load_plugin("src.module.interact")
+if __name__ == "__main__":
+    nonebot.run()
