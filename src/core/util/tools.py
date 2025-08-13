@@ -19,6 +19,7 @@ from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
 from qrcode.main import QRCode
 from requests import Response
 from requests.adapters import HTTPAdapter
+from thefuzz import process
 
 from src.core.constants import Constants
 
@@ -217,6 +218,48 @@ def png2jpg(path: str, remove_origin: bool = True) -> str:
         os.remove(path)
     return new_path
 
+def fuzzy_matching(query: list | dict, target: str, query_idx: int):
+    """
+    模糊匹配，支持下标查询
+    :param query: 匹配列表
+    :param target: 匹配目标文本
+    :param query_idx: 匹配结果的第几个
+    :return [匹配程度文本, 提示文本, 选取的对象]
+    """
+    if len(query) == 0:
+        raise(ValueError("查询列表为空"))
+    if query_idx == 0:
+        raise(ValueError("查询从 1 开始编号"))
+
+    match_results = process.extract(target, query, limit=5)
+    if isinstance(query, dict):
+        # 传递 dict 时会返回 tuple(value, ratio, key)
+        picked_tuple = [(result[2], result[1]) for result in match_results if result[1] >= 20]  # 相似度至少 20%
+    else:
+        picked_tuple = [(result[0], result[1]) for result in match_results if result[1] >= 20]
+    if len(picked_tuple) == 0:
+        raise(ValueError("没有找到满足条件的匹配项"))
+    if query_idx > len(picked_tuple):
+        raise(ValueError(f"查询编号多余候选数量，当前有 {len(picked_tuple)} 个候选项"))
+    picked, ratio = picked_tuple[query_idx - 1]
+    query_more_tip = f"\n标签匹配度 {ratio}%"
+    if query_idx != 1:
+        query_more_tip += f"，在 {len(picked_tuple)} 个候选中排名第 {query_idx} "
+    else:
+        query_more_tip += f"，共有 {len(picked_tuple)} 个候选"
+        if len(picked_tuple) > 1:
+            query_more_tip += "，可以在指令后追加编号参数查询更多"
+
+    if ratio >= 95:  # 简单的评价反馈
+        query_tag = "完美满足条件的"
+    elif ratio >= 60:
+        query_tag = "满足条件的"
+    elif ratio >= 35:
+        query_tag = "比较满足条件的"
+    else:
+        query_tag = "可能不太满足条件的"
+
+    return [query_tag, query_more_tip, picked]
 
 def get_md5(path: str) -> str:
     md5 = hashlib.md5()

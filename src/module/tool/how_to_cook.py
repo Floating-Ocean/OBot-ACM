@@ -9,9 +9,8 @@ from nonebot.rule import to_me
 from nonebot_plugin_saa import MessageFactory, AggregatedMessageFactory
 from nonebot_plugin_saa import Image as SAAImage
 
-from src.core.bot.interact import fuzzy_matching
 from src.core.constants import Constants
-from src.core.util.tools import png2jpg
+from src.core.util.tools import png2jpg,fuzzy_matching
 from src.data.data_cache import get_cached_prefix
 from src.data.data_how_to_cook import load_dishes
 from src.render.html.render_how_to_cook import render_how_to_cook
