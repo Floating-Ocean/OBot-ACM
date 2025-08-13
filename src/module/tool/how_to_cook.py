@@ -1,4 +1,3 @@
-import os
 import random
 
 from nonebot import on_command
@@ -6,8 +5,7 @@ from nonebot.adapters import Message,Event
 from nonebot.exception import ActionFailed
 from nonebot.params import CommandArg
 from nonebot.rule import to_me
-from nonebot_plugin_saa import MessageFactory, AggregatedMessageFactory, Text
-from nonebot_plugin_saa import Image as SAAImage
+from nonebot_plugin_saa import MessageFactory
 
 from src.core.constants import Constants
 from src.core.bot.message import reply
@@ -24,7 +22,7 @@ async def reply_how_to_cook(event:Event,message:Message = CommandArg()):
     await reply(["正在翻阅菜谱，请稍等"],event,finish = False)
     dishes = load_dishes()
     if len(dishes) == 0:
-        await reply(["抱歉，菜谱库为空，请踢一踢管理员"], event, finish=False)
+        await reply(["抱歉，菜谱库为空，请踢一踢管理员"], event, finish=True)
     try:
         args = message.extract_plain_text().split()
         if len(args) == 0:
