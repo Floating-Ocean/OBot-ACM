@@ -7,7 +7,7 @@ from nonebot.params import CommandArg
 from nonebot.rule import to_me
 from thefuzz import process
 
-from src.core.bot.decorator import get_all_modules_info
+from src.core.bot.decorator import get_all_modules_info, module
 from src.core.bot.message import reply
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range
@@ -19,6 +19,8 @@ from src.platform.online.nowcoder import NowCoder
 from src.render.pixie.render_about import AboutRenderer
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
+
+_version = "1.0.0"
 
 today_contests_1 = on_command(("contest", "today"),
                               aliases={("contests", "today"), ("比赛", "today"), ("比赛", "今日"), ("比赛", "今天")},
@@ -168,3 +170,10 @@ async def reply_about(event: Event):
     ).render()
     about_img.write_file(f"{cached_prefix}.png")
     await reply(["当前各模块版本", png2jpg(f"{cached_prefix}.png")], event=event)
+
+@module(
+    name="General-Interaction",
+    version=_version
+)
+def register_module():
+    pass

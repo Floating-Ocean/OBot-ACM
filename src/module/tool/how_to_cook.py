@@ -7,6 +7,7 @@ from nonebot.params import CommandArg
 from nonebot.rule import to_me
 from nonebot_plugin_saa import MessageFactory
 
+from src.core.bot.decorator import module
 from src.core.bot.message import reply, report_exception
 from src.core.util.tools import png2jpg, fuzzy_matching
 from src.data.data_cache import get_cached_prefix
@@ -48,3 +49,10 @@ async def reply_how_to_cook(event: Event, message: Message = CommandArg()):
             raise e
         else:
             report_exception(event, "How-To-Cook", e)
+
+@module(
+    name="How-to-Cook",
+    version=_version
+)
+def register_module():
+    pass
