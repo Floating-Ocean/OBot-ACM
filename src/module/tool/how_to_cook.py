@@ -3,14 +3,13 @@ import random
 
 from nonebot import on_command
 from nonebot.adapters import Message
-from nonebot.exception import ActionFailed, FinishedException
+from nonebot.exception import ActionFailed
 from nonebot.params import CommandArg
+from nonebot.rule import to_me
 from nonebot_plugin_saa import MessageFactory, AggregatedMessageFactory
 from nonebot_plugin_saa import Image as SAAImage
 
-from src.core.bot.decorator import command, module
 from src.core.bot.interact import fuzzy_matching
-from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg
 from src.data.data_cache import get_cached_prefix
@@ -19,7 +18,7 @@ from src.render.html.render_how_to_cook import render_how_to_cook
 
 _version = "1.5.0"
 
-how_to_cook = on_command("来道菜", aliases={"做菜", "菜", "饿了", "我饿了"}, priority=100, block=True)
+how_to_cook = on_command("来道菜", aliases={"做菜", "菜", "饿了", "我饿了"}, priority=100,rule=to_me(), block=True)
 @how_to_cook.handle()
 async def reply_how_to_cook(message:Message = CommandArg()):
     await MessageFactory("正在翻阅菜谱，请稍等").send()
@@ -49,11 +48,3 @@ async def reply_how_to_cook(message:Message = CommandArg()):
     except ActionFailed as e:
         Constants.log.error(f"[obot-how-to-cook]  failed: {e}")
         await MessageFactory(f"发送消息时发生错误，请联系管理员排障").finish()
-
-
-@module(
-    name="How-to-Cook",
-    version=_version
-)
-def register_module():
-    pass
