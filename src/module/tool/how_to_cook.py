@@ -2,13 +2,12 @@ import random
 
 from nonebot import on_command
 from nonebot.adapters import Message, Event
-from nonebot.exception import ActionFailed
+from nonebot.exception import ActionFailed, MatcherException
 from nonebot.params import CommandArg
 from nonebot.rule import to_me
 from nonebot_plugin_saa import MessageFactory
 
-from src.core.bot.message import reply
-from src.core.constants import Constants
+from src.core.bot.message import reply, report_exception
 from src.core.util.tools import png2jpg, fuzzy_matching
 from src.data.data_cache import get_cached_prefix
 from src.data.data_how_to_cook import load_dishes
@@ -44,6 +43,8 @@ async def reply_how_to_cook(event: Event, message: Message = CommandArg()):
             finish=True)
     except ValueError as e:
         await MessageFactory(f"抱歉，{e}").finish()
-    except ActionFailed as e:
-        Constants.log.error(f"[obot-how-to-cook]  failed: {e}")
-        await reply([f"发送消息时发生错误，请联系管理员排障"], event, finish=True)
+    except Exception as e:
+        if isinstance(e, MatcherException):
+            raise e
+        else:
+            report_exception(event, "How-To-Cook", e)

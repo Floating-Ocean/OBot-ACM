@@ -22,7 +22,7 @@ chat_scene_id = on_command("chat_scene_id", aliases={"对话场景ID"}, rule=to_
 
 @chat_scene_id.handle()
 async def reply_chat_scene_id(event: Event):
-    await reply(["当前对话场景ID\n\n{event.get_session_id()}"], event, modal_words=False, finish=True)
+    await reply([f"当前对话场景ID\n\n{event.get_session_id()}"], event, modal_words=False, finish=True)
 
 
 my_id = on_command("my_id", aliases={"我的ID"}, rule=to_me(), priority=5, block=True)
@@ -30,5 +30,5 @@ my_id = on_command("my_id", aliases={"我的ID"}, rule=to_me(), priority=5, bloc
 
 @my_id.handle()
 async def reply_my_id(event: Event):
-    await reply(['你的ID（不同对话场景下你的ID是不同的）\n\n{event.get_user_id()}'], event, modal_words=False,
+    await reply([f'你的ID（不同对话场景下你的ID是不同的）\n\n{event.get_user_id()}'], event, modal_words=False,
                 finish=True)
