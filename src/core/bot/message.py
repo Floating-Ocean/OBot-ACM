@@ -37,7 +37,7 @@ async def reply(contents: list[str | bytes], event: Event, modal_words: bool = T
         await msg_builder.send()
 
 
-def report_exception(event: Event, module_name: str, e: Exception):
+async def report_exception(event: Event, module_name: str, e: Exception):
     Constants.log.warning(f"[obot-module] 操作失败，模块 {module_name} 出现异常")
     Constants.log.exception(f"[obot-module] {e}")
-    reply([handle_exception(e)], event, modal_words=False, finish=True)
+    await reply([handle_exception(e)], event, modal_words=False, finish=True)

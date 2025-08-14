@@ -48,7 +48,7 @@ async def reply_how_to_cook(event: Event, message: Message = CommandArg()):
         if isinstance(e, MatcherException):
             raise e
         else:
-            report_exception(event, "How-To-Cook", e)
+            await report_exception(event, "How-To-Cook", e)
 
 @module(
     name="How-to-Cook",

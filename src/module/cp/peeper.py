@@ -1,11 +1,17 @@
-﻿import copy
+﻿import asyncio
+import copy
 import json
 import os
 
+from nonebot import on_command, get_bot
+from nonebot.adapters import Message,Event
+from nonebot.params import CommandArg
+from nonebot.rule import to_me
+from nonebot_plugin_saa import MessageFactory, AggregatedMessageFactory, Image, TargetQQGroup
 from thefuzz import process
 
-from src.core.bot.decorator import command, module
-from src.core.bot.message import RobotMessage
+from src.core.bot.decorator import module
+from src.core.bot.message import reply, report_exception
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
@@ -73,18 +79,19 @@ def _cache_conf_payload(conf: dict) -> str:
     return f"{cached_prefix}.json"
 
 
-def _call_lib_method(message: RobotMessage | str, prop: str,
+async def _call_lib_method(event:Event | None, prop: str,
                      no_id: bool = False) -> str | None:
     """
     执行 Peeper-Board-Generator 内的指令，message 可指定消息本体或消息 uuid，后者不会进行异常反馈
     """
-    uuid = message.uuid if isinstance(message, RobotMessage) else message
-    execute_conf = _get_specified_conf(uuid)
-
+    if event is not None:
+        group_id = event.get_session_id().split("_")[1]
+        execute_conf = _get_specified_conf(group_id)
+    else:
+        execute_conf = _get_specified_conf("")
     traceback = ""
     for _t in range(2):  # 尝试2次
         id_prop = "" if no_id else f'--id {execute_conf["id"]} '
-        # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
         result = run_shell(f'cd {_lib_path} & python main.py {id_prop}{prop} '
                            f'--config {_cache_conf_payload(execute_conf)}')
 
@@ -93,94 +100,93 @@ def _call_lib_method(message: RobotMessage | str, prop: str,
             if traceback == "ok":
                 return result
 
-    if isinstance(message, RobotMessage):
-        message.report_exception('Peeper-Board-Generator',
-                                 ModuleRuntimeError(traceback.split('\n')[-2]))
+        if event is not None:
+            await report_exception(event,'Peeper-Board-Generator',
+                                     ModuleRuntimeError(traceback.split('\n')[-2]))
 
     return None
 
 
-def daily_update_job():
+async def daily_update_job():
     all_uuid = Constants.modules_conf.peeper["configs"].keys()
     Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(all_uuid)} 个榜单')
 
     for uuid in all_uuid:
         cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-        _call_lib_method(uuid, f"--full --output {cached_prefix}.png")
-
+        await _call_lib_method(uuid, f"--full --output {cached_prefix}.png")
+        if _get_specified_conf(uuid)["daily_report"]:
+            await AggregatedMessageFactory([MessageFactory("昨日卷王榜单已更新"),Image(png2jpg(f"{cached_prefix}.png"))]).send_to(TargetQQGroup(group_id=uuid),bot=get_bot())
     Constants.log.info("[peeper] 每日榜单更新任务完成")
 
 
-def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
-    type_name = "用户名" if by_name else " uid "
-    type_id = "name" if by_name else "uid"
-    message.reply(f"正在查询{type_name}为 {content} 的用户数据，请稍等")
+# def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
+#     type_name = "用户名" if by_name else " uid "
+#     type_id = "name" if by_name else "uid"
+#     message.reply(f"正在查询{type_name}为 {content} 的用户数据，请稍等")
+#
+#     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
+#     run = _call_lib_method(message, f"--query_{type_id} {content} --output {cached_prefix}.txt")
+#     if run is None:
+#         return
+#
+#     with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
+#         result = escape_mail_url(f.read())
+#         message.reply(f"[{type_id.capitalize()} {content}]\n\n{result}", modal_words=False)
+#
+#
+# @command(tokens=['评测榜单', 'verdict'])
+# def send_now_board_with_verdict(message: RobotMessage):
+#     content = message.tokens[1] if len(message.tokens) == 2 else ""
+#     single_col = (message.tokens[2] == "single") if len(
+#         message.tokens) == 3 else False
+#     verdict = _classify_verdicts(content)
+#     if verdict == "":
+#         message.reply("请在 /评测榜单 后面添加正确的参数，如 ac, Accepted, TimeExceeded, WrongAnswer")
+#         return
+#
+#     message.reply(f"正在查询今日 {verdict} 榜单，请稍等")
+#
+#     single_arg = "" if single_col else " --separate_cols"
+#     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
+#     run = _call_lib_method(message,
+#                            f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
+#     if run is None:
+#         return
+#
+#     message.reply(f"今日 {verdict} 榜单", png2jpg(f"{cached_prefix}.png"))
+#
+#
+# @command(tokens=['今日题数', 'today'])
+# def send_today_board(message: RobotMessage):
+#     single_col = (message.tokens[1] == "single") \
+#         if len(message.tokens) == 2 else False
+#     message.reply("正在查询今日题数，请稍等")
+#
+#     single_arg = "" if single_col else " --separate_cols"
+#     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
+#     run = _call_lib_method(message, f"--now {single_arg} --output {cached_prefix}.png")
+#     if run is None:
+#         return
+#
+#     message.reply("今日题数", png2jpg(f"{cached_prefix}.png"))
 
-    cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--query_{type_id} {content} --output {cached_prefix}.txt")
-    if run is None:
-        return
-
-    with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
-        result = escape_mail_url(f.read())
-        message.reply(f"[{type_id.capitalize()} {content}]\n\n{result}", modal_words=False)
-
-
-@command(tokens=['评测榜单', 'verdict'])
-def send_now_board_with_verdict(message: RobotMessage):
-    content = message.tokens[1] if len(message.tokens) == 2 else ""
-    single_col = (message.tokens[2] == "single") if len(
-        message.tokens) == 3 else False
-    verdict = _classify_verdicts(content)
-    if verdict == "":
-        message.reply("请在 /评测榜单 后面添加正确的参数，如 ac, Accepted, TimeExceeded, WrongAnswer")
-        return
-
-    message.reply(f"正在查询今日 {verdict} 榜单，请稍等")
+yesterday_all = on_command("昨日总榜", aliases={"yesterday", "full"}, priority=50,rule=to_me(), block=True)
+@yesterday_all.handle()
+async def send_yesterday_board(event:Event,message:Message = CommandArg()):
+    single_col = (message.extract_plain_text() == "single")
+    await MessageFactory("正在查询昨日总榜，请稍等").send()
 
     single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message,
-                           f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
+    run = await _call_lib_method(event, f"--full {single_arg} --output {cached_prefix}.png")
     if run is None:
         return
+    await reply(["昨日卷王天梯榜",png2jpg(f"{cached_prefix}.png")], event,False,True)
 
-    message.reply(f"今日 {verdict} 榜单", png2jpg(f"{cached_prefix}.png"))
-
-
-@command(tokens=['今日题数', 'today'])
-def send_today_board(message: RobotMessage):
-    single_col = (message.tokens[1] == "single") \
-        if len(message.tokens) == 2 else False
-    message.reply("正在查询今日题数，请稍等")
-
-    single_arg = "" if single_col else " --separate_cols"
+#
+async def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--now {single_arg} --output {cached_prefix}.png")
-    if run is None:
-        return
-
-    message.reply("今日题数", png2jpg(f"{cached_prefix}.png"))
-
-
-@command(tokens=['昨日总榜', 'yesterday', 'full'])
-def send_yesterday_board(message: RobotMessage):
-    single_col = (message.tokens[1] == "single") \
-        if len(message.tokens) == 2 else False
-    message.reply("正在查询昨日总榜，请稍等")
-
-    single_arg = "" if single_col else " --separate_cols"
-    cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--full {single_arg} --output {cached_prefix}.png")
-    if run is None:
-        return
-
-    message.reply("昨日卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
-
-
-def get_version_info() -> str:
-    cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method("",  # 留空 uuid，选择默认
+    run = await _call_lib_method(None,  # 留空 uuid，选择默认
                            f"--version --output {cached_prefix}.txt", no_id=True)
     if run is None:
         return "Unknown"
@@ -188,28 +194,28 @@ def get_version_info() -> str:
     with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
         result = f.read()
         return result.split(' ', 1)[1]
-
-
-@command(tokens=['user'])
-def send_oj_user(message: RobotMessage):
-    content = message.tokens
-    if len(content) < 3:
-        return message.reply("请输入三个参数，第三个参数前要加空格，比如说\"/user id 1\"，\"/user name Hydro\"")
-    if len(content) > 3:
-        return message.reply("请输入三个参数，第三个参数不要加上空格")
-    if content[1] == "id" and (len(content[2]) > 9 or not check_is_int(content[2])):
-        return message.reply("参数错误，id必须为整数")
-    if content[1] == "id" or content[1] == "name":
-        _send_user_info(message, content[2], by_name=(content[1] == "name"))
-        return None
-    else:
-        message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
-        return None
+#
+#
+# @command(tokens=['user'])
+# def send_oj_user(message: RobotMessage):
+#     content = message.tokens
+#     if len(content) < 3:
+#         return message.reply("请输入三个参数，第三个参数前要加空格，比如说\"/user id 1\"，\"/user name Hydro\"")
+#     if len(content) > 3:
+#         return message.reply("请输入三个参数，第三个参数不要加上空格")
+#     if content[1] == "id" and (len(content[2]) > 9 or not check_is_int(content[2])):
+#         return message.reply("参数错误，id必须为整数")
+#     if content[1] == "id" or content[1] == "name":
+#         _send_user_info(message, content[2], by_name=(content[1] == "name"))
+#         return None
+#     else:
+#         message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
+#         return None
 
 
 @module(
     name="Peeper-Board-Generator",
-    version=get_version_info
+    version=asyncio.run(get_version_info())
 )
 def register_module():
     pass

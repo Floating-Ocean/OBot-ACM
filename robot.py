@@ -22,6 +22,7 @@ nonebot.load_plugin("src.module.interact")
 nonebot.load_plugin("src.module.cp.nk")
 nonebot.load_plugin("src.module.cp.atc")
 nonebot.load_plugin("src.module.cp.contest_manual")
+nonebot.load_plugin("src.module.cp.peeper")
 if __name__ == "__main__":
     # 注册模块版本信息
     for plugin in get_loaded_plugins():
