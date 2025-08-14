@@ -6,11 +6,13 @@ import re
 import ssl
 import string
 import subprocess
+import sys
 import time
 
 import cv2
 import numpy as np
 import requests
+import select
 from PIL import Image
 from lxml import etree
 from lxml.etree import Element
@@ -26,17 +28,32 @@ from src.core.constants import Constants
 
 def run_shell(shell: str) -> str:
     Constants.log.info(f"[shell] {shell}")
-    cmd = subprocess.Popen(shell, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                           universal_newlines=True, shell=True, bufsize=1)
-    info = ""
-    # 实时输出
-    while True:
-        line = cmd.stderr.readline().strip()
-        Constants.log.info(f"[shell] {line}")
-        info += line
 
-        if line == "" or subprocess.Popen.poll(cmd) == 0:  # 判断子进程是否结束
-            break
+    # 创建子进程，将stderr重定向到stdout以便统一读取
+    cmd = subprocess.Popen(
+        shell,
+        stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
+        universal_newlines=True,
+        shell=True,
+        bufsize=1
+    )
+
+    info = ""
+    while True:
+        if sys.platform == "win32":
+            line = cmd.stdout.readline()
+        else:
+            if select.select([cmd.stdout], [], [], 0.1)[0]:
+                line = cmd.stdout.readline()
+            else:
+                line = None
+        if line:
+            line = line.strip()
+            Constants.log.info(f"[shell] {line}")
+            info += line
+        else:
+            if cmd.poll() is not None:
+                break
 
     return info
 
