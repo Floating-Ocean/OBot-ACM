@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import sys
 
 from nonebot import on_command, get_bot
 from nonebot.adapters import Message,Event
@@ -92,11 +93,12 @@ async def _call_lib_method(event:Event | None, prop: str,
     traceback = ""
     for _t in range(2):  # 尝试2次
         id_prop = "" if no_id else f'--id {execute_conf["id"]} '
-        main_script = os.path.abspath(os.path.join(_lib_path, "main.py"))
-        config_file = os.path.abspath(_cache_conf_payload(execute_conf))
+        sep = '&'if sys.platform == "win32" else '&&'
         result = run_shell(
-            f'python "{main_script}" {id_prop}{prop} '
-            f'--config "{config_file}"'
+            f'cd {os.path.abspath(_lib_path)} '
+            f' {sep} '
+            f' python main.py {id_prop}{prop} ' 
+            f'--config "{os.path.abspath(_cache_conf_payload(execute_conf))}"'
         )
 
         with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
