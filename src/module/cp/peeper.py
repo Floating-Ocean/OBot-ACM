@@ -8,7 +8,7 @@ from nonebot import on_command, get_bot
 from nonebot.adapters import Message,Event
 from nonebot.params import CommandArg
 from nonebot.rule import to_me
-from nonebot_plugin_saa import MessageFactory, AggregatedMessageFactory, Image, TargetQQGroup
+from nonebot_plugin_saa import MessageFactory, AggregatedMessageFactory, Image, TargetQQGroup, Text
 from thefuzz import process
 
 from src.core.bot.decorator import module
@@ -121,7 +121,7 @@ async def daily_update_job():
         cached_prefix = get_cached_prefix('Peeper-Board-Generator')
         await _call_lib_method(uuid, f"--full --output {cached_prefix}.png")
         if _get_specified_conf(uuid)["daily_report"]:
-            await AggregatedMessageFactory([MessageFactory("昨日卷王榜单已更新"),Image(png2jpg(f"{cached_prefix}.png"))]).send_to(TargetQQGroup(group_id=uuid),bot=get_bot())
+            await MessageFactory(Text("昨日卷王榜单已更新")+Image(png2jpg(f"{cached_prefix}.png"))).send_to(TargetQQGroup(group_id=uuid),bot=get_bot())
     Constants.log.info("[peeper] 每日榜单更新任务完成")
 
 
@@ -187,7 +187,7 @@ async def send_yesterday_board(event:Event,message:Message = CommandArg()):
     run = await _call_lib_method(event, f"--full {single_arg} --output {cached_prefix}.png")
     if run is None:
         return
-    await reply(["昨日卷王天梯榜",png2jpg(f"{cached_prefix}.png")], event,False,True)
+    await MessageFactory(Text("昨日卷王天梯榜")+Image(png2jpg(f"{cached_prefix}.png"))).finish()
 
 #
 async def get_version_info() -> str:
