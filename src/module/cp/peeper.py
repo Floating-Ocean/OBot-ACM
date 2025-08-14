@@ -92,8 +92,12 @@ async def _call_lib_method(event:Event | None, prop: str,
     traceback = ""
     for _t in range(2):  # 尝试2次
         id_prop = "" if no_id else f'--id {execute_conf["id"]} '
-        result = run_shell(f'cd {_lib_path} & python main.py {id_prop}{prop} '
-                           f'--config {_cache_conf_payload(execute_conf)}')
+        main_script = os.path.abspath(os.path.join(_lib_path, "main.py"))
+        config_file = os.path.abspath(_cache_conf_payload(execute_conf))
+        result = run_shell(
+            f'python "{main_script}" {id_prop}{prop} '
+            f'--config "{config_file}"'
+        )
 
         with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
             traceback = f.read()

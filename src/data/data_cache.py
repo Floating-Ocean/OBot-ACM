@@ -28,4 +28,4 @@ def get_cached_prefix(category: str):
     if not os.path.exists(category_path):
         os.makedirs(os.path.join(_cache_path, category))
 
-    return os.path.join(_cache_path, category, f"{datetime.now().timestamp()}")
+    return os.path.abspath(os.path.join(_cache_path, category, f"{datetime.now().timestamp()}"))
