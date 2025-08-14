@@ -12,8 +12,8 @@ require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_localstore")
 from nonebot_plugin_apscheduler import scheduler
 import nonebot_plugin_localstore as store
-
-# from src.module.cp.peeper import daily_update_job
+require("src.module.cp.peeper")
+from src.module.cp.peeper import daily_update_job
 
 _version = "1.0.0"
 
@@ -22,8 +22,7 @@ scheduler.add_jobstore("sqlalchemy",alias="default",url=f"sqlite:///{os.path.joi
 
 @scheduler.scheduled_job("cron", id="peeper_daily_update", hour=0, minute=0, second=1)
 async def peeper_daily_update():
-    # daily_update_job()
-    pass
+    await daily_update_job()
 @scheduler.scheduled_job("cron",hour=6,id="job_ping_6",kwargs={'content':"ping",'id':Constants.role_conf['heartbeat_id']})
 @scheduler.scheduled_job("cron",hour=12,id="job_ping_12",kwargs={'content':"pong",'id':Constants.role_conf['heartbeat_id']})
 @scheduler.scheduled_job("cron",hour=18,id="job_ping_18",kwargs={'content':"pingping",'id':Constants.role_conf['heartbeat_id']})

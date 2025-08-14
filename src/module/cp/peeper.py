@@ -80,16 +80,16 @@ def _cache_conf_payload(conf: dict) -> str:
     return f"{cached_prefix}.json"
 
 
-async def _call_lib_method(event:Event | None, prop: str,
+async def _call_lib_method(event:Event | str, prop: str,
                      no_id: bool = False) -> str | None:
     """
     执行 Peeper-Board-Generator 内的指令，message 可指定消息本体或消息 uuid，后者不会进行异常反馈
     """
-    if event is not None:
+    if isinstance(event,Event):
         group_id = event.get_session_id().split("_")[1]
         execute_conf = _get_specified_conf(group_id)
     else:
-        execute_conf = _get_specified_conf("")
+        execute_conf = _get_specified_conf(event)
     traceback = ""
     for _t in range(2):  # 尝试2次
         id_prop = "" if no_id else f'--id {execute_conf["id"]} '
@@ -106,7 +106,7 @@ async def _call_lib_method(event:Event | None, prop: str,
             if traceback == "ok":
                 return result
 
-        if event is not None:
+        if isinstance(event,Event):
             await report_exception(event,'Peeper-Board-Generator',
                                      ModuleRuntimeError(traceback.split('\n')[-2]))
 
@@ -192,7 +192,7 @@ async def send_yesterday_board(event:Event,message:Message = CommandArg()):
 #
 async def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = await _call_lib_method(None,  # 留空 uuid，选择默认
+    run = await _call_lib_method("",  # 留空 uuid，选择默认
                            f"--version --output {cached_prefix}.txt", no_id=True)
     if run is None:
         return "Unknown"
