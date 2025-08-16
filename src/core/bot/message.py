@@ -110,7 +110,8 @@ class RobotMessage:
                 self.loop
             )
 
-    async def _send_message(self, content: str, msg_seq: int, img_path: str, img_url: str):
+    async def _send_message(self, content: str, msg_seq: int,
+                            img_path: str = None, img_url: str = None):
         """统一消息发送入口"""
         Constants.log.info(f"[obot-act] 发起回复: {content}")
 
@@ -135,8 +136,12 @@ class RobotMessage:
             Constants.log.warning("[obot-act] 发起回复失败.")
             Constants.log.exception(f"[obot-act] {e}")
 
-    async def _send_audio(self, msg_seq: int, audio_path: str, audio_url: str):
+    async def _send_audio(self, msg_seq: int, audio_path: str = None, audio_url: str = None):
         """语音发送入口"""
+        if self.message_type in [MessageType.GUILD, MessageType.DIRECT]:
+            await self._send_message("频道不支持发送语音消息", msg_seq)
+            return
+
         Constants.log.info(f"[obot-act] 发起语音回复")
 
         try:
