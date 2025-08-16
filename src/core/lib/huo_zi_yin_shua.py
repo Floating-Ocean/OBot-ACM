@@ -51,25 +51,27 @@ class HuoZiYinShua:
     def _convert_to_pcm(cls, in_path: str, remove_origin: bool = True) -> tuple[str, int]:
         """任意媒体文件转 pcm"""
         out_path = os.path.splitext(in_path)[0] + '.pcm'
-        with av.open(in_path) as in_container:
-            in_stream = in_container.streams.audio[0]
-            sample_rate = in_stream.codec_context.sample_rate
-            with av.open(out_path, 'w', 's16le') as out_container:
-                out_stream = out_container.add_stream(
-                    'pcm_s16le',
-                    rate=sample_rate,
-                    layout='mono'
-                )
-                try:
+        converted = False
+        try:
+            with av.open(in_path) as in_container:
+                in_stream = in_container.streams.audio[0]
+                sample_rate = in_stream.codec_context.sample_rate
+                with av.open(out_path, 'w', 's16le') as out_container:
+                    out_stream = out_container.add_stream(
+                        'pcm_s16le',
+                        rate=sample_rate,
+                        layout='mono'
+                    )
                     for frame in in_container.decode(in_stream):
                         frame.pts = None
                         for packet in out_stream.encode(frame):
                             out_container.mux(packet)
-                except Exception as e:
-                    Constants.log.warning("[hzys] 转换 pcm 失败")
-                    Constants.log.exception(e)
+                    converted = True
+        except Exception as e:
+            Constants.log.warning("[hzys] 转换 pcm 失败")
+            Constants.log.exception(e)
 
-        if remove_origin:
+        if remove_origin and converted:
             os.remove(in_path)
         return out_path, sample_rate
 
@@ -159,7 +161,8 @@ class HuoZiYinShua:
                 except Exception as e:  # 加入缺失素材列表，以空白音频代替
                     Constants.log.warning("[hzys] 加载素材失败")
                     Constants.log.exception(e)
-                    if self._ost_dict[pronoun[0]] not in missing_pinyin:
+                    if (pronoun[0] in self._ost_dict and
+                            self._ost_dict[pronoun[0]] not in missing_pinyin):
                         missing_pinyin.append(self._ost_dict[pronoun[0]])
                     concatenated = np.concatenate((
                         concatenated, np.zeros(int(self._TARGET_SR / 4))
