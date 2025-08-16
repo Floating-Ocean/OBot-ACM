@@ -16,3 +16,7 @@ thefuzz==0.22.1
 easy-pixie==0.0.8
 markdown2==2.5.3
 imgkit==1.2.3
+python-dateutil==2.9.0.post0
+av==15.0.0
+pilk==0.2.4
+soundfile==0.13.1

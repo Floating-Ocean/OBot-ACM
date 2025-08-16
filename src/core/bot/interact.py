@@ -7,6 +7,7 @@ from typing import Callable
 from pypinyin import pinyin, Style
 from thefuzz import process
 
+from src.core.lib.huo_zi_yin_shua import HuoZiYinShua
 from src.core.bot.decorator import command, get_all_modules_info
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
@@ -255,3 +256,17 @@ def reply_about(message: RobotMessage):
     about_img.write_file(f"{cached_prefix}.png")
 
     message.reply("当前各模块版本", png2jpg(f"{cached_prefix}.png"))
+
+
+@command(tokens=['hzys', 'hzls', '活字印刷', '活字乱刷'])
+def reply_hzys(message: RobotMessage):
+    if len(message.tokens) == 1:
+        message.reply("请指定需转换的文字")
+        return
+
+    lib_path = Constants.modules_conf.get_lib_path("Huo-Zi-Yin-Shua")
+
+    cached_prefix = get_cached_prefix('Huo-Zi-Yin-Shua')
+    audio_output = HuoZiYinShua(lib_path).generate(message.tokens[1], cached_prefix)
+
+    message.reply_audio(audio_output)
