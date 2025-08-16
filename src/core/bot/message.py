@@ -142,7 +142,7 @@ class RobotMessage:
             await self._send_message("频道不支持发送语音消息", msg_seq)
             return
 
-        Constants.log.info(f"[obot-act] 发起语音回复")
+        Constants.log.info("[obot-act] 发起语音回复")
 
         try:
             if not audio_path and not audio_url:
@@ -158,7 +158,7 @@ class RobotMessage:
             await self._handle_send_request(params)
 
         except Exception as e:
-            Constants.log.warning("[obot-act] 发起回复失败.")
+            Constants.log.warning("[obot-act] 发起语音回复失败.")
             Constants.log.exception(f"[obot-act] {e}")
 
     async def _upload_media(self, path: str, url: str,
@@ -188,7 +188,7 @@ class RobotMessage:
     async def _call_upload_api(self, **kwargs) -> dict:
         """调用对应的文件上传API"""
         if self.message_type in [MessageType.GUILD, MessageType.DIRECT]:
-            raise TypeError("Not allowed to upload files for guild and direct messages.")
+            raise PermissionError("Not allowed to upload files for guild and direct messages.")
 
         method_map: dict = {
             MessageType.GROUP: self.api.post_group_file,
@@ -221,7 +221,7 @@ class RobotMessage:
         # 媒体消息
         if media:
             if media['status'] != 'ok':
-                await self._send_fallback_message("发送图片失败，请稍后重试", msg_seq)
+                await self._send_fallback_message("发送媒体文件失败，请稍后重试", msg_seq)
                 return None
             return {**base_params, "msg_type": 7, "media": media['data']}
 
