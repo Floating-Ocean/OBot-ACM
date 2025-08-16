@@ -135,35 +135,35 @@ class HuoZiYinShua:
                 for text in pinyin:  # 拆成单独的字
                     for word in text.split():  # 拼接每一个字
                         try:
-                            concatenated = np.concatenate(
+                            concatenated = np.concatenate((
                                 concatenated,
                                 self._load_audio(os.path.join(self._pinyin_src_folder,
                                                               word + ".wav"))
-                            )
+                            ))
                         except Exception as e:  # 加入缺失素材列表，以空白音频代替
                             Constants.log.warning("[hzys] 加载素材失败")
                             Constants.log.exception(e)
                             if word not in missing_pinyin:
                                 missing_pinyin.append(word)
-                            concatenated = np.concatenate(
+                            concatenated = np.concatenate((
                                 concatenated, np.zeros(int(self._TARGET_SR / 4))
-                            )
+                            ))
 
             else:  # 使用原声大碟
                 try:
-                    concatenated = np.concatenate(
+                    concatenated = np.concatenate((
                         concatenated,
                         self._load_audio(os.path.join(self._ost_src_folder,
                                                       self._ost_dict[pronoun[0]] + ".wav"))
-                    )
+                    ))
                 except Exception as e:  # 加入缺失素材列表，以空白音频代替
                     Constants.log.warning("[hzys] 加载素材失败")
                     Constants.log.exception(e)
                     if self._ost_dict[pronoun[0]] not in missing_pinyin:
                         missing_pinyin.append(self._ost_dict[pronoun[0]])
-                    concatenated = np.concatenate(
+                    concatenated = np.concatenate((
                         concatenated, np.zeros(int(self._TARGET_SR / 4))
-                    )
+                    ))
 
         # 如果缺失拼音，则发出警告
         if len(missing_pinyin) != 0:
