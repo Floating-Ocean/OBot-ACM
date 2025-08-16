@@ -20,14 +20,15 @@ class HuoZiYinShua:
 
     def __init__(self, lib_path: str):
         try:
-            with open(os.path.join(lib_path, "single_char_dict.json"), encoding="utf-8") as f:
+            with open(os.path.join(lib_path, "dictionary.json"), encoding="utf-8") as f:
                 self._single_char_dict = json.load(f)  # 非中文字符读法字典
-            with open(os.path.join(lib_path, "ost_dict.json"), encoding="utf-8") as f:
+            with open(os.path.join(lib_path, "ysddTable.json"), encoding="utf-8") as f:
                 self._ost_dict = json.load(f)  # 原声大碟文件名对照
 
-            self._pinyin_src_folder = os.path.join(lib_path, "pinyin_source")  # 单字音频文件存放目录
-            self._ost_src_folder = os.path.join(lib_path, "ost_source")  # 原声大碟音频文件存放目录
+            self._pinyin_src_folder = os.path.join(lib_path, "sources")  # 单字音频文件存放目录
+            self._ost_src_folder = os.path.join(lib_path, "ysddSources")  # 原声大碟音频文件存放目录
 
+            self._ost_dict = {k.lower(): v for k, v in self._ost_dict.items()}
             # 越长片段优先级越高
             self._ost_dict = dict(sorted(self._ost_dict.items(), key=lambda x: -len(x[0])))
 

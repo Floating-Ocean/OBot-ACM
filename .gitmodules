@@ -4,3 +4,6 @@
 [submodule "lib/Peeper-Board-Generator"]
 	path = lib/Peeper-Board-Generator
 	url = https://github.com/qwedc001/Peeper-Board-Generator.git
+[submodule "lib/Huo-Zi-Yin-Shua"]
+	path = lib/Huo-Zi-Yin-Shua
+	url = https://github.com/DSP-8192/HuoZiYinShua
