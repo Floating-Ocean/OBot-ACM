@@ -5,7 +5,7 @@ import re
 import threading
 import uuid
 from enum import Enum
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 
 from botpy import BotAPI
 from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
@@ -98,13 +98,26 @@ class RobotMessage:
                 self.loop
             )
 
-    async def _send_message(self, content: str, msg_seq: int, img_path: str, img_url: str):
+    def reply_audio(self, audio_path: str = None, audio_url: str = None):
+        """异步发送语音的入口方法"""
+        if not self.loop:
+            raise RuntimeError("Event loop not initialized")
+
+        with self.seq_lock:
+            self.msg_seq += 1
+            asyncio.run_coroutine_threadsafe(  # 不能使用 loop.create_task，会造成资源竞争
+                self._send_audio(self.msg_seq, audio_path, audio_url),
+                self.loop
+            )
+
+    async def _send_message(self, content: str, msg_seq: int,
+                            img_path: str = None, img_url: str = None):
         """统一消息发送入口"""
         Constants.log.info(f"[obot-act] 发起回复: {content}")
 
         try:
             # 处理媒体文件上传
-            media = (await self._upload_media(img_path, img_url)
+            media = (await self._upload_media(img_path, img_url, media_type="Image")
                      if (img_path or img_url) and
                         self.message_type not in [MessageType.GUILD, MessageType.DIRECT] else None)
 
@@ -123,16 +136,48 @@ class RobotMessage:
             Constants.log.warning("[obot-act] 发起回复失败.")
             Constants.log.exception(f"[obot-act] {e}")
 
-    async def _upload_media(self, img_path: str, img_url: str) -> dict:
+    async def _send_audio(self, msg_seq: int, audio_path: str = None, audio_url: str = None):
+        """语音发送入口"""
+        if self.message_type in [MessageType.GUILD, MessageType.DIRECT]:
+            await self._send_message("频道不支持发送语音消息", msg_seq)
+            return
+
+        Constants.log.info("[obot-act] 发起语音回复")
+
+        try:
+            if not audio_path and not audio_url:
+                raise ValueError("Missing audio path or url")
+
+            # 处理媒体文件上传
+            media = await self._upload_media(audio_path, audio_url, media_type="Audio")
+
+            params = await self._pack_message_params("", msg_seq, media)
+            if not params:
+                return
+
+            await self._handle_send_request(params)
+
+        except Exception as e:
+            Constants.log.warning("[obot-act] 发起语音回复失败.")
+            Constants.log.exception(f"[obot-act] {e}")
+
+    async def _upload_media(self, path: str, url: str,
+                            media_type: Literal["Image", "Audio"]) -> dict:
         """带重试机制的媒体上传"""
+        type_id = {
+            "Image": 1,
+            "Audio": 3
+        }
         for _ in range(3):  # 最多重试3次
             try:
-                if img_path:
-                    with open(img_path, "rb") as f:
+                if path:
+                    with open(path, "rb") as f:
                         file_data = base64.b64encode(f.read()).decode()
-                    received_media = await self._call_upload_api(file_data=file_data)
+                    received_media = await self._call_upload_api(file_type=type_id[media_type],
+                                                                 file_data=file_data)
                 else:
-                    received_media = await self._call_upload_api(url=img_url)
+                    received_media = await self._call_upload_api(file_type=type_id[media_type],
+                                                                 url=url)
                 if received_media['status'] == 'ok':
                     return received_media
             except Exception as e:
@@ -143,14 +188,13 @@ class RobotMessage:
     async def _call_upload_api(self, **kwargs) -> dict:
         """调用对应的文件上传API"""
         if self.message_type in [MessageType.GUILD, MessageType.DIRECT]:
-            raise TypeError("No need to upload images for guild and direct messages.")
+            raise PermissionError("Not allowed to upload files for guild and direct messages.")
 
         method_map: dict = {
             MessageType.GROUP: self.api.post_group_file,
             MessageType.C2C: self.api.post_c2c_file
         }
         common_args: dict = {
-            "file_type": 1,
             **kwargs
         }
 
@@ -177,7 +221,7 @@ class RobotMessage:
         # 媒体消息
         if media:
             if media['status'] != 'ok':
-                await self._send_fallback_message("发送图片失败，请稍后重试", msg_seq)
+                await self._send_fallback_message("发送媒体文件失败，请稍后重试", msg_seq)
                 return None
             return {**base_params, "msg_type": 7, "media": media['data']}
 
