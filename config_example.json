@@ -31,11 +31,14 @@
     },
     "peeper": {
       "exclude_id": ["<Chat-Scene-ID-To-Turn-Off-PBG-Feature>"],
-      "configs": {
-        "<Chat-Scene-ID-1>": {
-          "_comment_1": "1. 可参考Peeper-Board-Generator中的config_example.json进行配置",
-          "_comment_2": "2. 相较前者，额外添加use_as_default字段用于指定默认配置，注意默认配置有且只能有一个",
-          "use_as_default": true,
+      "configs": [
+        {
+          "_comment_1": "1. 可参考Peeper-Board-Generator中的config_example.json进行配置。",
+          "_comment_2": "2. 相较于PBG配置，额外添加obot_conf_id和obot_apply_to字段。前者用于唯一标识本配置文件，影响数据存储；",
+          "_comment_3": "3. 后者用于指定哪些对话场景使用此配置文件，一个对话场景有且只能有一个配置文件。",
+          "_comment_4": "4. 无对应配置文件时，默认选取此处定义的第一个。",
+          "obot_conf_id": "<Config-Identifier-With-No-Space>",
+          "obot_apply_to": ["<Chat-Scene-ID-1>", "<Chat-Scene-ID-2>"],
           "handler": "Hydro",
           "credentials": {
             "uname": "<Your-Hydro-Admin-UserName>",
@@ -49,7 +52,7 @@
           "id": "<Identifier-With-No-Space>",
           "board_name": "<Your-Board-Name>"
         }
-      }
+      ]
     }
   }
 }

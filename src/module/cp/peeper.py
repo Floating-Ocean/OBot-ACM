@@ -3,6 +3,7 @@ import json
 import os
 
 from thefuzz import process
+from dataclasses import dataclass
 
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
@@ -12,6 +13,13 @@ from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_in
 from src.data.data_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
+
+
+@dataclass
+class PeeperConfigs:
+    default_conf: dict
+    conf_dict: dict[str, dict]  # conf_id -> conf
+    uuid_dict: dict[str, dict]  # uuid -> conf
 
 
 def _classify_verdicts(content: str) -> str:
@@ -36,33 +44,47 @@ def _classify_verdicts(content: str) -> str:
     return full_to_alias[matches[0]].upper()
 
 
-def _wrap_conf_id(uuid: str, conf: dict) -> dict:
-    """为不同的群设置不同的id，避免冲突"""
+def _wrap_conf_id(conf_id: str, conf: dict) -> dict:
+    """为不同的配置文件设置不同的id，避免冲突"""
     new_conf = copy.deepcopy(conf)
-    conf_id = f'{uuid}_{conf["id"]}'
-    new_conf["id"] = conf_id
+    new_conf_id = f'{conf_id}_{conf["id"]}'
+    new_conf["id"] = new_conf_id
     return new_conf
+
+
+def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
+    if len(execute_conf) == 0:
+        raise RuntimeError("No config found.")
+
+    default_conf = _wrap_conf_id(execute_conf[0]["obot_conf_id"], execute_conf[0])  # 选取第一个作为默认
+    conf_dict, uuid_dict = {}, {}
+
+    for conf in execute_conf:
+        conf_id = conf["obot_conf_id"]
+        if conf_id in conf_dict:
+            raise RuntimeError(f"Duplicate config ids detected for {conf_id}.")
+        conf_dict[conf_id] = _wrap_conf_id(conf_id, conf)
+
+        for uuid in conf["obot_apply_to"]:
+            if uuid in uuid_dict:
+                raise RuntimeError("Duplicate configs detected in "
+                                   f"{uuid_dict[uuid]['obot_conf_id']} and {conf_id} for {uuid}.")
+            uuid_dict[uuid] = _wrap_conf_id(conf_id, conf)
+
+    return PeeperConfigs(default_conf, conf_dict, uuid_dict)
 
 
 def _get_specified_conf(specified_uuid: str) -> dict:
     execute_conf = Constants.modules_conf.peeper["configs"]
+    peeper_conf = _generate_peeper_conf(execute_conf)
 
-    default_conf = None
-    for uuid, conf in execute_conf.items():
-        if conf["use_as_default"]:
-            if default_conf is not None:
-                raise RuntimeError("Duplicate default configs detected in "
-                                   f"{default_conf['id']} and {conf['id']}.")
-            default_conf = _wrap_conf_id(uuid, conf)
-    if default_conf is None:
-        raise RuntimeError("No default config found.")
+    if specified_uuid not in peeper_conf.uuid_dict:
+        Constants.log.warning(f"[peeper] 未匹配到榜单，默认选取 {peeper_conf.default_conf['obot_conf_id']}")
+        return peeper_conf.default_conf
 
-    if len(specified_uuid) > 0:
-        if specified_uuid in execute_conf:
-            return _wrap_conf_id(specified_uuid, execute_conf[specified_uuid])
-        Constants.log.warning("[peeper] 未配置榜单来源，默认选取 FJNUACM Online Judge")
-
-    return default_conf
+    chosen_conf = peeper_conf.uuid_dict[specified_uuid]
+    Constants.log.warning(f"[peeper] 匹配榜单 {chosen_conf['obot_conf_id']}")
+    return chosen_conf
 
 
 def _cache_conf_payload(conf: dict) -> str:
@@ -73,6 +95,25 @@ def _cache_conf_payload(conf: dict) -> str:
     return f"{cached_prefix}.json"
 
 
+def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> str:
+    """
+    执行 Peeper-Board-Generator 内的指令，指定配置文件
+    """
+    traceback = ""
+    for _t in range(2):  # 尝试2次
+        id_prop = "" if no_id else f'--id {conf["id"]} '
+        # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
+        result = run_shell(f'cd {_lib_path} & python main.py {id_prop}{prop} '
+                           f'--config {_cache_conf_payload(conf)}')
+
+        with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
+            traceback = f.read()
+            if traceback == "ok":
+                return result
+
+    raise ModuleRuntimeError(traceback.split('\n')[-2])
+
+
 def _call_lib_method(message: RobotMessage | str, prop: str,
                      no_id: bool = False) -> str | None:
     """
@@ -81,32 +122,32 @@ def _call_lib_method(message: RobotMessage | str, prop: str,
     uuid = message.uuid if isinstance(message, RobotMessage) else message
     execute_conf = _get_specified_conf(uuid)
 
-    traceback = ""
-    for _t in range(2):  # 尝试2次
-        id_prop = "" if no_id else f'--id {execute_conf["id"]} '
-        # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
-        result = run_shell(f'cd {_lib_path} & python main.py {id_prop}{prop} '
-                           f'--config {_cache_conf_payload(execute_conf)}')
+    try:
+        result = _call_lib_method_with_conf(execute_conf, prop, no_id)
+    except ModuleRuntimeError as e:
+        result = None
+        if isinstance(message, RobotMessage):
+            message.report_exception('Peeper-Board-Generator', e)
+        else:
+            Constants.log.warning("[peeper] 已忽略一个异常")
+            Constants.log.exception(f"[peeper] {e}")
 
-        with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
-            traceback = f.read()
-            if traceback == "ok":
-                return result
-
-    if isinstance(message, RobotMessage):
-        message.report_exception('Peeper-Board-Generator',
-                                 ModuleRuntimeError(traceback.split('\n')[-2]))
-
-    return None
+    return result
 
 
 def daily_update_job():
-    all_uuid = Constants.modules_conf.peeper["configs"].keys()
-    Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(all_uuid)} 个榜单')
+    execute_conf = Constants.modules_conf.peeper["configs"]
+    peeper_conf = _generate_peeper_conf(execute_conf)
+    Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(peeper_conf.conf_dict)} 个榜单')
 
-    for uuid in all_uuid:
+    for conf_id, conf in peeper_conf.conf_dict.items():
+        Constants.log.info(f'[peeper] 正在更新 {conf_id}')
         cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-        _call_lib_method(uuid, f"--full --output {cached_prefix}.png")
+        try:
+            _call_lib_method_with_conf(conf, f"--full --output {cached_prefix}.png")
+        except ModuleRuntimeError as e:
+            Constants.log.warning(f"[peeper] 更新每日榜单失败，配置文件为 {conf_id}")
+            Constants.log.exception(f"[peeper] {e}")
 
     Constants.log.info("[peeper] 每日榜单更新任务完成")
 
