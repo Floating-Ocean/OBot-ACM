@@ -74,15 +74,31 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
     return PeeperConfigs(default_conf, conf_dict, uuid_dict)
 
 
-def _get_specified_conf(specified_uuid: str) -> dict:
+def _get_specified_conf(message: RobotMessage | None, conf_id: str = None) -> dict | None:
     execute_conf = Constants.modules_conf.peeper["configs"]
     peeper_conf = _generate_peeper_conf(execute_conf)
 
-    if specified_uuid not in peeper_conf.uuid_dict:
+    # 不管 conf_id
+    if not message:
+        return peeper_conf.default_conf
+
+    # 优先处理指定 conf_id 的请求
+    if conf_id:
+        matched = conf_id in peeper_conf.conf_dict
+        if matched:
+            matched = (not peeper_conf.conf_dict[conf_id]["obot_is_private"] or  # 排除私有
+                       message.uuid in peeper_conf.conf_dict[conf_id]["obot_apply_to"])  # 但不排除自己
+        if not matched:
+            message.reply("未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有")
+            return None
+        return peeper_conf.conf_dict[conf_id]
+
+    # 匹配消息 uuid
+    if message.uuid not in peeper_conf.uuid_dict:
         Constants.log.warning(f"[peeper] 未匹配到榜单，默认选取 {peeper_conf.default_conf['obot_conf_id']}")
         return peeper_conf.default_conf
 
-    chosen_conf = peeper_conf.uuid_dict[specified_uuid]
+    chosen_conf = peeper_conf.uuid_dict[message.uuid]
     Constants.log.warning(f"[peeper] 匹配榜单 {chosen_conf['obot_conf_id']}")
     return chosen_conf
 
@@ -100,7 +116,7 @@ def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> st
     执行 Peeper-Board-Generator 内的指令，指定配置文件
     """
     traceback = ""
-    for _t in range(2):  # 尝试2次
+    for _ in range(2):  # 尝试2次
         id_prop = "" if no_id else f'--id {conf["id"]} '
         # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
         result = run_shell(f'cd {_lib_path} & python main.py {id_prop}{prop} '
@@ -114,19 +130,20 @@ def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> st
     raise ModuleRuntimeError(traceback.split('\n')[-2])
 
 
-def _call_lib_method(message: RobotMessage | str, prop: str,
-                     no_id: bool = False) -> str | None:
+def _call_lib_method(message: RobotMessage | None, prop: str,
+                     no_id: bool = False, conf_id: str = None) -> str | None:
     """
-    执行 Peeper-Board-Generator 内的指令，message 可指定消息本体或消息 uuid，后者不会进行异常反馈
+    执行 Peeper-Board-Generator 内的指令，可选择是否脱离聊天环境执行，指定配置文件 id
     """
-    uuid = message.uuid if isinstance(message, RobotMessage) else message
-    execute_conf = _get_specified_conf(uuid)
+    execute_conf = _get_specified_conf(message, conf_id)
+    if not execute_conf:
+        return None
 
     try:
         result = _call_lib_method_with_conf(execute_conf, prop, no_id)
     except ModuleRuntimeError as e:
         result = None
-        if isinstance(message, RobotMessage):
+        if message:
             message.report_exception('Peeper-Board-Generator', e)
         else:
             Constants.log.warning("[peeper] 已忽略一个异常")
@@ -170,8 +187,7 @@ def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
 @command(tokens=['评测榜单', 'verdict'])
 def send_now_board_with_verdict(message: RobotMessage):
     content = message.tokens[1] if len(message.tokens) == 2 else ""
-    single_col = (message.tokens[2] == "single") if len(
-        message.tokens) == 3 else False
+    conf_id = message.tokens[2] if len(message.tokens) >= 3 else None
     verdict = _classify_verdicts(content)
     if verdict == "":
         message.reply("请在 /评测榜单 后面添加正确的参数，如 ac, Accepted, TimeExceeded, WrongAnswer")
@@ -179,10 +195,10 @@ def send_now_board_with_verdict(message: RobotMessage):
 
     message.reply(f"正在查询今日 {verdict} 榜单，请稍等")
 
-    single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
+                           f"--now --separate_cols --verdict {verdict} "
+                           f"--output {cached_prefix}.png", conf_id=conf_id)
     if run is None:
         return
 
@@ -191,13 +207,12 @@ def send_now_board_with_verdict(message: RobotMessage):
 
 @command(tokens=['今日题数', 'today'])
 def send_today_board(message: RobotMessage):
-    single_col = (message.tokens[1] == "single") \
-        if len(message.tokens) == 2 else False
+    conf_id = message.tokens[1] if len(message.tokens) >= 2 else None
     message.reply("正在查询今日题数，请稍等")
 
-    single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--now {single_arg} --output {cached_prefix}.png")
+    run = _call_lib_method(message,
+                           f"--now --separate_cols --output {cached_prefix}.png", conf_id=conf_id)
     if run is None:
         return
 
@@ -206,13 +221,12 @@ def send_today_board(message: RobotMessage):
 
 @command(tokens=['昨日总榜', 'yesterday', 'full'])
 def send_yesterday_board(message: RobotMessage):
-    single_col = (message.tokens[1] == "single") \
-        if len(message.tokens) == 2 else False
+    conf_id = message.tokens[1] if len(message.tokens) >= 2 else None
     message.reply("正在查询昨日总榜，请稍等")
 
-    single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--full {single_arg} --output {cached_prefix}.png")
+    run = _call_lib_method(message,
+                           f"--full --separate_cols --output {cached_prefix}.png", conf_id=conf_id)
     if run is None:
         return
 
@@ -221,7 +235,7 @@ def send_yesterday_board(message: RobotMessage):
 
 def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method("",  # 留空 uuid，选择默认
+    run = _call_lib_method(None,  # 留空选择默认
                            f"--version --output {cached_prefix}.txt", no_id=True)
     if run is None:
         return "Unknown"
