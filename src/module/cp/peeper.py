@@ -89,7 +89,11 @@ def _get_specified_conf(message: RobotMessage | None, conf_id: str = None) -> di
             matched = (not peeper_conf.conf_dict[conf_id]["obot_is_private"] or  # 排除私有
                        message.uuid in peeper_conf.conf_dict[conf_id]["obot_apply_to"])  # 但不排除自己
         if not matched:
-            message.reply("未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有")
+            all_ids = '\n'.join([_id for _id, conf in peeper_conf.conf_dict.items()
+                                 if (not conf["obot_is_private"] or
+                                     message.uuid in conf["obot_apply_to"])])
+            message.reply("未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有，"
+                          f"目前可用榜单：\n{all_ids}", modal_words=False)
             return None
         return peeper_conf.conf_dict[conf_id]
 
