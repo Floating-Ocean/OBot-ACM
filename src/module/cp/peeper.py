@@ -1,6 +1,7 @@
 ﻿import copy
 import json
 import os
+import re
 
 from thefuzz import process
 from dataclasses import dataclass
@@ -47,29 +48,56 @@ def _classify_verdicts(content: str) -> str:
 def _wrap_conf_id(conf_id: str, conf: dict) -> dict:
     """为不同的配置文件设置不同的id，避免冲突"""
     new_conf = copy.deepcopy(conf)
+    # 仅允许 [A-Za-z0-9_-]，防止 shell 注入与路径歧义
+    if not re.fullmatch(r'[A-Za-z0-9_-]+', conf_id or ''):
+        raise RuntimeError(f"Invalid obot_conf_id: {conf_id!r}")
+    if not re.fullmatch(r'[A-Za-z0-9_-]+', str(conf.get("id", ""))):
+        raise RuntimeError(f"Invalid id in config {conf_id!r}: {conf.get('id')!r}")
     new_conf_id = f'{conf_id}_{conf["id"]}'
     new_conf["id"] = new_conf_id
     return new_conf
 
 
 def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
+    required = {"obot_conf_id": str, "obot_apply_to": list, "obot_is_private": bool}
+    def _validate(i: int, check_conf: dict):
+        for k, tp in required.items():
+            if k not in check_conf:
+                raise RuntimeError(f"Missing `{k}` in peeper.configs[{i}]")
+            if not isinstance(check_conf[k], tp):
+                raise RuntimeError(
+                    f"Invalid type for `{k}` in peeper.configs[{i}]: "
+                    f"expect {tp}, got {type(check_conf[k])}"
+                )
+        if not check_conf["obot_conf_id"]:
+            raise RuntimeError(f"`obot_conf_id` cannot be empty in peeper.configs[{i}]")
+        if any(not isinstance(u, str) or not u for u in check_conf["obot_apply_to"]):
+            raise RuntimeError(
+                f"`obot_apply_to` must be non-empty strings in peeper.configs[{i}]"
+            )
+
     if len(execute_conf) == 0:
         raise RuntimeError("No config found.")
-
+    _validate(0, execute_conf[0])
     default_conf = _wrap_conf_id(execute_conf[0]["obot_conf_id"], execute_conf[0])  # 选取第一个作为默认
-    conf_dict, uuid_dict = {}, {}
 
-    for conf in execute_conf:
+    conf_dict, uuid_dict = {}, {}
+    for idx, conf in enumerate(execute_conf):
+        _validate(idx, conf)
         conf_id = conf["obot_conf_id"]
         if conf_id in conf_dict:
             raise RuntimeError(f"Duplicate config ids detected for {conf_id}.")
-        conf_dict[conf_id] = _wrap_conf_id(conf_id, conf)
 
+        wrapped = _wrap_conf_id(conf_id, conf)
+        conf_dict[conf_id] = wrapped
         for uuid in conf["obot_apply_to"]:
             if uuid in uuid_dict:
-                raise RuntimeError("Duplicate configs detected in "
-                                   f"{uuid_dict[uuid]['obot_conf_id']} and {conf_id} for {uuid}.")
-            uuid_dict[uuid] = _wrap_conf_id(conf_id, conf)
+                raise RuntimeError(
+                    "Duplicate configs detected in "
+                    f"{uuid_dict[uuid]['obot_conf_id']} and {conf_id} "
+                    f"for {uuid}."
+                )
+            uuid_dict[uuid] = wrapped
 
     return PeeperConfigs(default_conf, conf_dict, uuid_dict)
 
@@ -123,15 +151,19 @@ def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> st
     for _ in range(2):  # 尝试2次
         id_prop = "" if no_id else f'--id {conf["id"]} '
         # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
-        result = run_shell(f'cd {_lib_path} & python main.py {id_prop}{prop} '
-                           f'--config {_cache_conf_payload(conf)}')
+        result = run_shell(f'cd "{_lib_path}" && '
+                           f'python main.py {id_prop}{prop} '
+                           f'--config "{_cache_conf_payload(conf)}"')
+        try:
+            with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
+                traceback = f.read()
+                if traceback.strip() == "ok":
+                    return result
+        except FileNotFoundError:
+            raise ModuleRuntimeError("last_traceback.log not found.")
 
-        with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
-            traceback = f.read()
-            if traceback == "ok":
-                return result
-
-    raise ModuleRuntimeError(traceback.split('\n')[-2])
+    lines = [ln for ln in traceback.splitlines() if ln.strip()]
+    raise ModuleRuntimeError(lines[-1] if lines else "Unknown error, empty last traceback.")
 
 
 def _call_lib_method(message: RobotMessage | None, prop: str,
