@@ -34,7 +34,7 @@ def _classify_verdicts(content: str) -> str:
         "re": ["runtime error", "re"],
         "ce": ["compile error", "ce"],
         "se": ["system error", "se"],
-        "fe": ["format error", "se"],
+        "fe": ["format error", "fe"],
     }
     full_to_alias = {val: key for key, alters in alias_to_full.items() for val in alters}
     # 模糊匹配
@@ -78,10 +78,9 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
 
     if len(execute_conf) == 0:
         raise RuntimeError("No config found.")
-    _validate(0, execute_conf[0])
-    default_conf = _wrap_conf_id(execute_conf[0]["obot_conf_id"], execute_conf[0])  # 选取第一个作为默认
 
     conf_dict, uuid_dict = {}, {}
+    default_conf = None
     for idx, conf in enumerate(execute_conf):
         _validate(idx, conf)
         conf_id = conf["obot_conf_id"]
@@ -98,6 +97,8 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
                     f"for {uuid}."
                 )
             uuid_dict[uuid] = wrapped
+        if idx == 0:  # 选取第一个作为默认
+            default_conf = conf
 
     return PeeperConfigs(default_conf, conf_dict, uuid_dict)
 
@@ -148,19 +149,20 @@ def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> st
     执行 Peeper-Board-Generator 内的指令，指定配置文件
     """
     traceback = ""
+    payload = _cache_conf_payload(conf)
     for _ in range(2):  # 尝试2次
         id_prop = "" if no_id else f'--id {conf["id"]} '
         # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
-        result = run_shell(f'cd "{_lib_path}" && '
-                           f'python main.py {id_prop}{prop} '
-                           f'--config "{_cache_conf_payload(conf)}"')
+        result = run_shell(
+            f'cd "{_lib_path}" && python main.py {id_prop}{prop} --config "{payload}"'
+        )
         try:
             with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
                 traceback = f.read()
                 if traceback.strip() == "ok":
                     return result
-        except FileNotFoundError:
-            raise ModuleRuntimeError("last_traceback.log not found.")
+        except FileNotFoundError as e:
+            raise ModuleRuntimeError("last_traceback.log not found.") from e
 
     lines = [ln for ln in traceback.splitlines() if ln.strip()]
     raise ModuleRuntimeError(lines[-1] if lines else "Unknown error, empty last traceback.")
@@ -222,7 +224,7 @@ def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
 
 @command(tokens=['评测榜单', 'verdict'])
 def send_now_board_with_verdict(message: RobotMessage):
-    content = message.tokens[1] if len(message.tokens) == 2 else ""
+    content = message.tokens[1] if len(message.tokens) >= 2 else ""
     conf_id = message.tokens[2] if len(message.tokens) >= 3 else None
     verdict = _classify_verdicts(content)
     if verdict == "":
