@@ -2,15 +2,15 @@
 import json
 import os
 import re
+from dataclasses import dataclass
 
 from thefuzz import process
-from dataclasses import dataclass
 
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
-from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
+from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int, clean_unsafe_shell_str
 from src.data.data_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
@@ -61,6 +61,7 @@ def _wrap_conf_id(conf_id: str, conf: dict) -> dict:
 
 def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
     required = {"obot_conf_id": str, "obot_apply_to": list, "obot_is_private": bool}
+
     def _validate(i: int, check_conf: dict):
         for k, tp in required.items():
             if k not in check_conf:
@@ -123,7 +124,8 @@ def _get_specified_conf(message: RobotMessage | None, conf_id: str = None) -> di
                                  if (not conf["obot_is_private"] or
                                      message.uuid in conf["obot_apply_to"])])
             ids_text = f"可用榜单：\n{all_ids}" if all_ids else "无可用榜单"
-            message.reply(f"未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有，目前{ids_text}", modal_words=False)
+            message.reply(f"未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有，目前{ids_text}",
+                          modal_words=False)
             return None
         return peeper_conf.conf_dict[conf_id]
 
@@ -297,11 +299,13 @@ def send_oj_user(message: RobotMessage):
     if content[1] == "id" and (len(content[2]) > 9 or not check_is_int(content[2])):
         return message.reply("参数错误，id必须为整数")
     if content[1] == "id" or content[1] == "name":
-        _send_user_info(message, content[2], by_name=(content[1] == "name"))
-        return None
-    else:
-        message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
-        return None
+        target = clean_unsafe_shell_str(content[2])  # 修复注入攻击
+        if target:
+            _send_user_info(message, target, by_name=(content[1] == "name"))
+            return None
+
+    message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
+    return None
 
 
 @module(
