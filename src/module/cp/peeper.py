@@ -14,6 +14,7 @@ from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_in
 from src.data.data_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
+_allowed_id_re = re.compile(r'^[A-Za-z0-9_-]+$')
 
 
 @dataclass
@@ -30,7 +31,7 @@ def _classify_verdicts(content: str) -> str:
         "tle": ["time exceeded", "time limit exceeded", "tle", "te"],
         "mle": ["memory exceeded", "memory limit exceeded", "mle", "me"],
         "ole": ["output exceeded", "output limit exceeded", "ole", "oe"],
-        "hc": ["hacked", "hc"],
+        "hkd": ["hacked", "challenged", "hk", "hkd", "hc"],
         "re": ["runtime error", "re"],
         "ce": ["compile error", "ce"],
         "se": ["system error", "se"],
@@ -49,9 +50,9 @@ def _wrap_conf_id(conf_id: str, conf: dict) -> dict:
     """为不同的配置文件设置不同的id，避免冲突"""
     new_conf = copy.deepcopy(conf)
     # 仅允许 [A-Za-z0-9_-]，防止 shell 注入与路径歧义
-    if not re.fullmatch(r'[A-Za-z0-9_-]+', conf_id or ''):
+    if not _allowed_id_re.fullmatch(conf_id or ''):
         raise RuntimeError(f"Invalid obot_conf_id: {conf_id!r}")
-    if not re.fullmatch(r'[A-Za-z0-9_-]+', str(conf.get("id", ""))):
+    if not _allowed_id_re.fullmatch(str(conf.get("id", ""))):
         raise RuntimeError(f"Invalid id in config {conf_id!r}: {conf.get('id')!r}")
     new_conf_id = f'{conf_id}_{conf["id"]}'
     new_conf["id"] = new_conf_id
@@ -121,8 +122,8 @@ def _get_specified_conf(message: RobotMessage | None, conf_id: str = None) -> di
             all_ids = '\n'.join([_id for _id, conf in peeper_conf.conf_dict.items()
                                  if (not conf["obot_is_private"] or
                                      message.uuid in conf["obot_apply_to"])])
-            message.reply("未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有，"
-                          f"目前可用榜单：\n{all_ids}", modal_words=False)
+            ids_text = f"可用榜单：\n{all_ids}" if all_ids else "无可用榜单"
+            message.reply(f"未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有，目前{ids_text}", modal_words=False)
             return None
         return peeper_conf.conf_dict[conf_id]
 
@@ -278,9 +279,12 @@ def get_version_info() -> str:
     if run is None:
         return "Unknown"
 
-    with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
+    with (open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f):
         result = f.read()
-        return result.split(' ', 1)[1]
+        version = result.split(' ', 1)
+        if len(version) != 2:
+            raise ModuleRuntimeError(f"Invalid version: {result}")
+        return version[1]
 
 
 @command(tokens=['user'])
