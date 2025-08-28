@@ -40,6 +40,16 @@ def run_shell(shell: str) -> str:
     return info
 
 
+def clean_unsafe_shell_str(origin_str: str) -> str:
+    """清除所有终端中的特殊字符"""
+    # 去除危险元字符 &, <, >, ^, ;, $, *, ?, \, ", ', `, (), {}, [], #, ~, |
+    pattern = r'[&<>^;$*?\\\"\'`()\{\}\[\]#~|]'
+    sanitized = re.sub(pattern, '', origin_str)
+    # 防止把值当作选项解析 --xx, -X
+    sanitized = re.sub(r'^-+', '', sanitized)
+    return sanitized
+
+
 def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw: bool = True,
               method: str = 'post') -> Response | int:
     proxies = {}  # 配置代理

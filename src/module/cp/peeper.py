@@ -1,6 +1,8 @@
 ﻿import copy
 import json
 import os
+import re
+from dataclasses import dataclass
 
 from thefuzz import process
 
@@ -8,10 +10,18 @@ from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
-from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int
+from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int, clean_unsafe_shell_str
 from src.data.data_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
+_allowed_id_re = re.compile(r'^[A-Za-z0-9_-]+$')
+
+
+@dataclass
+class PeeperConfigs:
+    default_conf: dict
+    conf_dict: dict[str, dict]  # conf_id -> conf
+    uuid_dict: dict[str, dict]  # uuid -> conf
 
 
 def _classify_verdicts(content: str) -> str:
@@ -21,11 +31,11 @@ def _classify_verdicts(content: str) -> str:
         "tle": ["time exceeded", "time limit exceeded", "tle", "te"],
         "mle": ["memory exceeded", "memory limit exceeded", "mle", "me"],
         "ole": ["output exceeded", "output limit exceeded", "ole", "oe"],
-        "hc": ["hacked", "hc"],
+        "hkd": ["hacked", "challenged", "hk", "hkd", "hc"],
         "re": ["runtime error", "re"],
         "ce": ["compile error", "ce"],
         "se": ["system error", "se"],
-        "fe": ["format error", "se"],
+        "fe": ["format error", "fe"],
     }
     full_to_alias = {val: key for key, alters in alias_to_full.items() for val in alters}
     # 模糊匹配
@@ -36,33 +46,97 @@ def _classify_verdicts(content: str) -> str:
     return full_to_alias[matches[0]].upper()
 
 
-def _wrap_conf_id(uuid: str, conf: dict) -> dict:
-    """为不同的群设置不同的id，避免冲突"""
+def _wrap_conf_id(conf_id: str, conf: dict) -> dict:
+    """为不同的配置文件设置不同的id，避免冲突"""
     new_conf = copy.deepcopy(conf)
-    conf_id = f'{uuid}_{conf["id"]}'
-    new_conf["id"] = conf_id
+    # 仅允许 [A-Za-z0-9_-]，防止 shell 注入与路径歧义
+    if not _allowed_id_re.fullmatch(conf_id or ''):
+        raise RuntimeError(f"Invalid obot_conf_id: {conf_id!r}")
+    if not _allowed_id_re.fullmatch(str(conf.get("id", ""))):
+        raise RuntimeError(f"Invalid id in config {conf_id!r}: {conf.get('id')!r}")
+    new_conf_id = f'{conf_id}_{conf["id"]}'
+    new_conf["id"] = new_conf_id
     return new_conf
 
 
-def _get_specified_conf(specified_uuid: str) -> dict:
-    execute_conf = Constants.modules_conf.peeper["configs"]
+def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
+    required = {"obot_conf_id": str, "obot_apply_to": list, "obot_is_private": bool}
 
+    def _validate(i: int, check_conf: dict):
+        for k, tp in required.items():
+            if k not in check_conf:
+                raise RuntimeError(f"Missing `{k}` in peeper.configs[{i}]")
+            if not isinstance(check_conf[k], tp):
+                raise RuntimeError(
+                    f"Invalid type for `{k}` in peeper.configs[{i}]: "
+                    f"expect {tp}, got {type(check_conf[k])}"
+                )
+        if not check_conf["obot_conf_id"]:
+            raise RuntimeError(f"`obot_conf_id` cannot be empty in peeper.configs[{i}]")
+        if any(not isinstance(u, str) or not u for u in check_conf["obot_apply_to"]):
+            raise RuntimeError(
+                f"`obot_apply_to` must be non-empty strings in peeper.configs[{i}]"
+            )
+
+    if len(execute_conf) == 0:
+        raise RuntimeError("No config found.")
+
+    conf_dict, uuid_dict = {}, {}
     default_conf = None
-    for uuid, conf in execute_conf.items():
-        if conf["use_as_default"]:
-            if default_conf is not None:
-                raise RuntimeError("Duplicate default configs detected in "
-                                   f"{default_conf['id']} and {conf['id']}.")
-            default_conf = _wrap_conf_id(uuid, conf)
-    if default_conf is None:
-        raise RuntimeError("No default config found.")
+    for idx, conf in enumerate(execute_conf):
+        _validate(idx, conf)
+        conf_id = conf["obot_conf_id"]
+        if conf_id in conf_dict:
+            raise RuntimeError(f"Duplicate config ids detected for {conf_id}.")
 
-    if len(specified_uuid) > 0:
-        if specified_uuid in execute_conf:
-            return _wrap_conf_id(specified_uuid, execute_conf[specified_uuid])
-        Constants.log.warning("[peeper] 未配置榜单来源，默认选取 FJNUACM Online Judge")
+        wrapped = _wrap_conf_id(conf_id, conf)
+        conf_dict[conf_id] = wrapped
+        for uuid in conf["obot_apply_to"]:
+            if uuid in uuid_dict:
+                raise RuntimeError(
+                    "Duplicate configs detected in "
+                    f"{uuid_dict[uuid]['obot_conf_id']} and {conf_id} "
+                    f"for {uuid}."
+                )
+            uuid_dict[uuid] = wrapped
+        if idx == 0:  # 选取第一个作为默认
+            default_conf = conf
 
-    return default_conf
+    return PeeperConfigs(default_conf, conf_dict, uuid_dict)
+
+
+def _get_specified_conf(message: RobotMessage | None, conf_id: str = None) -> dict | None:
+    execute_conf = Constants.modules_conf.peeper["configs"]
+    peeper_conf = _generate_peeper_conf(execute_conf)
+
+    # 不管 conf_id
+    if not message:
+        return peeper_conf.default_conf
+
+    # 优先处理指定 conf_id 的请求
+    if conf_id:
+        matched = conf_id in peeper_conf.conf_dict
+        if matched:
+            matched = (not peeper_conf.conf_dict[conf_id]["obot_is_private"] or  # 排除私有
+                       message.uuid in peeper_conf.conf_dict[conf_id]["obot_apply_to"])  # 但不排除自己
+        if not matched:
+            all_ids = '\n'.join([_id for _id, conf in peeper_conf.conf_dict.items()
+                                 if (not conf["obot_is_private"] or
+                                     message.uuid in conf["obot_apply_to"])])
+            ids_text = f"可用榜单：\n{all_ids}" if all_ids else "无可用榜单"
+            message.reply(f"未匹配到榜单，此操作只支持精确匹配，请确认输入正确性以及榜单是否私有，目前{ids_text}",
+                          modal_words=False)
+            return None
+        return peeper_conf.conf_dict[conf_id]
+
+    # 匹配消息 uuid
+    if message.uuid not in peeper_conf.uuid_dict:
+        Constants.log.warning(f"[peeper] 未匹配到榜单，默认选取 {peeper_conf.default_conf['obot_conf_id']}")
+        return peeper_conf.default_conf
+
+    chosen_conf = peeper_conf.uuid_dict[message.uuid]
+    Constants.log.warning(f"[peeper] 匹配榜单 {chosen_conf['obot_conf_id']}")
+    return chosen_conf
 
 
 def _cache_conf_payload(conf: dict) -> str:
@@ -73,40 +147,65 @@ def _cache_conf_payload(conf: dict) -> str:
     return f"{cached_prefix}.json"
 
 
-def _call_lib_method(message: RobotMessage | str, prop: str,
-                     no_id: bool = False) -> str | None:
+def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> str:
     """
-    执行 Peeper-Board-Generator 内的指令，message 可指定消息本体或消息 uuid，后者不会进行异常反馈
+    执行 Peeper-Board-Generator 内的指令，指定配置文件
     """
-    uuid = message.uuid if isinstance(message, RobotMessage) else message
-    execute_conf = _get_specified_conf(uuid)
-
     traceback = ""
-    for _t in range(2):  # 尝试2次
-        id_prop = "" if no_id else f'--id {execute_conf["id"]} '
+    payload = _cache_conf_payload(conf)
+    for _ in range(2):  # 尝试2次
+        id_prop = "" if no_id else f'--id {conf["id"]} '
         # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
-        result = run_shell(f'cd {_lib_path} & python main.py {id_prop}{prop} '
-                           f'--config {_cache_conf_payload(execute_conf)}')
+        result = run_shell(
+            f'cd "{_lib_path}" && python main.py {id_prop}{prop} --config "{payload}"'
+        )
+        try:
+            with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
+                traceback = f.read()
+                if traceback.strip() == "ok":
+                    return result
+        except FileNotFoundError as e:
+            raise ModuleRuntimeError("last_traceback.log not found.") from e
 
-        with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
-            traceback = f.read()
-            if traceback == "ok":
-                return result
+    lines = [ln for ln in traceback.splitlines() if ln.strip()]
+    raise ModuleRuntimeError(lines[-1] if lines else "Unknown error, empty last traceback.")
 
-    if isinstance(message, RobotMessage):
-        message.report_exception('Peeper-Board-Generator',
-                                 ModuleRuntimeError(traceback.split('\n')[-2]))
 
-    return None
+def _call_lib_method(message: RobotMessage | None, prop: str,
+                     no_id: bool = False, conf_id: str = None) -> str | None:
+    """
+    执行 Peeper-Board-Generator 内的指令，可选择是否脱离聊天环境执行，指定配置文件 id
+    """
+    execute_conf = _get_specified_conf(message, conf_id)
+    if not execute_conf:
+        return None
+
+    try:
+        result = _call_lib_method_with_conf(execute_conf, prop, no_id)
+    except ModuleRuntimeError as e:
+        result = None
+        if message:
+            message.report_exception('Peeper-Board-Generator', e)
+        else:
+            Constants.log.warning("[peeper] 已忽略一个异常")
+            Constants.log.exception(f"[peeper] {e}")
+
+    return result
 
 
 def daily_update_job():
-    all_uuid = Constants.modules_conf.peeper["configs"].keys()
-    Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(all_uuid)} 个榜单')
+    execute_conf = Constants.modules_conf.peeper["configs"]
+    peeper_conf = _generate_peeper_conf(execute_conf)
+    Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(peeper_conf.conf_dict)} 个榜单')
 
-    for uuid in all_uuid:
+    for conf_id, conf in peeper_conf.conf_dict.items():
+        Constants.log.info(f'[peeper] 正在更新 {conf_id}')
         cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-        _call_lib_method(uuid, f"--full --output {cached_prefix}.png")
+        try:
+            _call_lib_method_with_conf(conf, f"--full --output {cached_prefix}.png")
+        except ModuleRuntimeError as e:
+            Constants.log.warning(f"[peeper] 更新每日榜单失败，配置文件为 {conf_id}")
+            Constants.log.exception(f"[peeper] {e}")
 
     Constants.log.info("[peeper] 每日榜单更新任务完成")
 
@@ -128,9 +227,8 @@ def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
 
 @command(tokens=['评测榜单', 'verdict'])
 def send_now_board_with_verdict(message: RobotMessage):
-    content = message.tokens[1] if len(message.tokens) == 2 else ""
-    single_col = (message.tokens[2] == "single") if len(
-        message.tokens) == 3 else False
+    content = message.tokens[1] if len(message.tokens) >= 2 else ""
+    conf_id = message.tokens[2] if len(message.tokens) >= 3 else None
     verdict = _classify_verdicts(content)
     if verdict == "":
         message.reply("请在 /评测榜单 后面添加正确的参数，如 ac, Accepted, TimeExceeded, WrongAnswer")
@@ -138,10 +236,10 @@ def send_now_board_with_verdict(message: RobotMessage):
 
     message.reply(f"正在查询今日 {verdict} 榜单，请稍等")
 
-    single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f"--now {single_arg} --verdict {verdict} --output {cached_prefix}.png")
+                           f"--now --separate_cols --verdict {verdict} "
+                           f"--output {cached_prefix}.png", conf_id=conf_id)
     if run is None:
         return
 
@@ -150,13 +248,12 @@ def send_now_board_with_verdict(message: RobotMessage):
 
 @command(tokens=['今日题数', 'today'])
 def send_today_board(message: RobotMessage):
-    single_col = (message.tokens[1] == "single") \
-        if len(message.tokens) == 2 else False
+    conf_id = message.tokens[1] if len(message.tokens) >= 2 else None
     message.reply("正在查询今日题数，请稍等")
 
-    single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--now {single_arg} --output {cached_prefix}.png")
+    run = _call_lib_method(message,
+                           f"--now --separate_cols --output {cached_prefix}.png", conf_id=conf_id)
     if run is None:
         return
 
@@ -165,13 +262,12 @@ def send_today_board(message: RobotMessage):
 
 @command(tokens=['昨日总榜', 'yesterday', 'full'])
 def send_yesterday_board(message: RobotMessage):
-    single_col = (message.tokens[1] == "single") \
-        if len(message.tokens) == 2 else False
+    conf_id = message.tokens[1] if len(message.tokens) >= 2 else None
     message.reply("正在查询昨日总榜，请稍等")
 
-    single_arg = "" if single_col else " --separate_cols"
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--full {single_arg} --output {cached_prefix}.png")
+    run = _call_lib_method(message,
+                           f"--full --separate_cols --output {cached_prefix}.png", conf_id=conf_id)
     if run is None:
         return
 
@@ -180,14 +276,17 @@ def send_yesterday_board(message: RobotMessage):
 
 def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method("",  # 留空 uuid，选择默认
+    run = _call_lib_method(None,  # 留空选择默认
                            f"--version --output {cached_prefix}.txt", no_id=True)
     if run is None:
         return "Unknown"
 
-    with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
+    with (open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f):
         result = f.read()
-        return result.split(' ', 1)[1]
+        version = result.split(' ', 1)
+        if len(version) != 2:
+            raise ModuleRuntimeError(f"Invalid version: {result}")
+        return version[1]
 
 
 @command(tokens=['user'])
@@ -200,11 +299,13 @@ def send_oj_user(message: RobotMessage):
     if content[1] == "id" and (len(content[2]) > 9 or not check_is_int(content[2])):
         return message.reply("参数错误，id必须为整数")
     if content[1] == "id" or content[1] == "name":
-        _send_user_info(message, content[2], by_name=(content[1] == "name"))
-        return None
-    else:
-        message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
-        return None
+        target = clean_unsafe_shell_str(content[2])  # 修复注入攻击
+        if target:
+            _send_user_info(message, target, by_name=(content[1] == "name"))
+            return None
+
+    message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
+    return None
 
 
 @module(

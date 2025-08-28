@@ -77,7 +77,7 @@ class Constants:
     log = logging.get_logger()
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
-    core_version = "v5.0.0-beta.1"
+    core_version = "v5.0.0-beta.2"
     git_commit_hash = _get_git_commit_hash()
 
     key_words = [
@@ -104,7 +104,9 @@ class Constants:
         [["学我说话"], ["可惜我不是复读机", "人类的本质...哎我不是人来着", "学我说话"]],
         [["猫"], ["喵"]],
         [["好"], ["好"]],
-        [["掐楼", "ciallo"], ["Ciallo~", "柚子厨蒸鹅心"]]
+        [["掐楼", "ciallo"], ["Ciallo~", "柚子厨蒸鹅心"]],
+        [["ready", "准备"], ["你是准备吗", "我准备好了"]],
+        [["在哪"], ["在亚特兰蒂斯", "在海下面", "在你背后", "在哪"]]
     ]
 
     modal_words = ["喵", "呢", "捏", "qaq"]
