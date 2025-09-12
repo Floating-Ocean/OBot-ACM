@@ -91,7 +91,7 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
 
         wrapped = _wrap_conf_id(conf_id, conf)
         conf_dict[conf_id] = wrapped
-        for uuid in conf["obot_apply_to"]:
+        for uuid in wrapped["obot_apply_to"]:
             if uuid in uuid_dict:
                 raise RuntimeError(
                     "Duplicate configs detected in "
@@ -100,7 +100,7 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
                 )
             uuid_dict[uuid] = wrapped
         if idx == 0:  # 选取第一个作为默认
-            default_conf = conf
+            default_conf = wrapped
 
     return PeeperConfigs(default_conf, conf_dict, uuid_dict)
 
