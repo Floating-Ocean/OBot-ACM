@@ -23,7 +23,8 @@ class Renderer(abc.ABC):
 
     @classmethod
     def load_img_resource(cls, img_name: str, tint_color: pixie.Color | tuple[int, ...] = None,
-                          tint_ratio: int = 1, alpha_ratio: float = -1) -> pixie.Image:
+                          tint_ratio: int = 1, alpha_ratio: float = -1,
+                          size: tuple[int, int] = None) -> pixie.Image:
         img_path = os.path.join(_lib_path, f"{img_name}.png")
         if not os.path.exists(img_path):
             img_path = os.path.join(_lib_path, "Dot.png")
@@ -34,12 +35,16 @@ class Renderer(abc.ABC):
 
         # 缓存机制
         img_loaded = None
+        if size:  # 带上尺寸缓存
+            img_name = f"{img_name}?sz={str(size)}"
         if img_name in _img_load_cache:
             last_load_time, img = _img_load_cache[img_name]
             if datetime.now().timestamp() - last_load_time <= 30 * 60:  # 缓存半小时
                 img_loaded = img
         if not img_loaded:
             img_loaded = load_img(img_path)
+            if size:
+                img_loaded = img_loaded.resize(*size)
             _img_load_cache[img_name] = datetime.now().timestamp(), img_loaded
 
         if tint_color:

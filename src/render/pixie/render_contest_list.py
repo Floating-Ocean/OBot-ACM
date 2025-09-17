@@ -38,9 +38,10 @@ class _ContestItem(RenderableSection):
         self._begin_x = _SIDE_PADDING + calculate_width(self._00_idx_text) + 48
         max_width = _CONTENT_WIDTH + 32 - self._begin_x - 48 - _SIDE_PADDING
 
-        self.img_time = Renderer.load_img_resource("Time", (0, 0, 0))
-        self.img_info = Renderer.load_img_resource("Info", (0, 0, 0))
-        self.img_platform = Renderer.load_img_resource(self._contest.platform, (0, 0, 0))
+        self.img_time = Renderer.load_img_resource("Time", (0, 0, 0), size=(32, 32))
+        self.img_info = Renderer.load_img_resource("Info", (0, 0, 0), size=(32, 32))
+        self.img_platform = Renderer.load_img_resource(self._contest.platform, (0, 0, 0),
+                                                       size=(20, 20))
         self.str_idx = StyledString(
             f"{self._idx:02d}", 'H', 78, font_color=(0, 0, 0, 30), padding_bottom=12
         )
