@@ -12,11 +12,11 @@ from src.core.util.tools import format_timestamp, format_timestamp_diff, format_
 from src.platform.model import Contest
 from src.render.pixie.model import Renderer, RenderableSection
 
-_CONTENT_WIDTH = 1024
+_CONTENT_WIDTH = 1088
 _TOP_PADDING = 168
 _BOTTOM_PADDING = 128
 _SIDE_PADDING = 108
-_COLUMN_PADDING = 52
+_COLUMN_PADDING = 48
 _CONTEST_PADDING = 108
 _SECTION_PADDING = 108
 _TYPE_PADDING = 128
@@ -114,6 +114,20 @@ class _TitleSection(RenderableSection):
 
 class _ContestsSection(RenderableSection):
 
+    def _split_columns(self, contests: list[_ContestItem]) -> list[list[_ContestItem]]:
+        total_height = sum(contest.get_height() for contest in contests)
+        column_height = 0
+
+        split_contests = [[]]
+        for contest in contests:
+            column_height += contest.get_height()
+            split_contests[-1].append(contest)
+            if column_height > total_height / self._column:
+                split_contests.append([])
+                column_height = 0
+
+        return split_contests
+
     def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest],
                  finished_contests: list[Contest]):
         mild_ext_color = (0, 0, 0, 192)
@@ -167,20 +181,21 @@ class _ContestsSection(RenderableSection):
                     current_y += _TYPE_PADDING
                     draw_img(img, _type_logo_path, Loc(current_x, current_y + 10, 50, 50))
                     current_y = draw_text(img, _type_title_text, current_x + 50 + 28, current_y)
-                    column_count = math.ceil(len(_contests) / self._column)  # 其实不一定合理，因为item高度不固定
                     current_y -= _CONTEST_PADDING
-                    start_y, max_y, current_col = current_y, current_y, 0
-                    for idx, contest in enumerate(_contests):
-                        current_y += _CONTEST_PADDING
-                        current_y = contest.render(
-                            img,
-                            current_x + (_CONTENT_WIDTH + _COLUMN_PADDING) * current_col,
-                            current_y
-                        )
-                        max_y = max(max_y, current_y)
-                        if (idx + 1) % column_count == 0:  # 分栏
-                            current_col += 1
-                            current_y = start_y
+                    start_y, max_y = current_y, current_y
+
+                    column_split = self._split_columns(_contests)
+                    for current_col, _column in enumerate(column_split):
+                        current_y = start_y
+                        for contest in _column:
+                            current_y += _CONTEST_PADDING
+                            current_y = contest.render(
+                                img,
+                                current_x + (_CONTENT_WIDTH + _COLUMN_PADDING) * current_col,
+                                current_y
+                            )
+                            max_y = max(max_y, current_y)
+
                     current_y = max_y
 
         return current_y
@@ -195,12 +210,11 @@ class _ContestsSection(RenderableSection):
                                                 (self.section_upcoming, self.str_upcoming_title),
                                                 (self.section_finished, self.str_finished_title)]:
                 if len(_contests) > 0:
+                    column_split = self._split_columns(_contests)
                     height += calculate_height(_type_title_text)
-                    column_count = math.ceil(len(_contests) / self._column)
-                    column_split = [_contests[i:i + column_count] for i in range(0, len(_contests), column_count)]
-                    height += max(sum(contest.get_height() for contest in column)
+                    height += max(sum(contest.get_height() for contest in column) +
+                                  _CONTEST_PADDING * (len(column) - 1)  # 各比赛间的 padding
                                   for column in column_split) + _TYPE_PADDING
-                    height += _CONTEST_PADDING * (column_count - 1)  # 各比赛间的 padding
         return height
 
 
