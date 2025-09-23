@@ -18,7 +18,7 @@ def reply_cpcfinder(message: RobotMessage):
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
         if len(content) != 3:
             message.reply('请输入两个参数，分别代表选手姓名和学校，如：\n\n'
-                          f'/{content[0]} 蒋凌宇 北京大学', modal_words=False)
+                          f'{content[0]} 蒋凌宇 北京大学', modal_words=False)
             return
 
         stu_name, stu_school = content[1], content[2]
@@ -63,8 +63,8 @@ def reply_cpcfinder(message: RobotMessage):
 
 
 @module(
-    name="ContestantFinder",
-    version="v1.0.0"
+    name="Contestant-Finder",
+    version="v1.0.1"
 )
 def register_module():
     pass
