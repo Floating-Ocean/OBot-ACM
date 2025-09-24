@@ -2,7 +2,18 @@ import re
 
 from src.core.bot.decorator import module, command
 from src.core.bot.message import RobotMessage
+from src.core.constants import Constants
+from src.core.util.tools import run_shell
 from src.platform.collect.cpcfinder import CPCFinder
+
+_oierdb_lib_path = Constants.modules_conf.get_lib_path("OIerDb")
+
+
+def oierdb_daily_update_job():
+    Constants.log.info(f'[oierdb] 每日数据库更新任务开始')
+    run_shell(f'cd "{_oierdb_lib_path}" && python -X utf8 main.py',
+              log_ignore_regex=r'.*%.*\|.*\|.*')
+    Constants.log.info(f'[oierdb] 每日数据库更新任务完成')
 
 
 def _format_cpc_rank(official: bool, rank: int, official_rank: int) -> str:
