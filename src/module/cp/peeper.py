@@ -157,7 +157,7 @@ def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> st
         id_prop = "" if no_id else f'--id {conf["id"]} '
         # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
         result = run_shell(
-            f'cd "{_lib_path}" && python main.py {id_prop}{prop} --config "{payload}"'
+            f'cd "{_lib_path}" && python -X utf8 main.py {id_prop}{prop} --config "{payload}"'
         )
         try:
             with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
@@ -193,7 +193,7 @@ def _call_lib_method(message: RobotMessage | None, prop: str,
     return result
 
 
-def daily_update_job():
+def peeper_daily_update_job():
     execute_conf = Constants.modules_conf.peeper["configs"]
     peeper_conf = _generate_peeper_conf(execute_conf)
     Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(peeper_conf.conf_dict)} 个榜单')
