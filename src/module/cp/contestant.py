@@ -37,7 +37,7 @@ def reply_cpcfinder(message: RobotMessage):
         message.reply('正在查询 XCPC 选手信息，请稍等')
         stu_id = CPCFinder.find_student_id(stu_name, stu_school)
 
-        if stu_id == -1:
+        if stu_id < 0:
             message.reply('查询异常，请稍后重试')
         elif stu_id == 0:
             message.reply('未找到该选手信息')
@@ -49,6 +49,10 @@ def reply_cpcfinder(message: RobotMessage):
 
         stu_general = CPCFinder.get_student_general(stu_id)
         stu_awards = CPCFinder.get_student_awards(stu_id)
+
+        if isinstance(stu_general, int) or isinstance(stu_awards, int):
+            message.reply('查询异常，请稍后重试')
+            return
 
         stu_info = ("[CPCFinder] 选手查询\n\n"
                     f"{stu_general.name} / {stu_general.school}\n\n"
