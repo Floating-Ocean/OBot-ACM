@@ -3,21 +3,16 @@ from datetime import datetime
 
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
-    pick_gradient_color, draw_gradient_rect, GradientDirection, draw_mask_rect, darken_color, tuple_to_color, \
-    change_alpha, hex_to_color
+    darken_color, change_alpha, hex_to_color
 
 from src.core.constants import Constants
 from src.core.util.tools import format_timestamp, format_timestamp_diff, format_seconds
 from src.platform.model import Contest
-from src.render.pixie.model import Renderer, RenderableSection
+from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
 
-_CONTENT_WIDTH = 1024
-_TOP_PADDING = 168
-_BOTTOM_PADDING = 128
-_SIDE_PADDING = 108
-_COLUMN_PADDING = 52
+_CONTENT_WIDTH = 916
+_COLUMN_PADDING = 192
 _CONTEST_PADDING = 108
-_SECTION_PADDING = 108
 _TYPE_PADDING = 128
 
 
@@ -34,8 +29,8 @@ class _ContestItem(RenderableSection):
         self._00_idx_text = StyledString(
             "00", 'H', 72
         )
-        self._begin_x = _SIDE_PADDING + calculate_width(self._00_idx_text) + 48
-        max_width = _CONTENT_WIDTH - self._begin_x
+        self._00_idx_text_width = calculate_width(self._00_idx_text)
+        max_width = _CONTENT_WIDTH - self._00_idx_text_width - 48
 
         self.img_time = Renderer.load_img_resource("Time", (0, 0, 0), size=(32, 32))
         self.img_info = Renderer.load_img_resource("Info", (0, 0, 0), size=(32, 32))
@@ -65,11 +60,10 @@ class _ContestItem(RenderableSection):
                                  self.str_time, self.str_status])
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        current_x, current_y = (self._begin_x - _SIDE_PADDING + x -
-                                calculate_width(self.str_idx) - 48, y)
+        current_x, current_y = x + self._00_idx_text_width - calculate_width(self.str_idx), y
 
         draw_text(img, self.str_idx, current_x, current_y - 14)
-        current_x = self._begin_x - _SIDE_PADDING + x
+        current_x = x + self._00_idx_text_width + 48
 
         draw_img(img, self.img_platform, Loc(current_x, current_y + 4, 20, 20))
         current_y = draw_text(img, self.str_subtitle, current_x + 28, current_y)
@@ -99,10 +93,10 @@ class _TitleSection(RenderableSection):
         )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        draw_img(img, self.img_contest, Loc(106, 181, 102, 102))
+        draw_img(img, self.img_contest, Loc(x - 4, y + 13, 102, 102))
 
         current_x, current_y = x, y
-        current_y = draw_text(img, self.str_title, 232, current_y)
+        current_y = draw_text(img, self.str_title, current_x + 124, current_y)
         current_y = draw_text(img, self.str_subtitle, current_x, current_y)
 
         return current_y
@@ -226,8 +220,7 @@ class _CopyrightSection(RenderableSection):
         )
         self.str_tips_detail = StyledString(
             "数据源于平台数据爬取/API调用/手动填写，仅供参考", 'M', 28, line_multiplier=1.32,
-            max_width=(_CONTENT_WIDTH - 108 -  # 考虑右边界，不然画出去了
-                       calculate_width(self.str_tips_title) - 12 - 48),
+            max_width=_CONTENT_WIDTH - calculate_width(self.str_tips_title) - 12,  # 考虑右边界，不然画出去了
             padding_bottom=64, font_color=(0, 0, 0, 208)
         )
         self.str_generator = StyledString(
@@ -255,42 +248,20 @@ class _CopyrightSection(RenderableSection):
         return calculate_height([self.str_tips_title, self.str_generator, self.str_generator_info])
 
 
-class ContestListRenderer(Renderer):
+class ContestListRenderer(SimpleCardRenderer):
     """渲染比赛列表"""
 
     def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest],
                  finished_contests: list[Contest]):
+        super().__init__()
         self._running_contests = running_contests
         self._upcoming_contests = upcoming_contests
         self._finished_contests = finished_contests
 
-    def render(self) -> pixie.Image:
-        gradient_color = pick_gradient_color()
-
-        section_title = _TitleSection(gradient_color.color_list[-1])
+    def _get_render_sections(self) -> list[RenderableSection]:
+        section_title = _TitleSection(self._gradient_color.color_list[-1])
         section_contests = _ContestsSection(self._running_contests,
                                             self._upcoming_contests, self._finished_contests)
-        section_copyright = _CopyrightSection(gradient_color.name)
+        section_copyright = _CopyrightSection(self._gradient_color.name)
 
-        render_sections = [section_title, section_contests, section_copyright]
-        max_column = max(section.get_columns() for section in render_sections)
-
-        width, height = (_CONTENT_WIDTH * max_column + _SECTION_PADDING * (max_column - 1),
-                         sum(section.get_height() for section in render_sections) +
-                         _SECTION_PADDING * (len(render_sections) - 1) +
-                         _TOP_PADDING + _BOTTOM_PADDING)
-
-        img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((0, 0, 0)))  # 填充黑色背景
-
-        draw_gradient_rect(img, Loc(32, 32, width, height), gradient_color,
-                           GradientDirection.DIAGONAL_RIGHT_TO_LEFT, 96)
-        draw_mask_rect(img, Loc(32, 32, width, height), (255, 255, 255, 178), 96)
-
-        current_x, current_y = _SIDE_PADDING, _TOP_PADDING - _SECTION_PADDING
-
-        for section in render_sections:
-            current_y += _SECTION_PADDING
-            current_y = section.render(img, current_x, current_y)
-
-        return img
+        return [section_title, section_contests, section_copyright]

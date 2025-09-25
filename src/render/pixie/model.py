@@ -3,12 +3,21 @@ import os
 from datetime import datetime
 
 import pixie
-from easy_pixie import load_img, apply_tint, change_img_alpha, draw_img, Loc
+from easy_pixie import load_img, apply_tint, change_img_alpha, draw_img, Loc, tuple_to_color, pick_gradient_color, \
+    GradientDirection, draw_gradient_rect, draw_mask_rect
 
 from src.core.constants import Constants
 
 _lib_path = Constants.modules_conf.get_lib_path("Render-Images")
 _img_load_cache: dict[str, tuple[float, pixie.Image]] = {}
+
+_CONTENT_WIDTH = 916
+_CONTAINER_PADDING = 32
+_TOP_PADDING = 136
+_BOTTOM_PADDING = 152
+_SIDE_PADDING = 96
+_COLUMN_PADDING = 192
+_SECTION_PADDING = 108
 
 
 class Renderer(abc.ABC):
@@ -131,3 +140,56 @@ class RenderableSvgSection(RenderableSection, abc.ABC):
 
     def get_height(self):
         return self._container_height
+
+
+class SimpleCardRenderer(Renderer, abc.ABC):
+    """简单的卡片渲染"""
+    def __init__(self):
+        self._gradient_color = pick_gradient_color()
+
+    @abc.abstractmethod
+    def _get_render_sections(self) -> list[RenderableSection]:
+        pass
+
+    @classmethod
+    def _get_background_color(cls) -> pixie.Color:
+        return tuple_to_color((0, 0, 0))
+
+    @classmethod
+    def _get_mask_color(cls) -> pixie.Color:
+        return tuple_to_color((255, 255, 255, 178))
+
+    @classmethod
+    def _get_content_width(cls) -> int:
+        return _CONTENT_WIDTH
+
+    def _render_background_rect(self, img: pixie.Image, background_loc: Loc):
+        draw_gradient_rect(img, background_loc, self._gradient_color,
+                           GradientDirection.DIAGONAL_RIGHT_TO_LEFT, 96)
+        draw_mask_rect(img, background_loc, self._get_mask_color(), 96)
+
+    def render(self) -> pixie.Image:
+        render_sections = self._get_render_sections()
+        max_column = max(section.get_columns() for section in render_sections)
+
+        width = ((_CONTAINER_PADDING + _SIDE_PADDING) * 2 +
+                 self._get_content_width() * max_column + _COLUMN_PADDING * (max_column - 1))
+        height = (_CONTAINER_PADDING * 2 + _TOP_PADDING + _BOTTOM_PADDING +
+                  sum(section.get_height() for section in render_sections) +
+                  _SECTION_PADDING * (len(render_sections) - 1))
+
+        img = pixie.Image(width, height)
+        img.fill(self._get_background_color())
+
+        background_loc = Loc(_CONTAINER_PADDING, _CONTAINER_PADDING,
+                             width - _CONTAINER_PADDING * 2, height - _CONTAINER_PADDING * 2)
+        self._render_background_rect(img, background_loc)
+
+        current_x = _CONTAINER_PADDING + _SIDE_PADDING
+        current_y = _CONTAINER_PADDING + _TOP_PADDING - _SECTION_PADDING
+
+        for section in render_sections:
+            current_y += _SECTION_PADDING
+            current_y = section.render(img, current_x, current_y)
+
+        return img

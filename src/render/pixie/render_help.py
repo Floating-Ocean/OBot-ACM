@@ -1,18 +1,13 @@
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
-    pick_gradient_color, draw_gradient_rect, GradientDirection, draw_mask_rect, tuple_to_color, \
-    change_alpha, hex_to_color, lighten_color
+    tuple_to_color, change_alpha, hex_to_color, lighten_color
 
 from src.core.constants import Constants, Help
-from src.render.pixie.model import Renderer, RenderableSection
+from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
 
-_CONTENT_WIDTH = 1024
-_TOP_PADDING = 168
-_BOTTOM_PADDING = 128
-_SIDE_PADDING = 108
-_COLUMN_PADDING = 52
+_CONTENT_WIDTH = 916
+_COLUMN_PADDING = 192
 _HELP_SECTION_PADDING = 72
-_SECTION_PADDING = 108
 
 _SPLIT_POINT = 5
 
@@ -23,11 +18,11 @@ class _HelpItem(RenderableSection):
 
         self.str_command = StyledString(
             self._help.command, 'H', 52, font_color=(255, 255, 255), padding_bottom=16,
-            max_width=_CONTENT_WIDTH - 108 - 12 - 48
+            max_width=_CONTENT_WIDTH
         )
         self.str_help = StyledString(
             self._help.help, 'B', 28, font_color=(255, 255, 255, 228), padding_bottom=64,
-            max_width=_CONTENT_WIDTH - 108 - 12 - 48, line_multiplier=1.36
+            max_width=_CONTENT_WIDTH, line_multiplier=1.36
         )
 
     def get_height(self):
@@ -46,6 +41,9 @@ class _HelpSection(RenderableSection):
         self._helps = helps
         self.section_help = [[_HelpItem(single_help) for single_help in help_items]
                              for _, help_items in self._helps.items()]
+
+    def get_columns(self):
+        return 2
 
     def get_height(self):
         # 计算左列高度
@@ -100,10 +98,10 @@ class _TitleSection(RenderableSection):
         )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        draw_img(img, self.img_help, Loc(106, 181, 102, 102))
+        draw_img(img, self.img_help, Loc(x - 4, y + 13, 102, 102))
 
         current_x, current_y = x, y
-        current_y = draw_text(img, self.str_title, 232, current_y)
+        current_y = draw_text(img, self.str_title, current_x + 124, current_y)
         current_y = draw_text(img, self.str_subtitle, current_x, current_y)
 
         return current_y
@@ -123,8 +121,7 @@ class _CopyrightSection(RenderableSection):
         self.str_tips_detail = StyledString(
             "中括号必填，小括号选填，使用指令时不用加括号", 'M', 28,
             line_multiplier=1.32, padding_bottom=64, font_color=(255, 255, 255, 228),
-            max_width=(_CONTENT_WIDTH - 108 -  # 考虑右边界，不然画出去了
-                       calculate_width(self.str_tips_title) - 12 - 48)
+            max_width=_CONTENT_WIDTH - calculate_width(self.str_tips_title) - 12  # 考虑右边界，不然画出去了
         )
         self.str_generator = StyledString(
             "Command Instructions", 'H', 36, padding_bottom=16,
@@ -152,34 +149,22 @@ class _CopyrightSection(RenderableSection):
                                  self.str_generator, self.str_generation_info])
 
 
-class HelpRenderer(Renderer):
+class HelpRenderer(SimpleCardRenderer):
     """帮助信息"""
+    def __init__(self):
+        super().__init__()
 
-    def render(self) -> pixie.Image:
-        gradient_color = pick_gradient_color()
+    @classmethod
+    def _get_background_color(cls) -> pixie.Color:
+        return tuple_to_color((255, 255, 255))
 
-        section_title = _TitleSection(gradient_color.color_list[-1])
+    @classmethod
+    def _get_mask_color(cls) -> pixie.Color:
+        return tuple_to_color((12, 12, 12, 198))
+
+    def _get_render_sections(self) -> list[RenderableSection]:
+        section_title = _TitleSection(self._gradient_color.color_list[-1])
         section_help = _HelpSection(Constants.help_contents)
-        section_copyright = _CopyrightSection(gradient_color.name)
+        section_copyright = _CopyrightSection(self._gradient_color.name)
 
-        render_sections = [section_title, section_help, section_copyright]
-
-        width, height = (_CONTENT_WIDTH * 2 + _COLUMN_PADDING,
-                         sum(section.get_height() for section in render_sections) +
-                         _SECTION_PADDING * (len(render_sections) - 1) +
-                         _TOP_PADDING + _BOTTOM_PADDING)
-
-        img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((255, 255, 255, 255)))  # 填充白色背景
-
-        draw_gradient_rect(img, Loc(32, 32, width, height), gradient_color,
-                           GradientDirection.DIAGONAL_RIGHT_TO_LEFT, 96)
-        draw_mask_rect(img, Loc(32, 32, width, height), (12, 12, 12, 198), 96)
-
-        current_x, current_y = _SIDE_PADDING, _TOP_PADDING - _SECTION_PADDING
-
-        for section in render_sections:
-            current_y += _SECTION_PADDING
-            current_y = section.render(img, current_x, current_y)
-
-        return img
+        return [section_title, section_help, section_copyright]
