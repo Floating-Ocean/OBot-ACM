@@ -23,20 +23,30 @@ from requests.adapters import HTTPAdapter
 from src.core.constants import Constants
 
 
-def run_shell(shell: str, log_ignore_regex: str = None) -> str:
+def run_shell(shell: str, log_ignore_regex: str | None = None) -> str:
     Constants.log.info(f"[shell] {shell}")
-    cmd = subprocess.Popen(shell, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                           universal_newlines=True, shell=True, bufsize=1, encoding='utf-8')
-    info = ""
-    # 实时输出
-    while True:
-        line = cmd.stderr.readline().strip()
-        if line and (not log_ignore_regex or not re.match(log_ignore_regex, line)):
-            Constants.log.info(f"[shell] {line}")
-            info += line
 
-        if subprocess.Popen.poll(cmd) == 0:  # 判断子进程是否结束
-            break
+    with subprocess.Popen(shell, stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                          stdout=subprocess.PIPE, universal_newlines=True, shell=True, bufsize=1,
+                          encoding='utf-8') as cmd:
+        info = ""
+        while True:  # 实时输出
+            line = cmd.stderr.readline().strip()
+            if line and (not log_ignore_regex or not re.match(log_ignore_regex, line)):
+                Constants.log.info(f"[shell] {line}")
+                info += line
+
+            if cmd.poll() is not None:  # 判断子进程是否结束
+                break
+
+        # 处理剩余的输出
+        remaining_output = cmd.stderr.read()
+        if remaining_output:
+            remaining_lines = remaining_output.strip().split('\n')
+            for line in remaining_lines:
+                if line and (not log_ignore_regex or not re.match(log_ignore_regex, line)):
+                    Constants.log.info(f"[shell] {line}")
+                    info += line
 
     return info
 
