@@ -1,4 +1,3 @@
-import math
 import time
 from datetime import datetime
 
@@ -12,11 +11,11 @@ from src.core.util.tools import format_timestamp, format_timestamp_diff, format_
 from src.platform.model import Contest
 from src.render.pixie.model import Renderer, RenderableSection
 
-_CONTENT_WIDTH = 1088
+_CONTENT_WIDTH = 1024
 _TOP_PADDING = 168
 _BOTTOM_PADDING = 128
 _SIDE_PADDING = 108
-_COLUMN_PADDING = 48
+_COLUMN_PADDING = 52
 _CONTEST_PADDING = 108
 _SECTION_PADDING = 108
 _TYPE_PADDING = 128
@@ -36,7 +35,7 @@ class _ContestItem(RenderableSection):
             "00", 'H', 72
         )
         self._begin_x = _SIDE_PADDING + calculate_width(self._00_idx_text) + 48
-        max_width = _CONTENT_WIDTH + 32 - self._begin_x - 48 - _SIDE_PADDING
+        max_width = _CONTENT_WIDTH - self._begin_x
 
         self.img_time = Renderer.load_img_resource("Time", (0, 0, 0), size=(32, 32))
         self.img_info = Renderer.load_img_resource("Info", (0, 0, 0), size=(32, 32))
