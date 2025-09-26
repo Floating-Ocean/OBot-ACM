@@ -5,7 +5,9 @@ from dataclasses import dataclass
 
 from botpy import logging
 
-_project_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
+_project_dir = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
+)
 
 
 @dataclass

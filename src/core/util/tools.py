@@ -33,12 +33,18 @@ def run_py_file(payload: str, cwd: str, log_ignore_regex: str | None = None) -> 
     with subprocess.Popen(args, bufsize=1,
                           stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE,
                           cwd=cwd, universal_newlines=True, encoding='utf-8') as cmd:
-        info = ""
+        ignore_re = re.compile(log_ignore_regex) if log_ignore_regex else None
+        info_lines: list[str] = []
         while True:  # 实时输出
-            line = cmd.stdout.readline().strip().strip('\r')
-            if line and (not log_ignore_regex or not re.match(log_ignore_regex, line)):
+            line = cmd.stdout.readline()
+            if not line:
+                if cmd.poll() is not None:  # 判断子进程是否结束
+                    break
+                continue
+            line = line.rstrip('\r\n')
+            if not (ignore_re and ignore_re.search(line)):
                 Constants.log.info(f"[shell] {line}")
-                info += line
+                info_lines.append(line)
 
             if cmd.poll() is not None:  # 判断子进程是否结束
                 break
@@ -46,13 +52,14 @@ def run_py_file(payload: str, cwd: str, log_ignore_regex: str | None = None) -> 
         # 处理剩余的输出
         remaining_output = cmd.stdout.read()
         if remaining_output:
-            remaining_lines = remaining_output.strip().split('\n')
+            remaining_lines = remaining_output.splitlines()
             for line in remaining_lines:
-                if line and (not log_ignore_regex or not re.match(log_ignore_regex, line)):
+                line = line.rstrip('\r\n')
+                if line and not (ignore_re and ignore_re.search(line)):
                     Constants.log.info(f"[shell] {line}")
-                    info += line
+                info_lines.append(line)
 
-    return info
+    return '\n'.join(info_lines)
 
 
 def clean_unsafe_shell_str(origin_str: str) -> str:
