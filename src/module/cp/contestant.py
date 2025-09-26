@@ -8,9 +8,6 @@ from src.platform.collect.cpcfinder import CPCFinder
 
 _oierdb_lib_path = Constants.modules_conf.get_lib_path("OIerDb")
 
-@command(tokens=['test'])
-def test(message: RobotMessage):
-    oierdb_daily_update_job()
 
 def oierdb_daily_update_job():
     Constants.log.info('[oierdb] 每日数据库更新任务开始')
