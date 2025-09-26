@@ -93,11 +93,17 @@ class RenderableSvgSection(RenderableSection, abc.ABC):
         pass
 
     def __init__(self, svg_ts_path: str, width: int = -1, height: int = -1):
-        svg_ts_path = f'{svg_ts_path}.svg'
+        svg_ts_path = f'{svg_ts_path}.svg'  # 调用时需要保证路径唯一，避免资源竞争
         svg, self._original_width, self._original_height = self._generate_svg()
-        with open(svg_ts_path, 'w') as f:
-            f.write(svg)
-        self.img_svg = pixie.read_image(svg_ts_path)
+        try:
+            with open(svg_ts_path, 'w') as f:
+                f.write(svg)
+            self.img_svg = pixie.read_image(svg_ts_path)
+        finally:
+            try:
+                os.remove(svg_ts_path)
+            except OSError:
+                pass
 
         # 计算目标尺寸和居中偏移
         self._calculate_dimensions(width, height)
@@ -170,6 +176,9 @@ class SimpleCardRenderer(Renderer, abc.ABC):
 
     def render(self) -> pixie.Image:
         render_sections = self._get_render_sections()
+        if not render_sections:
+            raise ValueError('Nothing to render')
+
         max_column = max(section.get_columns() for section in render_sections)
 
         width = ((_CONTAINER_PADDING + _SIDE_PADDING) * 2 +

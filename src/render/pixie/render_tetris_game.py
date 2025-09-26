@@ -125,6 +125,8 @@ class TetrisGameRenderer(SimpleCardRenderer):
 
     def __init__(self, current_map: list[list[int]], svg_ts_path: str, score: int, trials: int):
         super().__init__()
+        if not current_map or not current_map[0]:
+            raise ValueError('Invalid tetris map')
         self._current_map = current_map
         self._svg_ts_path = svg_ts_path
         self._score = score
