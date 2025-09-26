@@ -96,13 +96,15 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
         code = response.status_code
         Constants.log.info(f"[network] {code} | {url}")
 
-        if code != 200 and throw:
-            raise ConnectionError(f"Filed to connect {url}, code {code}.")
+        if code != 200:
+            if throw:
+                raise ConnectionError(f"Filed to connect {url}, code {code}.")
+            return code
 
         return response
     except Exception as e:
         if throw:
-            raise RuntimeError(f"Filed to connect {url}: {e}") from e
+            raise ConnectionError(f"Filed to connect {url}: {e}") from e
         Constants.log.warning("[network] 忽略了一个连接异常.")
         Constants.log.exception(f"[network] {e}")
         return code
