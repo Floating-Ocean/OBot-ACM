@@ -78,7 +78,7 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
     if len(proxies) == 0:
         proxies = None
 
-    code = 200
+    code = 500  # 请求过程中出现异常时回退至默认值 500
     try:
         headers = {
             'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -102,13 +102,13 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
 
         if code != 200:
             if throw:
-                raise ConnectionError(f"Filed to connect {url}, code {code}.")
+                raise ConnectionError(f"Failed to connect {url}, code {code}.")
             return code
 
         return response
     except Exception as e:
         if throw:
-            raise ConnectionError(f"Filed to connect {url}: {e}") from e
+            raise ConnectionError(f"Failed to connect {url}: {e}") from e
         Constants.log.warning("[network] 忽略了一个连接异常.")
         Constants.log.exception(f"[network] {e}")
         return code
