@@ -93,7 +93,7 @@ class RenderableSvgSection(RenderableSection, abc.ABC):
         pass
 
     def __init__(self, svg_ts_path: str, width: int = -1, height: int = -1):
-        svg_ts_path = f'{svg_ts_path}.svg'  # 调用时需要保证路径唯一，避免资源竞争
+        svg_ts_path = f'{svg_ts_path}.svg'  # 此处默认路径唯一，不会导致资源竞争
         svg, self._original_width, self._original_height = self._generate_svg()
         try:
             with open(svg_ts_path, 'w') as f:
@@ -102,8 +102,9 @@ class RenderableSvgSection(RenderableSection, abc.ABC):
         finally:
             try:
                 os.remove(svg_ts_path)
-            except OSError:
-                pass
+            except OSError as e:
+                Constants.log.warning("Remove temp svg file failed")
+                Constants.log.error(e)
 
         # 计算目标尺寸和居中偏移
         self._calculate_dimensions(width, height)
