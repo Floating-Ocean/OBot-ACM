@@ -3,17 +3,19 @@ import re
 from src.core.bot.decorator import module, command
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.util.tools import run_shell
+from src.core.util.tools import run_py_file
 from src.platform.collect.cpcfinder import CPCFinder
 
 _oierdb_lib_path = Constants.modules_conf.get_lib_path("OIerDb")
 
+@command(tokens=['test'])
+def test(message: RobotMessage):
+    oierdb_daily_update_job()
 
 def oierdb_daily_update_job():
-    Constants.log.info(f'[oierdb] 每日数据库更新任务开始')
-    run_shell(f'cd "{_oierdb_lib_path}" && python -X utf8 main.py',
-              log_ignore_regex=r'.*%.*\|.*\|.*')
-    Constants.log.info(f'[oierdb] 每日数据库更新任务完成')
+    Constants.log.info('[oierdb] 每日数据库更新任务开始')
+    run_py_file('main.py', _oierdb_lib_path, log_ignore_regex=r'.*%.*\|.*\|.*')
+    Constants.log.info('[oierdb] 每日数据库更新任务完成')
 
 
 def _format_cpc_rank(official: bool, rank: int, official_rank: int) -> str:
@@ -57,7 +59,7 @@ def reply_cpcfinder(message: RobotMessage):
                     f"{stu_general.name} / {stu_general.school}\n\n"
                     f"冠军: {stu_general.champion} / 亚军: {stu_general.sec} / 季军: {stu_general.thi}\n"
                     f"金牌: {stu_general.gold} / 银牌: {stu_general.silver} / 铜牌: {stu_general.bronze}\n\n"
-                    f"获奖信息: \n")
+                    "获奖信息: \n")
 
         awards = [
             (

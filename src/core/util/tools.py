@@ -3,9 +3,11 @@ import hashlib
 import os
 import random
 import re
+import shlex
 import ssl
 import string
 import subprocess
+import sys
 import time
 
 import cv2
@@ -23,15 +25,17 @@ from requests.adapters import HTTPAdapter
 from src.core.constants import Constants
 
 
-def run_shell(shell: str, log_ignore_regex: str | None = None) -> str:
-    Constants.log.info(f"[shell] {shell}")
+def run_py_file(payload: str, cwd: str, log_ignore_regex: str | None = None) -> str:
+    Constants.log.info(f'[shell] cd "{cwd}"')
+    Constants.log.info(f'[shell] python -X utf8 {payload}')
 
-    with subprocess.Popen(shell, stdin=subprocess.PIPE, stderr=subprocess.STDOUT,
-                          stdout=subprocess.PIPE, universal_newlines=True, shell=True, bufsize=1,
-                          encoding='utf-8') as cmd:
+    args = [sys.executable, '-X', 'utf8'] + shlex.split(payload)
+    with subprocess.Popen(args, bufsize=1,
+                          stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE,
+                          cwd=cwd, universal_newlines=True, encoding='utf-8') as cmd:
         info = ""
         while True:  # 实时输出
-            line = cmd.stdout.readline().strip()
+            line = cmd.stdout.readline().strip().strip('\r')
             if line and (not log_ignore_regex or not re.match(log_ignore_regex, line)):
                 Constants.log.info(f"[shell] {line}")
                 info += line
