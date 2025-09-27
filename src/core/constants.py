@@ -30,6 +30,21 @@ class ModulesConfig:
         return cache_path
 
 
+@dataclass()
+class GitCommit:
+    hash: str
+    hash_short: str
+    ref: str
+    message_title: str
+    author: str
+    date: str
+
+
+class InvalidGitCommit(GitCommit):
+    def __init__(self, invalid_message: str):
+        self.hash_short = invalid_message
+
+
 @dataclass(frozen=True)
 class Help:
     command: str
@@ -54,25 +69,27 @@ def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
         return botpy_conf, role_conf, ModulesConfig(**modules_conf)
 
 
-def _get_git_commit_hash() -> str:
+def _get_git_commit() -> GitCommit:
     """获取当前 Git 仓库的 commit hash"""
     if not os.path.exists(os.path.join(_project_dir, ".git")):
-        return "raw_copy_d"
+        return InvalidGitCommit("raw_copy_d")
 
     try:
-        result = subprocess.run(["git", "rev-parse", "HEAD"],
-                                capture_output=True, text=True, check=True, timeout=5)
-        commit_hash = result.stdout.strip()
+        result = subprocess.run(
+            ['git', 'log', '-1', '--pretty=format:%H|||%d|||%s|||%an|||%ai'],
+            capture_output=True, text=True, check=True, timeout=5, encoding='utf-8'
+        )
+        commit_hash, ref, title, author, date = result.stdout.strip().split("|||")
         if len(commit_hash) != 40 or not all(c in "0123456789abcdef" for c in commit_hash.lower()):
-            return "raw_copy_i"  # hash 格式错误
-        return commit_hash[:12]
+            return InvalidGitCommit("raw_copy_i")  # hash 格式错误
+        return GitCommit(commit_hash, commit_hash[:12], ref, title, author, date)
 
     except FileNotFoundError:
-        return "raw_copy_g"  # 未安装 git
+        return InvalidGitCommit("raw_copy_g")  # 未安装 git
     except Exception as e:
-        Constants.log.warning("[obot-core] 获取 Git 提交哈希异常")
+        Constants.log.warning("[obot-core] 获取 Git 提交信息异常")
         Constants.log.exception(f"[obot-core] {e}")
-        return "raw_copy_e"  # 异常
+        return InvalidGitCommit("raw_copy_e")  # 异常
 
 
 class Constants:
@@ -80,7 +97,7 @@ class Constants:
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
     core_version = "v5.0.0-beta.3"
-    git_commit_hash = _get_git_commit_hash()
+    git_commit = _get_git_commit()
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [

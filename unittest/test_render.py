@@ -102,7 +102,7 @@ class Render(unittest.TestCase):
 
     def test_about(self):
         about_img = AboutRenderer(
-            ("OBot Core", f"{Constants.core_version}-{Constants.git_commit_hash}"),
+            ("OBot Core", f"{Constants.core_version}-{Constants.git_commit.hash_short}"),
             get_all_modules_info()
         ).render()
         self.assertIsNotNone(about_img)
