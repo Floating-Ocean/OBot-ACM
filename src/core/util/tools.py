@@ -57,7 +57,7 @@ def run_py_file(payload: str, cwd: str, log_ignore_regex: str | None = None) -> 
                 line = line.rstrip('\r\n')
                 if line and not (ignore_re and ignore_re.search(line)):
                     Constants.log.info(f"[shell] {line}")
-                info_lines.append(line)
+                    info_lines.append(line)
 
     return '\n'.join(info_lines)
 
