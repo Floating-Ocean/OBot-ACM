@@ -1,21 +1,19 @@
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_img, \
-    draw_mask_rect, tuple_to_color
+    draw_mask_rect
 
-from src.render.pixie.model import Renderer, RenderableSection
+from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
 
-_CONTENT_WIDTH = 1200
-_TOP_PADDING = 168
-_BOTTOM_PADDING = 128
-_SIDE_PADDING = 108
+_CONTENT_WIDTH = 1048
 _CELL_PADDING = 32
-_SECTION_PADDING = 108
+_CELL_INNER_HORIZONTAL_PADDING = 32
+_CELL_INNER_VERTICAL_PADDING = 48
 
 
 class _ModuleItem(RenderableSection):
     def __init__(self, name: str, version: str, no_limit: bool = False):
-        item_width = (_CONTENT_WIDTH + 56 - _SIDE_PADDING * 2 - _CELL_PADDING * 2) / 3
-        item_width -= 64
+        item_width = (_CONTENT_WIDTH - _CELL_PADDING * 2) / 3
+        item_width -= _CELL_INNER_HORIZONTAL_PADDING * 2
         self.str_name = StyledString(
             name.replace("-", " "),
             'H', 32, padding_bottom=12, max_width=item_width
@@ -28,7 +26,8 @@ class _ModuleItem(RenderableSection):
         self._real_width, self._real_height = -1, -1
 
     def get_height(self):
-        return calculate_height([self.str_name, self.str_version]) + 96
+        return (calculate_height([self.str_name, self.str_version]) +
+                _CELL_INNER_VERTICAL_PADDING * 2)
 
     def set_real_size(self, real_width: int, real_height: int):
         self._real_width = real_width
@@ -36,14 +35,15 @@ class _ModuleItem(RenderableSection):
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
-        vertical_padding = 48
+        vertical_padding = _CELL_INNER_VERTICAL_PADDING
 
         if min(self._real_width, self._real_height) != -1:
             draw_mask_rect(img, Loc(current_x, current_y, self._real_width, self._real_height),
                            (0, 0, 0, 24), 32)
-            vertical_padding = (self._real_height - self.get_height()) // 2 + 48
+            vertical_padding = ((self._real_height - self.get_height()) // 2 +
+                                _CELL_INNER_VERTICAL_PADDING)
 
-        current_x += 32
+        current_x += _CELL_INNER_HORIZONTAL_PADDING
         current_y += vertical_padding
         current_y = draw_text(img, self.str_name, current_x, current_y)
         current_y = draw_text(img, self.str_version, current_x, current_y)
@@ -54,7 +54,7 @@ class _ModuleItem(RenderableSection):
 
 class _ModuleSection(RenderableSection):
     def __init__(self, core: tuple[str, str], modules: list[tuple[str, str]]):
-        self._core_width = _CONTENT_WIDTH + 56 - _SIDE_PADDING * 2
+        self._core_width = _CONTENT_WIDTH
         self._modules_width = (self._core_width - _CELL_PADDING * 2) // 3
         self.section_core = _ModuleItem(core[0], core[1], True)
         self.section_modules_items = [_ModuleItem(name, version) for name, version in modules]
@@ -118,33 +118,23 @@ class _TitleSection(RenderableSection):
         return calculate_height(self.str_subtitle) + 128 + 24
 
 
-class AboutRenderer(Renderer):
+class AboutRenderer(SimpleCardRenderer):
     """渲染关于页"""
 
     def __init__(self, core: tuple[str, str], modules: list[tuple[str, str]]):
+        super().__init__()
         self.section_core = core
         self.section_modules = modules
 
-    def render(self) -> pixie.Image:
+    @classmethod
+    def _get_content_width(cls) -> int:
+        return _CONTENT_WIDTH
+
+    def _render_background_rect(self, img: pixie.Image, background_loc: Loc):
+        draw_mask_rect(img, background_loc, (252, 252, 252), 96)
+
+    def _get_render_sections(self) -> list[RenderableSection]:
         section_title = _TitleSection()
         section_module = _ModuleSection(self.section_core, self.section_modules)
 
-        render_sections = [section_title, section_module]
-
-        width, height = (_CONTENT_WIDTH,
-                         sum(section.get_height() for section in render_sections) +
-                         _SECTION_PADDING * (len(render_sections) - 1) +
-                         _TOP_PADDING + _BOTTOM_PADDING)
-
-        img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((0, 0, 0, 255)))  # 填充背景
-
-        draw_mask_rect(img, Loc(32, 32, width, height), (252, 252, 252), 96)
-
-        current_x, current_y = _SIDE_PADDING, _TOP_PADDING - _SECTION_PADDING
-
-        for section in render_sections:
-            current_y += _SECTION_PADDING
-            current_y = section.render(img, current_x, current_y)
-
-        return img
+        return [section_title, section_module]

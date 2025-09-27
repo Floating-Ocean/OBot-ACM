@@ -1,19 +1,14 @@
 import pixie
-from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_mask_rect, tuple_to_color
+from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_mask_rect
 
 from src.core.constants import Constants
-from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection
+from src.render.pixie.model import RenderableSection, RenderableSvgSection, SimpleCardRenderer
 from src.render.svg.render_tetris_map import render_tetris_map
 
-_CONTENT_WIDTH = 1024
-_TOP_PADDING = 168
-_BOTTOM_PADDING = 128
-_SIDE_PADDING = 108
-_SECTION_PADDING = 108
-
+_CONTENT_WIDTH = 916
 _NEXT_BLOCK_CONTENT_WIDTH = int(_CONTENT_WIDTH * 1.5)
-_NEXT_BLOCK_SIZE = 292
 _NEXT_BLOCK_PADDING = 72
+_NEXT_BLOCK_SIZE = (_NEXT_BLOCK_CONTENT_WIDTH - 3 * _NEXT_BLOCK_PADDING) // 4
 
 
 class _StatusTitleSection(RenderableSection):
@@ -65,7 +60,7 @@ class _CopyrightSection(RenderableSection):
 class _TetrisMapSection(RenderableSvgSection):
 
     def _get_max_width(self) -> int:
-        return _CONTENT_WIDTH + 64 - _SIDE_PADDING * 2
+        return _CONTENT_WIDTH
 
     def _generate_svg(self) -> tuple[str, int, int]:
         return render_tetris_map(self._current_map)
@@ -125,71 +120,48 @@ class _NextTitleSection(RenderableSection):
         return calculate_height([self.str_title, self.str_subtitle])
 
 
-class TetrisGameRenderer(Renderer):
+class TetrisGameRenderer(SimpleCardRenderer):
     """渲染俄罗斯方块游戏状态"""
 
-    def __init__(self, current_map: list[list[int]], svg_ts_path: str,
-                 score: int, trials: int):
+    def __init__(self, current_map: list[list[int]], svg_ts_path: str, score: int, trials: int):
+        super().__init__()
+        if not current_map or not current_map[0]:
+            raise ValueError('Invalid tetris map')
         self._current_map = current_map
         self._svg_ts_path = svg_ts_path
         self._score = score
         self._map_width = len(current_map[0])
         self._trials = trials
 
-    def render(self) -> pixie.Image:
+    def _render_background_rect(self, img: pixie.Image, background_loc: Loc):
+        draw_mask_rect(img, background_loc, (52, 52, 52), 96)
+
+    def _get_render_sections(self) -> list[RenderableSection]:
         section_title = _StatusTitleSection(self._score, self._map_width, self._trials)
         section_tetris_map = _TetrisMapSection(self._current_map, self._svg_ts_path)
         section_copyright = _CopyrightSection()
 
-        render_sections = [section_title, section_tetris_map, section_copyright]
-
-        width, height = (_CONTENT_WIDTH,
-                         sum(section.get_height() for section in render_sections) +
-                         _SECTION_PADDING * (len(render_sections) - 1) +
-                         _TOP_PADDING + _BOTTOM_PADDING)
-
-        img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((0, 0, 0, 255)))  # 填充背景
-
-        draw_mask_rect(img, Loc(32, 32, width, height), (52, 52, 52), 96)
-
-        current_x, current_y = _SIDE_PADDING, _TOP_PADDING - _SECTION_PADDING
-
-        for section in render_sections:
-            current_y += _SECTION_PADDING
-            current_y = section.render(img, current_x, current_y)
-
-        return img
+        return [section_title, section_tetris_map, section_copyright]
 
 
-class TetrisNextBlockRenderer(Renderer):
+class TetrisNextBlockRenderer(SimpleCardRenderer):
     """渲染俄罗斯方块的下一个方块"""
 
     def __init__(self, next_block: dict, svg_ts_path: str):
+        super().__init__()
         self._next_block = next_block
         self._svg_ts_path = svg_ts_path
 
-    def render(self) -> pixie.Image:
+    @classmethod
+    def _get_content_width(cls) -> int:
+        return _NEXT_BLOCK_CONTENT_WIDTH
+
+    def _render_background_rect(self, img: pixie.Image, background_loc: Loc):
+        draw_mask_rect(img, background_loc, (52, 52, 52), 96)
+
+    def _get_render_sections(self) -> list[RenderableSection]:
         section_title = _NextTitleSection(self._next_block)
         section_next = _TetrisNextSection(self._next_block, self._svg_ts_path)
         section_copyright = _CopyrightSection()
 
-        render_sections = [section_title, section_next, section_copyright]
-
-        width, height = (_NEXT_BLOCK_CONTENT_WIDTH,
-                         sum(section.get_height() for section in render_sections) +
-                         _SECTION_PADDING * (len(render_sections) - 1) +
-                         _TOP_PADDING + _BOTTOM_PADDING)
-
-        img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((0, 0, 0, 255)))  # 填充背景
-
-        draw_mask_rect(img, Loc(32, 32, width, height), (52, 52, 52), 96)
-
-        current_x, current_y = _SIDE_PADDING, _TOP_PADDING - _SECTION_PADDING
-
-        for section in render_sections:
-            current_y += _SECTION_PADDING
-            current_y = section.render(img, current_x, current_y)
-
-        return img
+        return [section_title, section_next, section_copyright]

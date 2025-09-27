@@ -3,9 +3,11 @@ import hashlib
 import os
 import random
 import re
+import shlex
 import ssl
 import string
 import subprocess
+import sys
 import time
 
 import cv2
@@ -23,21 +25,41 @@ from requests.adapters import HTTPAdapter
 from src.core.constants import Constants
 
 
-def run_shell(shell: str) -> str:
-    Constants.log.info(f"[shell] {shell}")
-    cmd = subprocess.Popen(shell, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-                           universal_newlines=True, shell=True, bufsize=1)
-    info = ""
-    # 实时输出
-    while True:
-        line = cmd.stderr.readline().strip()
-        Constants.log.info(f"[shell] {line}")
-        info += line
+def run_py_file(payload: str, cwd: str, log_ignore_regex: str | None = None) -> str:
+    Constants.log.info(f'[shell] cd "{cwd}"')
+    Constants.log.info(f'[shell] python -X utf8 {payload}')
 
-        if line == "" or subprocess.Popen.poll(cmd) == 0:  # 判断子进程是否结束
-            break
+    args = [sys.executable, '-X', 'utf8'] + shlex.split(payload)
+    with subprocess.Popen(args, bufsize=1,
+                          stdin=subprocess.PIPE, stderr=subprocess.STDOUT, stdout=subprocess.PIPE,
+                          cwd=cwd, universal_newlines=True, encoding='utf-8') as cmd:
+        ignore_re = re.compile(log_ignore_regex) if log_ignore_regex else None
+        info_lines: list[str] = []
+        while True:  # 实时输出
+            line = cmd.stdout.readline()
+            if not line:
+                if cmd.poll() is not None:  # 判断子进程是否结束
+                    break
+                continue
+            line = line.rstrip('\r\n')
+            if not (ignore_re and ignore_re.search(line)):
+                Constants.log.info(f"[shell] {line}")
+                info_lines.append(line)
 
-    return info
+            if cmd.poll() is not None:  # 判断子进程是否结束
+                break
+
+        # 处理剩余的输出
+        remaining_output = cmd.stdout.read()
+        if remaining_output:
+            remaining_lines = remaining_output.splitlines()
+            for line in remaining_lines:
+                line = line.rstrip('\r\n')
+                if line and not (ignore_re and ignore_re.search(line)):
+                    Constants.log.info(f"[shell] {line}")
+                    info_lines.append(line)
+
+    return '\n'.join(info_lines)
 
 
 def clean_unsafe_shell_str(origin_str: str) -> str:
@@ -63,7 +85,7 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
     if len(proxies) == 0:
         proxies = None
 
-    code = 200
+    code = 500  # 请求过程中出现异常时回退至默认值 500
     try:
         headers = {
             'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -85,13 +107,15 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
         code = response.status_code
         Constants.log.info(f"[network] {code} | {url}")
 
-        if code != 200 and throw:
-            raise ConnectionError(f"Filed to connect {url}, code {code}.")
+        if code != 200:
+            if throw:
+                raise ConnectionError(f"Failed to connect {url}, code {code}.")
+            return code
 
         return response
     except Exception as e:
         if throw:
-            raise RuntimeError(f"Filed to connect {url}: {e}") from e
+            raise ConnectionError(f"Failed to connect {url}: {e}") from e
         Constants.log.warning("[network] 忽略了一个连接异常.")
         Constants.log.exception(f"[network] {e}")
         return code

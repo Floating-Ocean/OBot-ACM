@@ -6,4 +6,7 @@
 	url = https://github.com/qwedc001/Peeper-Board-Generator.git
 [submodule "lib/Huo-Zi-Yin-Shua"]
 	path = lib/Huo-Zi-Yin-Shua
-	url = https://github.com/DSP-8192/HuoZiYinShua
+	url = https://github.com/DSP-8192/HuoZiYinShua.git
+[submodule "lib/OIerDb"]
+	path = lib/OIerDb
+	url = https://github.com/OIerDb-ng/OIerDb-data-generator

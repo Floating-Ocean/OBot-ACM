@@ -3,6 +3,7 @@ def register_all_modules():
     from .cp.atc import register_module
     from .cp.cf import register_module
     from .cp.contest_manual import register_module
+    from .cp.contestant import register_module
     from .cp.nk import register_module
     from .cp.peeper import register_module
     from .game.guess_interval import register_module

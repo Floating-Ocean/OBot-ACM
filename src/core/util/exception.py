@@ -31,10 +31,16 @@ exception_handle_rules = {
 def handle_exception(e: Exception):
     error_reply = "出现未知异常，请联系管理员"
 
-    for error_type, config in exception_handle_rules.items():
-        if isinstance(e, error_type):
-            error_reply = config['message']
-            if config['detail']:
-                error_reply += "\n\n" + repr(e)
+    current_exception = e
+    while current_exception is not None:
+        for error_type, config in exception_handle_rules.items():
+            if isinstance(current_exception, error_type):
+                error_reply = config['message']
+                if config['detail']:
+                    error_reply += "\n\n" + repr(current_exception)
+                return error_reply  # 找到第一个匹配就返回
 
+        current_exception = getattr(current_exception, '__cause__', None)
+
+    # 没有找到匹配的异常
     return error_reply

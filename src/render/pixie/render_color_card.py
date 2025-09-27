@@ -7,8 +7,9 @@ from src.render.pixie.model import Renderer
 
 COLOR_QRCODE_COORD = (1215, 618)
 
-_CONTENT_WIDTH = 1600
-_CONTENT_HEIGHT = 986
+_CONTENT_WIDTH = 1664
+_CONTENT_HEIGHT = 1050
+_CONTAINER_PADDING = 32
 _SIDE_PADDING_HORIZONTAL = 144
 _SIDE_PADDING_VERTICAL = 120
 
@@ -50,14 +51,18 @@ class ColorCardRenderer(Renderer):
         )
 
     def render(self) -> pixie.Image:
-        img = pixie.Image(_CONTENT_WIDTH + 64, _CONTENT_HEIGHT + 64)
+        img = pixie.Image(_CONTENT_WIDTH, _CONTENT_HEIGHT)
         draw_full(img, (0, 0, 0))
 
         paint_bg = pixie.Paint(pixie.SOLID_PAINT)
         paint_bg.color = hex_to_color(self._color.hex)
-        draw_rect(img, paint_bg, Loc(32, 32, _CONTENT_WIDTH, _CONTENT_HEIGHT), 96)
+        background_loc = Loc(_CONTAINER_PADDING, _CONTAINER_PADDING,
+                             _CONTENT_WIDTH - _CONTAINER_PADDING * 2,
+                             _CONTENT_HEIGHT - _CONTAINER_PADDING * 2)
+        draw_rect(img, paint_bg, background_loc, 96)
 
-        current_x, current_y = _SIDE_PADDING_HORIZONTAL + 32, _SIDE_PADDING_VERTICAL + 32
+        current_x = _CONTAINER_PADDING + _SIDE_PADDING_HORIZONTAL
+        current_y = _CONTAINER_PADDING + _SIDE_PADDING_VERTICAL
         current_y = draw_text(img, self.str_title, current_x, current_y)
         current_y = draw_text(img, self.str_name, current_x, current_y)
         draw_text(img, self.str_hex, current_x, current_y)

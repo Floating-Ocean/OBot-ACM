@@ -29,7 +29,7 @@ faulthandler.enable()
 importlib.import_module("easyocr")  # 这个加载巨慢，预先处理一下
 importlib.import_module("src.core")
 from src.core.constants import Constants
-logger.debug(f'[obot-init] 载入核心 Core {Constants.core_version}-{Constants.git_commit_hash}')
+logger.debug(f'[obot-init] 载入核心 Core {Constants.core_version}-{Constants.git_commit.hash_short}')
 
 
 # 加载模块
