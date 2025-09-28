@@ -1,4 +1,4 @@
-from urllib.parse import quote, urljoin, urlencode
+from urllib.parse import urljoin, urlencode
 
 from src.core.constants import Constants
 from src.core.util.tools import fetch_url_json

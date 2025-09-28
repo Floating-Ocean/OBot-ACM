@@ -17,7 +17,7 @@ def send_user_id_card(message: RobotMessage, handle: str):
     id_card = AtCoder.get_user_id_card(handle)
 
     if not id_card:
-        content = (f"[AtCoder ID] {handle}"
+        content = (f"[AtCoder ID] {handle}\n\n"
                    "用户不存在")
         message.reply(content, modal_words=False)
     else:
