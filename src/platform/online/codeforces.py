@@ -2,6 +2,7 @@ import random
 import re
 import time
 from dataclasses import dataclass
+from urllib.parse import quote_plus
 
 import pixie
 from thefuzz import process
@@ -54,7 +55,8 @@ class Codeforces(CompetitivePlatform):
     def _decode_api_url(cls, api: str, **kwargs) -> str:
         url = f"https://codeforces.com/api/{api}"
         if len(kwargs) > 0:
-            payload = '&'.join([f'{key.strip("_")}={val}' for key, val in kwargs.items()])
+            payload = '&'.join([f'{key.strip("_")}={quote_plus(str(val))}'
+                                for key, val in kwargs.items()])
             url += f"?{payload}"
         return url
 
@@ -361,8 +363,9 @@ class Codeforces(CompetitivePlatform):
                              ]  # 所有和今天有交集的已结束比赛
 
         if len(finished_contests) == 0:
-            finished_contests = [_pack_contest(next(contest for contest in contest_list
-                                                    if contest['phase'] == 'FINISHED'))]
+            last_finished = next((c for c in contest_list if c['phase'] == 'FINISHED'), None)
+            if last_finished:
+                finished_contests = [_pack_contest(last_finished)]
 
         return running_contests, upcoming_contests, finished_contests
 
@@ -373,7 +376,7 @@ class Codeforces(CompetitivePlatform):
         for problem in problems['problems']:
             for tag in problem['tags']:
                 tags.append(tag.replace(" ", "-"))
-        tags = list(set(tags))
+        tags = sorted(set(tags))
         return tags
 
     @classmethod
@@ -386,9 +389,6 @@ class Codeforces(CompetitivePlatform):
             problems = cls._api('problemset.problems')
         else:
             problems = cls._api('problemset.problems', tags=prob_info.tag.replace("-", " "))
-
-        if len(problems) == 0:
-            return None
 
         filtered_data = problems['problems']
         if prob_info.limit is not None:

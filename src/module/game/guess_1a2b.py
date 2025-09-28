@@ -36,7 +36,7 @@ def start_game(message: RobotMessage):
     if current_info.status == GuessStatus.RUNNING:
         message.reply("游戏已经开始，请使用 \"/1a2b [num]\" 猜测数字，不要带上中括号\n\n"
                       f"目标为 {len(current_info.target)} 位数")
-        return None
+        return
 
     target_len = random.randint(4, 6)
     first_digit = random.choice("123456789")  # 避免出现前导0
@@ -49,7 +49,6 @@ def start_game(message: RobotMessage):
                   f"目标为 {len(current_info.target)} 位数")
 
     _guess_info[current_uuid] = current_info
-    return None
 
 
 def try_guess(message: RobotMessage):
@@ -59,12 +58,12 @@ def try_guess(message: RobotMessage):
     if _guess_info[current_uuid].status == GuessStatus.IDLE:
         message.reply(f"游戏还未开始\n\n{_GUESS_1A2B_HELP}",
                       modal_words=False)
-        return None
+        return
 
     if _guess_info[current_uuid].status == GuessStatus.ENDED:
         message.reply(f"上一轮游戏已结束\n\n{_GUESS_1A2B_HELP}",
                       modal_words=False)
-        return None
+        return
 
     participant_guess = message.tokens[1]
 
@@ -74,19 +73,19 @@ def try_guess(message: RobotMessage):
             _guess_info[current_uuid] = GuessInfo(GuessStatus.ENDED, "", -1)
         else:
             message.reply("参数格式错误，请输入数字")
-        return None
+        return
 
     if participant_guess[0] == '0':
         message.reply("目标数字不包含前导0")
-        return None
+        return
 
     if len(set(participant_guess)) != len(participant_guess):
         message.reply("目标数字由不同的数组成")
-        return None
+        return
 
     if len(participant_guess) != len(current_info.target):
         message.reply(f"目标数字为 {len(current_info.target)} 位数")
-        return None
+        return
 
     current_info.trials += 1
 
@@ -106,7 +105,6 @@ def try_guess(message: RobotMessage):
                       f"目前总共猜了 {current_info.trials} 次")
 
     _guess_info[current_uuid] = current_info
-    return None
 
 
 @command(tokens=["1a2b", "1a2b猜数字", "ab"], multi_thread=True)

@@ -14,9 +14,6 @@ from src.data.data_cache import get_cached_prefix
 from src.data.data_duel_cf import CFUser, get_binding, establish_binding, accept_binding, settle_duel, unbind
 from src.data.model.binding import BindStatus
 from src.platform.online.codeforces import Codeforces, ProbInfo
-
-__cf_version__ = "v5.0.0"
-
 from src.render.pixie.render_contest_list import ContestListRenderer
 
 _CF_HELP = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
@@ -54,20 +51,19 @@ def send_binding(message: RobotMessage):
     reply_tip = ""
     if user.bind_status == BindStatus.UNBOUNDED:
         message.reply("你当前未绑定任何 Codeforces 账号，请使用 /cf bind [handle] 进行绑定")
-        return None
+        return
     if user.bind_status == BindStatus.BINDING:
         validate_status = Codeforces.validate_binding(user.handle, user.establish_binding_time)
         if validate_status:
             validate_status &= (accept_binding(message.author_id, user) == 0)
         if not validate_status:
             message.reply("绑定失败，请确保你使用了正确的账号，并在绑定开始的 10 分钟内完成了提交")
-            return None
+            return
         reply_tip = "绑定成功！\n"
 
     message.reply(f"{reply_tip}你当前绑定的账号 [{user.handle}]\n\n"
                   f"潜力值：{user.ptt}\n"
                   f"对战数：{len(user.contest_history)}", modal_words=False)
-    return None
 
 
 def send_user_id_card(message: RobotMessage, handle: str):
@@ -130,10 +126,7 @@ def send_prob_tags(message: RobotMessage):
     message.reply("正在查询 Codeforces 平台的所有问题标签，请稍等")
 
     prob_tags = Codeforces.get_prob_tags_all()
-
-    content = "[Codeforces] 问题标签:\n"
-    for tag in prob_tags:
-        content += "\n" + tag
+    content = "[Codeforces] 问题标签:\n" + "\n".join(prob_tags)
 
     message.reply(content, modal_words=False)
 
@@ -175,7 +168,7 @@ def send_prob_link(message: RobotMessage, chosen_prob: dict, hide_tag: bool = Fa
 
 
 def send_contest(message: RobotMessage):
-    message.reply(f"正在查询近期 Codeforces 比赛，请稍等")
+    message.reply("正在查询近期 Codeforces 比赛，请稍等")
 
     running, upcoming, finished = Codeforces.get_contest_list()
 
@@ -183,7 +176,7 @@ def send_contest(message: RobotMessage):
     contest_list_img = ContestListRenderer(running, upcoming, finished).render()
     contest_list_img.write_file(f"{cached_prefix}.png")
 
-    message.reply(f"[Codeforces] 近期比赛", png2jpg(f"{cached_prefix}.png"))
+    message.reply("[Codeforces] 近期比赛", png2jpg(f"{cached_prefix}.png"))
 
 
 def send_user_contest_standings(message: RobotMessage, handle: str, contest_id: str):
@@ -226,15 +219,16 @@ def start_binding(message: RobotMessage, handle: str):
     user_info = Codeforces.get_user_info(handle)
     if not user_info:
         message.reply(f"用户 [{handle}] 不存在，请检查用户名是否正确")
+        return
 
     establish_status = establish_binding(message.author_id, user, handle)
     if establish_status == -1:
         message.reply("你已经开始绑定，请不要重复操作")
-        return None
+        return
     if establish_status == -2:
         message.reply("你已经绑定账号，请不要重复绑定。\n"
                       "如需切换账号，请先使用 /cf unbind 进行解绑。解绑后你的对战数据会保留。", modal_words=False)
-        return None
+        return
 
     cached_prefix = get_cached_prefix('QRCode-Generator')
     qr_img = get_simple_qrcode("https://codeforces.com/contest/1/submit")
@@ -244,7 +238,6 @@ def start_binding(message: RobotMessage, handle: str):
                   "请在 10 分钟内，使用该账号在 P1A 提交一发 CE (编译错误)\n"
                   "提交成功后，请回复 /cf bind 以确认绑定",
                   png2jpg(f"{cached_prefix}.png"), modal_words=False)
-    return None
 
 
 def start_unbinding(message: RobotMessage):
@@ -252,10 +245,9 @@ def start_unbinding(message: RobotMessage):
     unbind_status = unbind(message.author_id, user)
     if unbind_status == -1:
         message.reply("你还未绑定账号，无法解绑")
-        return None
+        return
 
     message.reply("解绑成功")
-    return None
 
 
 def _check_duelist_fresh(message: RobotMessage) -> int:
@@ -270,13 +262,13 @@ def _check_duelist_fresh(message: RobotMessage) -> int:
 def start_duel_pairing(message: RobotMessage, prob_info: ProbInfo):
     user_id = message.author_id
     if _check_duelist_fresh(message) != 0:
-        return None
+        return
 
     validation_status = Codeforces.validate_prob_filtered(prob_info,
                                                           on_tag_chosen=lambda x: message.reply(x))
     if not validation_status:
         send_prob_pick_help(message, "/cf duel start")
-        return None
+        return
 
     with _duel_pairing_info_lock:
         old_pair_code = next((pair_code
@@ -286,7 +278,7 @@ def start_duel_pairing(message: RobotMessage, prob_info: ProbInfo):
         if old_pair_code is not None:
             message.reply("你已经发起对战请求，请不要重复操作\n\n"
                           f"上一次请求的配对码为 {old_pair_code}", modal_words=False)
-            return None
+            return
 
         pair_code = ""
         while len(pair_code) == 0 or pair_code in _duel_pairing_info:
@@ -296,19 +288,18 @@ def start_duel_pairing(message: RobotMessage, prob_info: ProbInfo):
 
     message.reply("已发起对战请求，请对手发送下面的指令以接受对战\n\n"
                   f"/cf duel accept {pair_code}", modal_words=False)
-    return None
 
 
 def accept_duel_pairing(message: RobotMessage, pair_code: str):
     user_id = message.author_id
     user = get_binding(user_id)
     if _check_duelist_fresh(message) != 0:
-        return None
+        return
 
     with _duel_pairing_info_lock:
         if pair_code not in _duel_pairing_info:
             message.reply("配对码无效，建议直接复制粘贴")
-            return None
+            return
         pairing_info = copy.deepcopy(_duel_pairing_info[pair_code])
         del _duel_pairing_info[pair_code]
 
@@ -318,14 +309,14 @@ def accept_duel_pairing(message: RobotMessage, pair_code: str):
     # 验证对手绑定状态
     if opponent.bind_status != BindStatus.BOUND:
         message.reply("对手账号状态异常，无法开始对战")
-        return None
+        return
 
     message.reply("成功接受对战，正在进行随机选题")
 
     r_a, r_b = Codeforces.get_user_rating(user.handle), Codeforces.get_user_rating(opponent.handle)
-    if not r_a:
+    if r_a is None:
         message.reply("你的账号状态异常，无法开始对战")
-    if not r_b:
+    if r_b is None:
         message.reply("对手的账号状态异常，无法开始对战")
 
     r_avg = (r_a + r_b) // 2
@@ -356,7 +347,7 @@ def accept_duel_pairing(message: RobotMessage, pair_code: str):
 
     if not chosen_prob:
         message.reply("随机选题异常，请稍后重新发起对战")
-        return None
+        return
 
     duel_establish_time = int(time.time())
 
@@ -378,7 +369,6 @@ def accept_duel_pairing(message: RobotMessage, pair_code: str):
                   "任意一方通过后发送 /cf duel finish 即可进行结算\n"
                   "若双方均通过，则根据 ICPC 罚时规则进行结算")
     send_prob_link(message, chosen_prob)
-    return None
 
 
 def finish_duel(message: RobotMessage):
@@ -388,7 +378,7 @@ def finish_duel(message: RobotMessage):
     with _duelist_info_lock:
         if user_id not in _duelist_info:
             message.reply("你没有在对战中，无法结束对战")
-            return None
+            return
 
         duel_info = copy.deepcopy(_duelist_info[user_id])
         opponent_id = duel_info.opponent_user_id
@@ -403,7 +393,7 @@ def finish_duel(message: RobotMessage):
                                                duel_info.problem['index'])
         if not status_me or not status_op:
             message.reply("获取提交状态失败，请稍后重试")
-            return None
+            return
 
         ac_me, penalty_me = status_me
         ac_op, penalty_op = status_op
@@ -412,7 +402,7 @@ def finish_duel(message: RobotMessage):
 
     if not ac_me and not ac_op:
         message.reply("对战结束，无人过题")
-        return None
+        return
 
     if ac_me and not ac_op:
         outcome = 0
@@ -433,7 +423,6 @@ def finish_duel(message: RobotMessage):
                   f'对方: {"通过" if ac_op else "未通过"}，罚时 {penalty_op}'
                   f'，潜力值变化 {format_int_delta(opponent.contest_history[-1])}',
                   modal_words=False)
-    return None
 
 
 @command(tokens=['cf', 'codeforces'])
@@ -541,7 +530,7 @@ def reply_cf_request(message: RobotMessage):
 
 @module(
     name="Codeforces",
-    version="v3.2.0"
+    version="v5.1.0"
 )
 def register_module():
     pass

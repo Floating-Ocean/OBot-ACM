@@ -37,7 +37,7 @@ def start_game(message: RobotMessage):
     if current_info.status == GuessStatus.RUNNING:
         message.reply("游戏已经开始，请使用 \"/guess [num]\" 猜测数字，不要带上中括号\n\n"
                       f"目标位于闭区间 [{current_info.bound[0]}, {current_info.bound[1]}] 内")
-        return None
+        return
 
     range_min = random.randint(1, 49900)  # 确保至少有100的范围
     range_max = random.randint(range_min + 100, 50000)
@@ -48,7 +48,6 @@ def start_game(message: RobotMessage):
                   f"目标位于闭区间 [{range_min}, {range_max}] 内")
 
     _guess_info[current_uuid] = current_info
-    return None
 
 
 def try_guess(message: RobotMessage):
@@ -58,12 +57,12 @@ def try_guess(message: RobotMessage):
     if _guess_info[current_uuid].status == GuessStatus.IDLE:
         message.reply(f"游戏还未开始\n\n{_GUESS_INTERVAL_HELP}",
                       modal_words=False)
-        return None
+        return
 
     if _guess_info[current_uuid].status == GuessStatus.ENDED:
         message.reply(f"上一轮游戏已结束\n\n{_GUESS_INTERVAL_HELP}",
                       modal_words=False)
-        return None
+        return
 
     participant_guess_plain = message.tokens[1]
 
@@ -73,7 +72,7 @@ def try_guess(message: RobotMessage):
             _guess_info[current_uuid] = GuessInfo(GuessStatus.ENDED, -1, (-1, -1), -1)
         else:
             message.reply("参数格式错误，请输入数字")
-        return None
+        return
 
     participant_guess = int(participant_guess_plain)
     current_info.trials += 1
@@ -100,7 +99,6 @@ def try_guess(message: RobotMessage):
                       f"目前总共猜了 {current_info.trials} 次")
 
     _guess_info[current_uuid] = current_info
-    return None
 
 
 @command(tokens=["guess", "猜数字", "区间猜数字", "interval"], multi_thread=True)
@@ -108,7 +106,7 @@ def reply_guess_interval(message: RobotMessage):
     if not 1 <= len(message.tokens) <= 2:
         message.reply(f"参数数量有误\n\n{_GUESS_INTERVAL_HELP}",
                       modal_words=False)
-        return None
+        return
 
     with _guess_info_lock:
         current_uuid = message.uuid
@@ -119,8 +117,6 @@ def reply_guess_interval(message: RobotMessage):
             start_game(message)
         else:
             try_guess(message)
-
-        return None
 
 
 @module(

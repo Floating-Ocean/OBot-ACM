@@ -294,19 +294,21 @@ def get_version_info() -> str:
 def send_oj_user(message: RobotMessage):
     content = message.tokens
     if len(content) < 3:
-        return message.reply("请输入三个参数，第三个参数前要加空格，比如说\"/user id 1\"，\"/user name Hydro\"")
+        message.reply("请输入三个参数，第三个参数前要加空格，比如说\"/user id 1\"，\"/user name Hydro\"")
+        return
     if len(content) > 3:
-        return message.reply("请输入三个参数，第三个参数不要加上空格")
+        message.reply("请输入三个参数，第三个参数不要加上空格")
+        return
     if content[1] == "id" and (len(content[2]) > 9 or not check_is_int(content[2])):
-        return message.reply("参数错误，id必须为整数")
+        message.reply("参数错误，id必须为整数")
+        return
     if content[1] == "id" or content[1] == "name":
         target = clean_unsafe_shell_str(content[2])  # 修复注入攻击
         if target:
             _send_user_info(message, target, by_name=(content[1] == "name"))
-            return None
+            return
 
     message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
-    return None
 
 
 @module(

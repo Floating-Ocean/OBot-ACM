@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from urllib.parse import quote
 
-from src.core.constants import Constants
 from src.core.util.tools import fetch_url_json
 
 
@@ -44,7 +43,7 @@ _MEDAL_TYPE = {
 class CPCFinder:
 
     @classmethod
-    def find_student_id(cls, name: str, school: str)-> str | int:
+    def find_student_id(cls, name: str, school: str) -> str | int:
         name = quote(name.strip())
         school = quote(school.strip())
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student?"
@@ -61,7 +60,7 @@ class CPCFinder:
         return stu['studentId']
 
     @classmethod
-    def get_student_general(cls, student_id: str) -> CPCStudent | int:
+    def get_student_general(cls, student_id: str) -> CPCStudent:
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student/{student_id}",
                                    method='get')
         if 'data' not in json_data:
@@ -76,7 +75,7 @@ class CPCFinder:
             raise ValueError("Invalid response for cpcfinder api") from e
 
     @classmethod
-    def get_student_awards(cls, student_id: str) -> list[CPCAward] | int:
+    def get_student_awards(cls, student_id: str) -> list[CPCAward]:
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student/{student_id}/awards",
                                    method='get')
         if 'data' not in json_data:

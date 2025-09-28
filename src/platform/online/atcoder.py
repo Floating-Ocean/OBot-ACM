@@ -97,7 +97,7 @@ class AtCoder(CompetitivePlatform):
                                                  contest.xpath(".//td[3]/text()")[0]]))
                              ]
 
-        if len(finished_contests) == 0:
+        if len(finished_contests) == 0 and len(contest_table_recent) > 0:
             finished_contests = [_pack_contest(contest_table_recent[0], '已结束')]
 
         return running_contests, upcoming_contests, finished_contests
@@ -167,11 +167,11 @@ class AtCoder(CompetitivePlatform):
 
         linked = ["关联账号"]
         for tag in ["Twitter ID", "TopCoder ID", "Codeforces ID"]:
-            if tag == "Codeforces ID":
-                cf_rank = Codeforces.get_user_rank(info_dict[tag])
-                if cf_rank:
-                    info_dict[tag] += f" ({cf_rank})"
             if tag in info_dict:
+                if tag == "Codeforces ID":
+                    cf_rank = Codeforces.get_user_rank(info_dict[tag])
+                    if cf_rank:
+                        info_dict[tag] += f" ({cf_rank})"
                 linked.append(f"{tag[:-3]}: {info_dict[tag]}")
         if len(linked) > 1:
             sections.append('\n'.join(linked))

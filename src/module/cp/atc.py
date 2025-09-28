@@ -75,7 +75,7 @@ def send_prob_filter_tag(message: RobotMessage, contest_type: str, limit: str = 
 
 
 def send_contest(message: RobotMessage):
-    message.reply(f"正在查询近期 AtCoder 比赛，请稍等")
+    message.reply("正在查询近期 AtCoder 比赛，请稍等")
 
     running, upcoming, finished = AtCoder.get_contest_list()
 
@@ -83,7 +83,7 @@ def send_contest(message: RobotMessage):
     contest_list_img = ContestListRenderer(running, upcoming, finished).render()
     contest_list_img.write_file(f"{cached_prefix}.png")
 
-    message.reply(f"[AtCoder] 近期比赛", png2jpg(f"{cached_prefix}.png"))
+    message.reply("[AtCoder] 近期比赛", png2jpg(f"{cached_prefix}.png"))
 
 
 @command(tokens=['atc', 'atcoder'])
@@ -138,7 +138,7 @@ def reply_atc_request(message: RobotMessage):
 
 @module(
     name="AtCoder",
-    version="v1.3.1"
+    version="v1.4.0"
 )
 def register_module():
     pass

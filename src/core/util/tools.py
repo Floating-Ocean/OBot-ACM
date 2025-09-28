@@ -128,7 +128,10 @@ def fetch_url_text(url: str, inject_headers: dict = None, payload: dict = None,
 def fetch_url_json(url: str, inject_headers: dict = None, payload: dict = None,
                    method: str = 'post', accept_codes: list[int] | None = None) -> dict:
     response = fetch_url(url, inject_headers, payload, method, accept_codes)
-    return response.json()
+    try:
+        return response.json()
+    except ValueError as e:
+        raise ValueError(f"Invalid JSON from {url}") from e
 
 
 def fetch_url_element(url: str, accept_codes: list[int] | None = None) -> Element:

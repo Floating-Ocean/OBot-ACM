@@ -44,7 +44,7 @@ def send_user_info(message: RobotMessage, handle: str):
 
 
 def send_contest(message: RobotMessage):
-    message.reply(f"正在查询近期 NowCoder 比赛，请稍等")
+    message.reply("正在查询近期 NowCoder 比赛，请稍等")
 
     running, upcoming, finished = NowCoder.get_contest_list()
 
@@ -52,7 +52,7 @@ def send_contest(message: RobotMessage):
     contest_list_img = ContestListRenderer(running, upcoming, finished).render()
     contest_list_img.write_file(f"{cached_prefix}.png")
 
-    message.reply(f"[NowCoder] 近期比赛", png2jpg(f"{cached_prefix}.png"))
+    message.reply("[NowCoder] 近期比赛", png2jpg(f"{cached_prefix}.png"))
 
 
 @command(tokens=['nk', 'nc', 'nowcoder'])
@@ -99,7 +99,7 @@ def reply_nk_request(message: RobotMessage):
 
 @module(
     name="NowCoder",
-    version="v1.2.1"
+    version="v1.3.0"
 )
 def register_module():
     pass

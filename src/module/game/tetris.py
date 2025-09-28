@@ -262,7 +262,7 @@ def start_game(message: RobotMessage):
 
     map_col = _get_and_validate_map_col(message)
     if map_col == -1:
-        return None
+        return
 
     current_info = GameInfo(GameStatus.RUNNING,
                             [[0] * map_col for _ in range(24)], -1, 0, 0)
@@ -272,8 +272,6 @@ def start_game(message: RobotMessage):
 
     _game_info[current_uuid] = current_info
     _next_block(message, current_info)
-
-    return None
 
 
 def _place_block(current_info: GameInfo,
@@ -377,7 +375,7 @@ def put_block(message: RobotMessage):
     current_info: GameInfo = _game_info[current_uuid]
 
     if not _validate_in_game_pre_input(message):
-        return None
+        return
 
     current_info.create_backup()
 
@@ -385,7 +383,7 @@ def put_block(message: RobotMessage):
     setting_point_row = _get_and_validate_setting_point_row(message, setting_point_col, rotate_cnt)
 
     if setting_point_row == -1:
-        return None
+        return
 
     current_info.trials += 1
     _place_block(current_info,
@@ -404,8 +402,6 @@ def put_block(message: RobotMessage):
     _game_info[current_uuid] = current_info
     _next_block(message, current_info)
 
-    return None
-
 
 @command(tokens=["tetris", "tetris-project", "俄罗斯方块", "tt"], multi_thread=True)
 def reply_tetris(message: RobotMessage):
@@ -419,8 +415,6 @@ def reply_tetris(message: RobotMessage):
             start_game(message)
         else:
             put_block(message)
-
-        return None
 
 
 @module(
