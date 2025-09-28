@@ -17,6 +17,8 @@ from src.platform.online.codeforces import Codeforces, ProbInfo
 
 __cf_version__ = "v5.0.0"
 
+from src.render.pixie.render_contest_list import ContestListRenderer
+
 _CF_HELP = '\n'.join(HelpStrList(Constants.help_contents["codeforces"]))
 _CF_DUEL_HELP = '\n'.join([
     ("/cf duel start [标签|all] (难度) (new): "
@@ -72,10 +74,9 @@ def send_user_id_card(message: RobotMessage, handle: str):
     message.reply(f"正在查询 {handle} 的 Codeforces 基础信息，请稍等")
 
     id_card = Codeforces.get_user_id_card(handle)
-
-    if isinstance(id_card, str):
-        content = (f"[Codeforces ID] {handle}"
-                   f"{id_card}")
+    if not id_card:
+        content = (f"[Codeforces ID] {handle}\n\n"
+                   "用户不存在")
         message.reply(content, modal_words=False)
     else:
         cached_prefix = get_cached_prefix('Platform-ID')
@@ -86,12 +87,13 @@ def send_user_id_card(message: RobotMessage, handle: str):
 def send_user_info(message: RobotMessage, handle: str):
     message.reply(f"正在查询 {handle} 的 Codeforces 平台信息，请稍等")
 
-    info, avatar = Codeforces.get_user_info(handle)
-
-    if avatar is None:
+    user = Codeforces.get_user_info(handle)
+    if not user:
         content = (f"[Codeforces] {handle}\n\n"
-                   f"{info}")
+                   "用户不存在")
+        avatar = None
     else:
+        info, avatar = user
         last_contest = Codeforces.get_user_last_contest(handle)
         last_submit = Codeforces.get_user_last_submit(handle)
         total_sums, weekly_sums, daily_sums = Codeforces.get_user_submit_counts(handle)
@@ -110,13 +112,14 @@ def send_user_info(message: RobotMessage, handle: str):
 def send_user_last_submit(message: RobotMessage, handle: str, count: int):
     message.reply(f"正在查询 {handle} 的 Codeforces 提交记录，请稍等")
 
-    info, _ = Codeforces.get_user_info(handle)
-
-    if info is None:
+    user = Codeforces.get_user_info(handle)
+    if not user:
         content = (f"[Codeforces] {handle}\n\n"
-                   f"用户不存在")
+                   "用户不存在")
     else:
         last_submit = Codeforces.get_user_last_submit(handle, count)
+        if not last_submit:
+            last_submit = "查询异常"
         content = (f"[Codeforces] {handle}\n\n"
                    f"{last_submit}")
 
@@ -128,12 +131,9 @@ def send_prob_tags(message: RobotMessage):
 
     prob_tags = Codeforces.get_prob_tags_all()
 
-    if prob_tags is None:
-        content = "查询异常"
-    else:
-        content = "\n[Codeforces] 问题标签:\n"
-        for tag in prob_tags:
-            content += "\n" + tag
+    content = "[Codeforces] 问题标签:\n"
+    for tag in prob_tags:
+        content += "\n" + tag
 
     message.reply(content, modal_words=False)
 
@@ -148,7 +148,7 @@ def send_prob_filter_tag(message: RobotMessage, prob_info: ProbInfo) -> bool:
 
     chosen_prob = Codeforces.get_prob_filtered(prob_info)
 
-    if isinstance(chosen_prob, int):
+    if not chosen_prob:
         message.reply("条件不合理或过于苛刻，无法找到满足条件的题目")
         return True
 
@@ -177,28 +177,34 @@ def send_prob_link(message: RobotMessage, chosen_prob: dict, hide_tag: bool = Fa
 def send_contest(message: RobotMessage):
     message.reply(f"正在查询近期 Codeforces 比赛，请稍等")
 
-    info = Codeforces.get_recent_contests()
+    running, upcoming, finished = Codeforces.get_contest_list()
 
-    content = (f"[Codeforces] 近期比赛\n\n"
-               f"{info}")
+    cached_prefix = get_cached_prefix('Contest-List-Renderer')
+    contest_list_img = ContestListRenderer(running, upcoming, finished).render()
+    contest_list_img.write_file(f"{cached_prefix}.png")
 
-    message.reply(content, modal_words=False)
+    message.reply(f"[Codeforces] 近期比赛", png2jpg(f"{cached_prefix}.png"))
 
 
 def send_user_contest_standings(message: RobotMessage, handle: str, contest_id: str):
     message.reply(f"正在查询编号为 {contest_id} 的比赛中 {handle} 的榜单信息，请稍等。\n"
                   f"查询对象为参赛者时将会给出 Rating 变化预估，但可能需要更久的时间")
+    content = f"[Codeforces] {handle} 比赛榜单查询\n\n"
 
-    contest_info, standings_info = Codeforces.get_user_contest_standings(handle, contest_id)
-
-    content = (f"[Codeforces] {handle} 比赛榜单查询\n\n"
-               f"{contest_info}")
-    if standings_info is not None:
-        if len(standings_info) > 0:
-            content += '\n\n'
-            content += '\n\n'.join(standings_info)
+    user = Codeforces.get_user_info(handle)
+    if not user:
+        content += "用户不存在"
+    else:
+        standings = Codeforces.get_user_contest_standings(handle, contest_id)
+        if not standings:
+            content += "比赛不存在"
         else:
-            content += '\n\n暂无榜单信息'
+            contest_info, standings_info = standings
+            content += f"{contest_info}\n\n"
+            if len(standings_info) > 0:
+                content += '\n\n'.join(standings_info)
+            else:
+                content += '暂无榜单信息'
 
     message.reply(content, modal_words=False)
 
@@ -217,11 +223,9 @@ def send_prob_pick_help(message: RobotMessage, func_prefix: str):
 def start_binding(message: RobotMessage, handle: str):
     user = get_binding(message.author_id)
 
-    # 验证用户名是否存在
-    user_info, _ = Codeforces.get_user_info(handle)
-    if user_info is None:
+    user_info = Codeforces.get_user_info(handle)
+    if not user_info:
         message.reply(f"用户 [{handle}] 不存在，请检查用户名是否正确")
-        return None
 
     establish_status = establish_binding(message.author_id, user, handle)
     if establish_status == -1:
@@ -319,6 +323,11 @@ def accept_duel_pairing(message: RobotMessage, pair_code: str):
     message.reply("成功接受对战，正在进行随机选题")
 
     r_a, r_b = Codeforces.get_user_rating(user.handle), Codeforces.get_user_rating(opponent.handle)
+    if not r_a:
+        message.reply("你的账号状态异常，无法开始对战")
+    if not r_b:
+        message.reply("对手的账号状态异常，无法开始对战")
+
     r_avg = (r_a + r_b) // 2
 
     excludes = set()
@@ -334,18 +343,18 @@ def accept_duel_pairing(message: RobotMessage, pair_code: str):
 
     chosen_prob = Codeforces.get_prob_filtered(prob_info, excludes)
 
-    if isinstance(chosen_prob, int) and changed_limit:
+    if not chosen_prob and changed_limit:
         prob_info.limit = "800-3000"  # 一定要有范围，否则会选到没难度标级的新题
         chosen_prob = Codeforces.get_prob_filtered(prob_info, excludes)
 
-    if isinstance(chosen_prob, int):
+    if not chosen_prob:
         message.reply("条件不合理或过于苛刻，无法找到满足条件的题目，正在进行随机选题")
         prob_info.tag = "all"
         prob_info.limit = f"{max(800, r_avg - 250)}-{min(3000, r_avg + 250)}"
         prob_info.newer = True
         chosen_prob = Codeforces.get_prob_filtered(prob_info, excludes)
 
-    if isinstance(chosen_prob, int):
+    if not chosen_prob:
         message.reply("随机选题异常，请稍后重新发起对战")
         return None
 
@@ -384,19 +393,20 @@ def finish_duel(message: RobotMessage):
         duel_info = copy.deepcopy(_duelist_info[user_id])
         opponent_id = duel_info.opponent_user_id
         opponent = get_binding(duel_info.opponent_user_id)
-        ac_me, penalty_me = Codeforces.get_prob_status(user.handle,
-                                                       duel_info.establish_time,
-                                                       duel_info.problem['contestId'],
-                                                       duel_info.problem['index'])
-        ac_op, penalty_op = Codeforces.get_prob_status(opponent.handle,
-                                                       duel_info.establish_time,
-                                                       duel_info.problem['contestId'],
-                                                       duel_info.problem['index'])
-
-        if ac_me is None or ac_op is None:
+        status_me = Codeforces.get_prob_status(user.handle,
+                                               duel_info.establish_time,
+                                               duel_info.problem['contestId'],
+                                               duel_info.problem['index'])
+        status_op = Codeforces.get_prob_status(opponent.handle,
+                                               duel_info.establish_time,
+                                               duel_info.problem['contestId'],
+                                               duel_info.problem['index'])
+        if not status_me or not status_op:
             message.reply("获取提交状态失败，请稍后重试")
             return None
 
+        ac_me, penalty_me = status_me
+        ac_op, penalty_op = status_op
         del _duelist_info[user_id]
         del _duelist_info[opponent_id]
 
@@ -531,7 +541,7 @@ def reply_cf_request(message: RobotMessage):
 
 @module(
     name="Codeforces",
-    version="v3.1.2"
+    version="v3.2.0"
 )
 def register_module():
     pass

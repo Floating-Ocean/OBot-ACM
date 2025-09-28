@@ -51,20 +51,31 @@ class Codeforces(CompetitivePlatform):
     }
 
     @classmethod
-    def _api(cls, api: str, **kwargs) -> dict | int:
-        """传递参数构造payload，添加首尾下划线可避免与关键词冲突"""
+    def _decode_api_url(cls, api: str, **kwargs) -> str:
         url = f"https://codeforces.com/api/{api}"
         if len(kwargs) > 0:
             payload = '&'.join([f'{key.strip("_")}={val}' for key, val in kwargs.items()])
             url += f"?{payload}"
-        json_data = fetch_url_json(url, throw=False)
+        return url
 
-        if isinstance(json_data, int) or json_data['status'] != "OK":
-            if isinstance(json_data, int) and json_data != 400:
-                return -1
-            return 0
-
+    @classmethod
+    def _api(cls, api: str, **kwargs) -> dict:
+        """传递参数构造 payload，添加首尾下划线可避免与关键词冲突"""
+        url = cls._decode_api_url(api, **kwargs)
+        json_data = fetch_url_json(url)
         return json_data['result']
+
+    @classmethod
+    def _api_with_check(cls, api: str, **kwargs) -> dict | None:
+        """
+        调用 api，并检查请求是否 OK
+        传递参数构造 payload，添加首尾下划线可避免与关键词冲突
+        """
+        url = cls._decode_api_url(api, **kwargs)
+        json_data = fetch_url_json(url, accept_codes=[200, 400])  # Failed 的时候 code 为 400
+        if json_data['status'] == "OK":
+            return json_data['result']
+        return None
 
     @classmethod
     def _format_verdict(cls, verdict: str, passed_count: int) -> str:
@@ -210,8 +221,6 @@ class Codeforces(CompetitivePlatform):
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/cache/contests-complete.js
         """
         ratings = cls._api('user.ratedList', activeOnly=False, contestId=standings['contest']['id'])
-        if isinstance(ratings, int):
-            return None
         ratings = {user['handle']: user['rating'] for user in ratings}
 
         is_edu_round = 'educational' in standings['contest']['name'].lower()
@@ -252,12 +261,8 @@ class Codeforces(CompetitivePlatform):
         return predict(contestants, True)
 
     @classmethod
-    def _fetch_contest_list_all(cls) -> list[dict] | None:
+    def _fetch_contest_list_all(cls) -> list[dict]:
         contest_list = cls._api('contest.list')
-
-        if isinstance(contest_list, int):
-            return None
-
         contest_list = list(contest_list)
         if len(contest_list) == 0:
             return []
@@ -273,19 +278,11 @@ class Codeforces(CompetitivePlatform):
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/background.js
         """
         standings = cls._api('contest.standings', contestId=contest_id)
-
-        if standings == -1:
-            return -1
-        if standings == 0:
-            return 0
-
         rated, old_ratings = None, None
 
         if standings['contest']['phase'] == 'FINISHED':
-            rating_changes = cls._api('contest.ratingChanges', contestId=contest_id)
-            if rating_changes == -1:
-                return -2
-            if rating_changes == 0:
+            rating_changes = cls._api_with_check('contest.ratingChanges', contestId=contest_id)
+            if not rating_changes:
                 rated = False
             else:
                 rating_changes = list(rating_changes)
@@ -304,8 +301,6 @@ class Codeforces(CompetitivePlatform):
 
             # We can ensure that old_ratings is not None
             result = cls._get_final_prefs(standings, old_ratings)
-            if result is None:
-                return -3
             return result
 
         if (standings['contest']['name'].lower()
@@ -316,8 +311,6 @@ class Codeforces(CompetitivePlatform):
             return 1
 
         result = cls._get_predicted_prefs(standings)
-        if result is None:
-            return -3
         return result
 
     @classmethod
@@ -342,11 +335,8 @@ class Codeforces(CompetitivePlatform):
         return social_info
 
     @classmethod
-    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
+    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
         contest_list = cls._fetch_contest_list_all()
-
-        if contest_list is None:
-            return None
 
         def _pack_contest(contest: dict) -> Contest:
             return Contest(
@@ -377,11 +367,8 @@ class Codeforces(CompetitivePlatform):
         return running_contests, upcoming_contests, finished_contests
 
     @classmethod
-    def get_prob_tags_all(cls) -> list[str] | None:
+    def get_prob_tags_all(cls) -> list[str]:
         problems = cls._api('problemset.problems')
-        if isinstance(problems, int):
-            return None
-
         tags = []
         for problem in problems['problems']:
             for tag in problem['tags']:
@@ -390,7 +377,7 @@ class Codeforces(CompetitivePlatform):
         return tags
 
     @classmethod
-    def get_prob_filtered(cls, prob_info: ProbInfo, excludes: set[str] | None = None) -> dict | int:
+    def get_prob_filtered(cls, prob_info: ProbInfo, excludes: set[str] | None = None) -> dict | None:
         """
         根据tag、是否非远古题、难度范围和排除题目进行随机选题
         excludes 列表项格式为 contestId + index
@@ -400,8 +387,8 @@ class Codeforces(CompetitivePlatform):
         else:
             problems = cls._api('problemset.problems', tags=prob_info.tag.replace("-", " "))
 
-        if isinstance(problems, int) or len(problems) == 0:
-            return -1
+        if len(problems) == 0:
+            return None
 
         filtered_data = problems['problems']
         if prob_info.limit is not None:
@@ -415,17 +402,17 @@ class Codeforces(CompetitivePlatform):
             filtered_data = [prob for prob in filtered_data
                              if f'{prob["contestId"]}{prob["index"]}' not in excludes]
 
-        return random.choice(filtered_data) if len(filtered_data) > 0 else 0
+        return random.choice(filtered_data) if len(filtered_data) > 0 else None
 
     @classmethod
     def get_prob_status(cls, handle: str, establish_time: int,
-                        contest_id: int, index: str) -> tuple[bool | None, int]:
+                        contest_id: int, index: str) -> tuple[bool, int] | None:
         """
         获取过题状态以及罚时 (类ICPC，错误提交*1 = 罚时20min, AC之后的提交不计)
         """
-        submissions = cls._api('contest.status', contestId=contest_id, handle=handle)
-        if isinstance(submissions, int) or len(submissions) == 0:
-            return None, 0
+        submissions = cls._api_with_check('contest.status', contestId=contest_id, handle=handle)
+        if not submissions:
+            return None
 
         accepted = False
         penalty = 0
@@ -455,40 +442,25 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def get_user_rank(cls, handle: str) -> str | None:
-        info = cls._api('user.info', handles=handle)
-
-        if info == -1:
+        info = cls._api_with_check('user.info', handles=handle)
+        if not info or len(info) == 0:
             return None
-        if info == 0 or len(info) == 0:
-            return None
-
         info = info[-1]
-
         return (f"{info['rating']} "
                 f"{next((rk for (l, r), rk in cls.rated_rks.items() if l <= info['rating'] < r), 'N')}")
 
     @classmethod
     def get_user_rating(cls, handle: str) -> int | None:
-        info = cls._api('user.info', handles=handle)
-
-        if info == -1:
+        info = cls._api_with_check('user.info', handles=handle)
+        if not info or len(info) == 0:
             return None
-        if info == 0 or len(info) == 0:
-            return None
-
-        info = info[-1]
-
-        return info['rating']
+        return info[-1]['rating']
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | str:
-        info = cls._api('user.info', handles=handle)
-
-        if info == -1:
-            return "查询异常"
-        if info == 0 or len(info) == 0:
-            return "用户不存在"
-
+    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+        info = cls._api_with_check('user.info', handles=handle)
+        if not info or len(info) == 0:
+            return None
         info = info[-1]
 
         social = '. '.join(cls._format_social_info(info, ('From', 'Earth')))
@@ -506,13 +478,10 @@ class Codeforces(CompetitivePlatform):
                                 rank=rank, rank_alias=rank_alias, rating=rating, platform=cls).render()
 
     @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str | None]:
-        info = cls._api('user.info', handles=handle)
-
-        if info == -1:
-            return "查询异常", None
-        if info == 0 or len(info) == 0:
-            return "用户不存在", None
+    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
+        info = cls._api_with_check('user.info', handles=handle)
+        if not info or len(info) == 0:
+            return None
 
         info = info[-1]
         sections = []
@@ -537,12 +506,6 @@ class Codeforces(CompetitivePlatform):
     @classmethod
     def get_user_last_contest(cls, handle: str) -> str:
         rating = cls._api('user.rating', handle=handle)
-
-        if rating == -1:
-            return "查询异常"
-        if rating == 0:
-            return "用户不存在"
-
         rated_contests = list(rating)
         contest_count = len(rated_contests)
         if contest_count == 0:
@@ -560,12 +523,6 @@ class Codeforces(CompetitivePlatform):
     @classmethod
     def get_user_last_submit(cls, handle: str, count: int = 5) -> str:
         status = cls._api('user.status', handle=handle, _from_=1, count=count)
-
-        if status == -1:
-            return "查询异常"
-        if status == 0:
-            return "用户不存在"
-
         status = list(status)
         if len(status) == 0:
             return "还未提交过题目"
@@ -587,10 +544,6 @@ class Codeforces(CompetitivePlatform):
     @classmethod
     def get_user_submit_counts(cls, handle: str) -> tuple[int, int, int]:
         status = cls._api('user.status', handle=handle)
-
-        if isinstance(status, int):
-            return -1, -1, -1
-
         status = list(status)
         submit_len = len(status)
         if submit_len == 0:
@@ -614,22 +567,16 @@ class Codeforces(CompetitivePlatform):
     def get_user_submit_prob_id(cls, handle: str) -> set[str]:
         """获取用户提交过的所有题目，列表项格式为 contestId + index"""
         status = cls._api('user.status', handle=handle)
-
-        if isinstance(status, int):
-            return set()
-
         prob_id = [(f'{submission["problem"]["contestId"]}'
                     f'{submission["problem"]["index"]}') for submission in status]
         return set(prob_id)
 
     @classmethod
-    def get_user_contest_standings(cls, handle: str, contest_id: str) -> tuple[str, list[str] | None]:
-        standings = cls._api('contest.standings', handles=handle, contestId=contest_id, showUnofficial=True)
-
-        if standings == -1:
-            return "查询异常", None
-        if standings == 0:
-            return "比赛不存在", None
+    def get_user_contest_standings(cls, handle: str, contest_id: str) -> tuple[str, list[str]] | None:
+        standings = cls._api_with_check('contest.standings',
+                                        handles=handle, contestId=contest_id, showUnofficial=True)
+        if not standings:
+            return None
 
         contest_info = cls._format_contest(standings['contest'])
         standings_info = [cls._format_standing(standing, contest_id) for standing in standings['rows']]
@@ -642,7 +589,7 @@ class Codeforces(CompetitivePlatform):
         验证发起绑定后10分钟内在P1A有一发CE提交
         """
         submissions = cls._api('contest.status', contestId=1, handle=handle, count=1)
-        if isinstance(submissions, int) or len(submissions) == 0:
+        if len(submissions) == 0:
             return False
 
         last_submission = submissions[-1]

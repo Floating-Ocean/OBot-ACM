@@ -72,8 +72,11 @@ def clean_unsafe_shell_str(origin_str: str) -> str:
     return sanitized
 
 
-def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw: bool = True,
-              method: str = 'post') -> Response | int:
+def fetch_url(url: str, inject_headers: dict = None, payload: dict = None,
+              method: str = 'post', accept_codes: list[int] | None = None) -> Response:
+    if accept_codes is None:
+        accept_codes = [200]
+
     proxies = {}  # 配置代理
     general_conf = Constants.modules_conf.general
     if ('http_proxy' in general_conf and
@@ -85,7 +88,6 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
     if len(proxies) == 0:
         proxies = None
 
-    code = 500  # 请求过程中出现异常时回退至默认值 500
     try:
         headers = {
             'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -104,45 +106,33 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None, throw
         else:
             raise ValueError("Parameter method must be either 'post' or 'get'.")
 
-        code = response.status_code
-        Constants.log.info(f"[network] {code} | {url}")
-
-        if code != 200:
-            if throw:
-                raise ConnectionError(f"Failed to connect {url}, code {code}.")
-            return code
-
-        return response
     except Exception as e:
-        if throw:
-            raise ConnectionError(f"Failed to connect {url}: {e}") from e
-        Constants.log.warning("[network] 忽略了一个连接异常.")
-        Constants.log.exception(f"[network] {e}")
-        return code
+        # 交给外层异常处理
+        raise ConnectionError(f"Failed to connect {url}: {e}") from e
+
+    code = response.status_code
+    Constants.log.info(f"[network] {code} | {url}")
+
+    if code not in accept_codes:
+        raise ConnectionError(f"Failed to connect {url}, code {code}.")
+
+    return response
 
 
-def fetch_url_text(url: str, inject_headers: dict = None, payload: dict = None, throw: bool = True,
-                   method: str = 'post') -> str | int:
-    response = fetch_url(url, inject_headers, payload, throw, method)
-
-    if isinstance(response, int):
-        return response
-
+def fetch_url_text(url: str, inject_headers: dict = None, payload: dict = None,
+                   method: str = 'post', accept_codes: list[int] | None = None) -> str:
+    response = fetch_url(url, inject_headers, payload, method, accept_codes)
     return response.text
 
 
-def fetch_url_json(url: str, inject_headers: dict = None, payload: dict = None, throw: bool = True,
-                   method: str = 'post') -> dict | int:
-    response = fetch_url(url, inject_headers, payload, throw, method)
-
-    if isinstance(response, int):
-        return response
-
+def fetch_url_json(url: str, inject_headers: dict = None, payload: dict = None,
+                   method: str = 'post', accept_codes: list[int] | None = None) -> dict:
+    response = fetch_url(url, inject_headers, payload, method, accept_codes)
     return response.json()
 
 
-def fetch_url_element(url: str, payload: dict = None) -> Element:
-    response = fetch_url(url, payload, method='get')
+def fetch_url_element(url: str, accept_codes: list[int] | None = None) -> Element:
+    response = fetch_url(url, method='get', accept_codes=accept_codes)
     return etree.HTML(response.text)
 
 
@@ -358,7 +348,7 @@ def read_image_with_opencv(file_path: str, grayscale: bool = False) -> np.ndarra
             return cv_image
 
     except Exception as e:
-        raise RuntimeError(f"Filed to load cv image: {e}") from e
+        raise RuntimeError(f"Failed to load cv image: {e}") from e
 
 
 def reverse_str_by_line(original_str: str) -> str:

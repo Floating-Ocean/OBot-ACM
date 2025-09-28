@@ -71,7 +71,7 @@ class AtCoder(CompetitivePlatform):
         return social_info
 
     @classmethod
-    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
+    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
         html = fetch_url_element("https://atcoder.jp/contests/")
         contest_table_active = html.xpath("//div[@id='contest-table-active']//tbody/tr")
         contest_table_upcoming = html.xpath("//div[@id='contest-table-upcoming']//tbody/tr")
@@ -125,14 +125,14 @@ class AtCoder(CompetitivePlatform):
         else:
             filtered_data = Clist.api("problem", resource_id=93, url__regex=filter_regex)
 
-        if isinstance(filtered_data, int):
-            return filtered_data
-
         return random.choice(filtered_data) if len(filtered_data) > 0 else 0
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | str:
-        html = fetch_url_element(f"https://atcoder.jp/users/{handle}")
+    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+        html = fetch_url_element(f"https://atcoder.jp/users/{handle}",
+                                 accept_codes=[200, 404])
+        if html.xpath('//text()[contains(., "404 Not Found")]'):
+            return None
 
         info_table = html.xpath("//table[@class='dl-table']//tr")
         info_dict = {row.xpath('.//th/text()')[0]: row.xpath('.//td//text()')[0].strip() for row in info_table}
@@ -150,8 +150,11 @@ class AtCoder(CompetitivePlatform):
                                 social=social, rank=rank, rank_alias=rank, rating=rating, platform=cls).render()
 
     @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str | None]:
-        html = fetch_url_element(f"https://atcoder.jp/users/{handle}")
+    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
+        html = fetch_url_element(f"https://atcoder.jp/users/{handle}",
+                                 accept_codes=[200, 404])
+        if html.xpath('//text()[contains(., "404 Not Found")]'):
+            return None
 
         sections = []
 
@@ -165,7 +168,9 @@ class AtCoder(CompetitivePlatform):
         linked = ["关联账号"]
         for tag in ["Twitter ID", "TopCoder ID", "Codeforces ID"]:
             if tag == "Codeforces ID":
-                info_dict[tag] += f" ({Codeforces.get_user_rank(info_dict[tag])})"
+                cf_rank = Codeforces.get_user_rank(info_dict[tag])
+                if cf_rank:
+                    info_dict[tag] += f" ({cf_rank})"
             if tag in info_dict:
                 linked.append(f"{tag[:-3]}: {info_dict[tag]}")
         if len(linked) > 1:
@@ -175,7 +180,7 @@ class AtCoder(CompetitivePlatform):
         rated_dict = {row.xpath('.//th/text()')[0].strip(): row.xpath('.//td//text()') for row in rated_table}
         rated_dict['Highest Rating'][0] = rated_dict['Highest Rating'][0].replace(' Kyu', '级').replace(' Dan', '段')
         platform = [
-            f"位次: {rated_dict['Rank'][0]}",
+            f"位次: {rated_dict['Rank'][0]}" if 'Rank' in rated_dict else "近两年未参加比赛",
             f"比赛Rating: {rated_dict['Rating'][0]}",
             f"最高Rating: {rated_dict['Highest Rating'][0]}"
             f" {rated_dict['Highest Rating'][4]} {rated_dict['Highest Rating'][6]}"
@@ -187,10 +192,7 @@ class AtCoder(CompetitivePlatform):
     @classmethod
     def get_user_last_contest(cls, handle: str) -> str:
         url = f"https://atcoder.jp/users/{handle}/history/json"
-        json_data = fetch_url_json(url, throw=False, method='get')
-
-        if isinstance(json_data, int):
-            return "查询异常"
+        json_data = fetch_url_json(url, method='get')
 
         rated_contests = list([contest for contest in json_data if contest['IsRated']])
         contest_count = len(rated_contests)

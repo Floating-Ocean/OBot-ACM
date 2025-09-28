@@ -37,9 +37,7 @@ def reply_cpcfinder(message: RobotMessage):
         stu_id = CPCFinder.find_student_id(stu_name, stu_school)
 
         if isinstance(stu_id, int):
-            if stu_id < 0:
-                message.reply('查询异常，请稍后重试')
-            elif stu_id == 0:
+            if stu_id == 0:
                 message.reply('未找到该选手信息')
             elif stu_id == 1:
                 message.reply('目前只支持查询单一用户，请缩小查询范围')
@@ -47,10 +45,6 @@ def reply_cpcfinder(message: RobotMessage):
 
         stu_general = CPCFinder.get_student_general(stu_id)
         stu_awards = CPCFinder.get_student_awards(stu_id)
-
-        if isinstance(stu_general, int) or isinstance(stu_awards, int):
-            message.reply('查询异常，请稍后重试')
-            return
 
         stu_info = ("[CPCFinder] 选手查询\n\n"
                     f"{stu_general.name} / {stu_general.school}\n\n"

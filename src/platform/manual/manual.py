@@ -17,7 +17,7 @@ class ManualPlatform(CompetitivePlatform):
     rks_color = {}
 
     @classmethod
-    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
+    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
         running_contests, upcoming_contests = [], []
         finished_contests_today, finished_contests_last = [], []
 
@@ -53,9 +53,9 @@ class ManualPlatform(CompetitivePlatform):
         return running_contests, upcoming_contests, finished_contests
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | str:
-        return "手动配置平台不支持此操作"
+    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+        return None
 
     @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str | None]:
-        return "手动配置平台不支持此操作", None
+    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
+        return None

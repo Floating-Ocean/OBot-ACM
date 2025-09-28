@@ -48,14 +48,9 @@ class CPCFinder:
         name = quote(name.strip())
         school = quote(school.strip())
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student?"
-                                   f"name={name}&school={school}",
-                                   throw=False, method='get')
-
-        if isinstance(json_data, int):
-            return -1
-
+                                   f"name={name}&school={school}", method='get')
         if 'data' not in json_data:
-            return -2
+            raise ValueError("Invalid response for cpcfinder api")
 
         if len(json_data['data']) == 0:
             return 0
@@ -68,13 +63,9 @@ class CPCFinder:
     @classmethod
     def get_student_general(cls, student_id: str) -> CPCStudent | int:
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student/{student_id}",
-                                   throw=False, method='get')
-
-        if isinstance(json_data, int):
-            return -1
-
+                                   method='get')
         if 'data' not in json_data:
-            return -2
+            raise ValueError("Invalid response for cpcfinder api")
 
         stu = json_data['data']
         try:
@@ -82,20 +73,14 @@ class CPCFinder:
                               stu['championCount'], stu['secCount'], stu['thiCount'],
                               stu['goldCount'], stu['silverCount'], stu['bronzeCount'])
         except KeyError as e:
-            Constants.log.warning(f"[cpcfinder] 返回数据不规范")
-            Constants.log.error(e)
-            return -2
+            raise ValueError("Invalid response for cpcfinder api") from e
 
     @classmethod
     def get_student_awards(cls, student_id: str) -> list[CPCAward] | int:
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student/{student_id}/awards",
-                                   throw=False, method='get')
-
-        if isinstance(json_data, int):
-            return -1
-
+                                   method='get')
         if 'data' not in json_data:
-            return -2
+            raise ValueError("Invalid response for cpcfinder api")
 
         awards = json_data['data']
         try:
@@ -108,8 +93,4 @@ class CPCFinder:
                 for award in awards
             ]
         except KeyError as e:
-            Constants.log.warning(f"[cpcfinder] 返回数据不规范")
-            Constants.log.error(e)
-            return -2
-
-
+            raise ValueError("Invalid response for cpcfinder api") from e
