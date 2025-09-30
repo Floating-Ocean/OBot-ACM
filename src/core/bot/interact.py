@@ -160,6 +160,10 @@ def reply_recent_contests(message: RobotMessage):
         upcoming_contests.extend(upcoming)
         finished_contests.extend(finished)
 
+    running_contests.sort(key=lambda c: c.start_time)
+    upcoming_contests.sort(key=lambda c: c.start_time)
+    finished_contests.sort(key=lambda c: c.start_time)
+
     if query_today:
         running_contests = [contest for contest in running_contests if check_intersect(
             range1=get_today_timestamp_range(),
