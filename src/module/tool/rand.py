@@ -27,12 +27,7 @@ _RAND_HELP = '\n'.join(HelpStrList(Constants.help_contents["random"]))
 def get_rand_num(range_min: int, range_max: int) -> int:
     url = ("https://www.random.org/integers/?num=1&"
            f"min={range_min}&max={range_max}&col=1&base=10&format=plain&rnd=new")
-    data = fetch_url_text(url, throw=False, method='get')
-
-    if isinstance(data, int):
-        Constants.log.info(f"[rand] 获取随机数失败，代码 {data}.")
-        return random.randint(range_min, range_max)
-
+    data = fetch_url_text(url, method='get')
     return int(data)
 
 
@@ -40,12 +35,7 @@ def get_rand_seq(range_max: int) -> str:
     url = ("https://www.random.org/integer-sets/?sets=1&"
            f"num={range_max}&min=1&max={range_max}&seqnos=off&commas=on&order=index&"
            "format=plain&rnd=new")
-    data = fetch_url_text(url, throw=False, method='get')
-
-    if isinstance(data, int):
-        Constants.log.info(f"[rand] 获取随机序列失败，代码 {data}.")
-        return ", ".join([str(x) for x in random.sample(range(1, range_max + 1), range_max)])
-
+    data = fetch_url_text(url, method='get')
     return data
 
 

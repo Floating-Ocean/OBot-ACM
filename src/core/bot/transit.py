@@ -132,7 +132,7 @@ def handle_message(message: RobotMessage, message_id: MessageID):
         if message_id in fixed_handlers:
             handler_func, handler_kwargs = fixed_handlers[message_id]
             handler_func(**handler_kwargs)
-            return None
+            return
 
         func = message.tokens[0].lower()
 
@@ -149,11 +149,9 @@ def handle_message(message: RobotMessage, message_id: MessageID):
             original_command(message)
         except Exception as e:
             message.report_exception(f'{message_id.module}.{message_id.command}', e)
-        return None
 
     except Exception as e:
         message.report_exception('Core.Transit', e)
-        return None
 
 
 def _check_permission(execute_level, func, message, message_id):

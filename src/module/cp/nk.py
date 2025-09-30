@@ -6,6 +6,7 @@ from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int, png2jpg
 from src.data.data_cache import get_cached_prefix
 from src.platform.online.nowcoder import NowCoder
+from src.render.pixie.render_contest_list import ContestListRenderer
 
 _NK_HELP = '\n'.join(HelpStrList(Constants.help_contents["nowcoder"]))
 
@@ -14,10 +15,9 @@ def send_user_id_card(message: RobotMessage, handle: str):
     message.reply(f"正在查询 {handle} 的 NowCoder 基础信息，请稍等")
 
     id_card = NowCoder.get_user_id_card(handle)
-
-    if isinstance(id_card, str):
-        content = (f"[NowCoder ID] {handle}"
-                   f"{id_card}")
+    if not id_card:
+        content = (f"[NowCoder ID] {handle}\n\n"
+                   "用户不存在")
         message.reply(content, modal_words=False)
     else:
         cached_prefix = get_cached_prefix('Platform-ID')
@@ -28,12 +28,13 @@ def send_user_id_card(message: RobotMessage, handle: str):
 def send_user_info(message: RobotMessage, handle: str):
     message.reply(f"正在查询 {handle} 的 NowCoder 平台信息，请稍等")
 
-    info, avatar = NowCoder.get_user_info(handle)
-
-    if avatar is None:
+    user = NowCoder.get_user_info(handle)
+    if not user:
         content = (f"[NowCoder] {handle}\n\n"
-                   f"{info}")
+                   "用户不存在")
+        avatar = None
     else:
+        info, avatar = user
         last_contest = NowCoder.get_user_last_contest(handle)
         content = (f"[NowCoder] {handle}\n\n"
                    f"{info}\n\n"
@@ -43,14 +44,15 @@ def send_user_info(message: RobotMessage, handle: str):
 
 
 def send_contest(message: RobotMessage):
-    message.reply(f"正在查询近期 NowCoder 比赛，请稍等")
+    message.reply("正在查询近期 NowCoder 比赛，请稍等")
 
-    info = NowCoder.get_recent_contests()
+    running, upcoming, finished = NowCoder.get_contest_list()
 
-    content = (f"[NowCoder] 近期比赛\n\n"
-               f"{info}")
+    cached_prefix = get_cached_prefix('Contest-List-Renderer')
+    contest_list_img = ContestListRenderer(running, upcoming, finished).render()
+    contest_list_img.write_file(f"{cached_prefix}.png")
 
-    message.reply(content, modal_words=False)
+    message.reply("[NowCoder] 近期比赛", png2jpg(f"{cached_prefix}.png"))
 
 
 @command(tokens=['nk', 'nc', 'nowcoder'])
@@ -97,7 +99,7 @@ def reply_nk_request(message: RobotMessage):
 
 @module(
     name="NowCoder",
-    version="v1.2.1"
+    version="v1.3.0"
 )
 def register_module():
     pass

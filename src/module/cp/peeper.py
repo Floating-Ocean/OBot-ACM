@@ -10,7 +10,7 @@ from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
-from src.core.util.tools import run_shell, escape_mail_url, png2jpg, check_is_int, clean_unsafe_shell_str
+from src.core.util.tools import run_py_file, escape_mail_url, png2jpg, check_is_int, clean_unsafe_shell_str
 from src.data.data_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
@@ -154,11 +154,9 @@ def _call_lib_method_with_conf(conf: dict, prop: str, no_id: bool = False) -> st
     traceback = ""
     payload = _cache_conf_payload(conf)
     for _ in range(2):  # 尝试2次
-        id_prop = "" if no_id else f'--id {conf["id"]} '
+        id_prop = "" if no_id else f'--id "{conf["id"]}" '
         # prop 中的变量只有 Constants.config 中的路径，已在 robot.py 中事先检查
-        result = run_shell(
-            f'cd "{_lib_path}" && python main.py {id_prop}{prop} --config "{payload}"'
-        )
+        result = run_py_file(f'main.py {id_prop}{prop} --config "{payload}"', _lib_path)
         try:
             with open(os.path.join(_lib_path, "last_traceback.log"), "r", encoding='utf-8') as f:
                 traceback = f.read()
@@ -193,7 +191,7 @@ def _call_lib_method(message: RobotMessage | None, prop: str,
     return result
 
 
-def daily_update_job():
+def peeper_daily_update_job():
     execute_conf = Constants.modules_conf.peeper["configs"]
     peeper_conf = _generate_peeper_conf(execute_conf)
     Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(peeper_conf.conf_dict)} 个榜单')
@@ -202,7 +200,7 @@ def daily_update_job():
         Constants.log.info(f'[peeper] 正在更新 {conf_id}')
         cached_prefix = get_cached_prefix('Peeper-Board-Generator')
         try:
-            _call_lib_method_with_conf(conf, f"--full --output {cached_prefix}.png")
+            _call_lib_method_with_conf(conf, f'--full --output "{cached_prefix}.png"')
         except ModuleRuntimeError as e:
             Constants.log.warning(f"[peeper] 更新每日榜单失败，配置文件为 {conf_id}")
             Constants.log.exception(f"[peeper] {e}")
@@ -216,7 +214,8 @@ def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
     message.reply(f"正在查询{type_name}为 {content} 的用户数据，请稍等")
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
-    run = _call_lib_method(message, f"--query_{type_id} {content} --output {cached_prefix}.txt")
+    run = _call_lib_method(message,
+                           f'--query_{type_id} "{content}" --output "{cached_prefix}.txt"')
     if run is None:
         return
 
@@ -238,8 +237,8 @@ def send_now_board_with_verdict(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f"--now --separate_cols --verdict {verdict} "
-                           f"--output {cached_prefix}.png", conf_id=conf_id)
+                           f'--now --separate_cols --verdict "{verdict}" '
+                           f'--output "{cached_prefix}.png"', conf_id=conf_id)
     if run is None:
         return
 
@@ -253,7 +252,8 @@ def send_today_board(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f"--now --separate_cols --output {cached_prefix}.png", conf_id=conf_id)
+                           f'--now --separate_cols --output "{cached_prefix}.png"',
+                           conf_id=conf_id)
     if run is None:
         return
 
@@ -267,7 +267,8 @@ def send_yesterday_board(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f"--full --separate_cols --output {cached_prefix}.png", conf_id=conf_id)
+                           f'--full --separate_cols --output "{cached_prefix}.png"',
+                           conf_id=conf_id)
     if run is None:
         return
 
@@ -277,7 +278,7 @@ def send_yesterday_board(message: RobotMessage):
 def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(None,  # 留空选择默认
-                           f"--version --output {cached_prefix}.txt", no_id=True)
+                           f'--version --output "{cached_prefix}.txt"', no_id=True)
     if run is None:
         return "Unknown"
 
@@ -293,19 +294,21 @@ def get_version_info() -> str:
 def send_oj_user(message: RobotMessage):
     content = message.tokens
     if len(content) < 3:
-        return message.reply("请输入三个参数，第三个参数前要加空格，比如说\"/user id 1\"，\"/user name Hydro\"")
+        message.reply("请输入三个参数，第三个参数前要加空格，比如说\"/user id 1\"，\"/user name Hydro\"")
+        return
     if len(content) > 3:
-        return message.reply("请输入三个参数，第三个参数不要加上空格")
+        message.reply("请输入三个参数，第三个参数不要加上空格")
+        return
     if content[1] == "id" and (len(content[2]) > 9 or not check_is_int(content[2])):
-        return message.reply("参数错误，id必须为整数")
+        message.reply("参数错误，id必须为整数")
+        return
     if content[1] == "id" or content[1] == "name":
         target = clean_unsafe_shell_str(content[2])  # 修复注入攻击
         if target:
             _send_user_info(message, target, by_name=(content[1] == "name"))
-            return None
+            return
 
     message.reply("请输入正确的参数，如\"/user id ...\", \"/user name ...\"")
-    return None
 
 
 @module(

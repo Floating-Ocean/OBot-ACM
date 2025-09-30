@@ -13,15 +13,16 @@ from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, dispatch_message
-from src.core.constants import Constants
-from src.module.cp.peeper import daily_update_job
+from src.core.constants import Constants, InvalidGitCommit
+from src.module.cp.contestant import oierdb_daily_update_job
+from src.module.cp.peeper import peeper_daily_update_job
 
 daily_sched = BlockingScheduler()
-noon_sched = BlockingScheduler()
 
 
 def daily_sched_thread():
-    daily_sched.add_job(daily_update_job, "cron", hour=0, minute=0, args=[])
+    daily_sched.add_job(peeper_daily_update_job, "cron", hour=0, minute=0, args=[])
+    daily_sched.add_job(oierdb_daily_update_job, "cron", hour=0, minute=0, args=[])
     daily_sched.start()
 
 
@@ -52,6 +53,20 @@ def reply_my_id(message: RobotMessage):
     message.reply(f'你的ID（不同对话场景下你的ID是不同的）\n\n{message.author_id}', modal_words=False)
 
 
+@command(tokens=["git"])
+def reply_git_commit(message: RobotMessage):
+    commit = Constants.git_commit
+    if isinstance(commit, InvalidGitCommit):
+        message.reply("此 OBot 大概率不是通过 Git Clone 得到的")
+    else:
+        commit_info = ("[Git] 当前提交信息\n\n"
+                       f"commit {commit.hash}{commit.ref}\n"
+                       f"Author: {commit.author}\n"
+                       f"Date: {commit.date}\n\n"
+                       f"{commit.message_title}")
+        message.reply(commit_info, modal_words=False)
+
+
 class MyClient(Client):
     def __init__(self, intents: Intents, timeout: int = 5, is_sandbox=False,
                  log_config: Union[str, dict] = None, log_format: str = None, log_level: int = None,
@@ -60,7 +75,7 @@ class MyClient(Client):
 
     async def on_ready(self):
         Constants.log.info("[obot-core] 机器人上线，"
-                           f"版本 {Constants.core_version}-{Constants.git_commit_hash}")
+                           f"版本 {Constants.core_version}-{Constants.git_commit.hash_short}")
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
