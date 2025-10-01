@@ -19,7 +19,6 @@ __oierdb_version__ = "v1.0.0"
 def register_module():
     pass
 
-
 @command(tokens=["oier", "OI选手", "信息学奥赛"])
 def query_oier(message: RobotMessage):
     """查询OI选手信息"""
@@ -65,121 +64,6 @@ def query_oier(message: RobotMessage):
         
     except Exception as e:
         return message.reply(f"查询过程中出现错误: {str(e)}")
-
-
-@command(tokens=["oier搜索", "OI搜索"])
-def search_oier(message: RobotMessage):
-    """搜索OI选手"""
-    try:
-        # 移除@标签并解析命令
-        content = re.sub(r'<@!\d+>', '', message.content).strip().split()
-        if len(content) < 3:
-            return message.reply("请指定搜索类型和关键词，如: oier搜索 学校 清华")
-        
-        # 解析搜索类型和关键词
-        search_type = content[1]
-        query = ' '.join(content[2:]) if len(content) > 2 else ''
-        print(f"[oierdb-debug] 搜索类型: {search_type}, 关键词: {query}")
-        
-        if not query:
-            return message.reply("""🔍 OIer搜索帮助:
-
-📝 搜索命令:
-  oier搜索 学校 清华      - 按学校搜索
-  oier搜索 姓名 张        - 按姓名搜索
-
-💡 提示: 支持模糊搜索""")
-        
-        # 映射搜索类型
-        type_mapping = {
-            "学校": "school",
-            "姓名": "name",
-            "名字": "name"
-        }
-        
-        if search_type not in type_mapping:
-            return message.reply("不支持的搜索类型，请使用: 学校、姓名")
-        
-        # 执行搜索
-        results = oierdb_instance.search(query, limit=15)
-        
-        if not results:
-            return message.reply(f"未找到包含 '{query}' 的{search_type}相关选手")
-        
-        response = f"🔍 {search_type}搜索结果 (关键词: {query}):\n\n"
-        
-        for i, result in enumerate(results[:10], 1):  # 最多显示10个
-            response += f"{i}. {result['name']}\n"
-            response += f"CCF等级: {result['ccf_level']}\n"
-            response += f"获奖次数: {len(result['records'])}\n"
-            if result['records']:
-                latest = result['records'][-1]
-                response += f"最近获奖: {latest['contest_name']} {latest['level']}\n"
-            response += "\n"
-        
-        if len(results) > 10:
-            response += f"... 还有 {len(results) - 10} 个选手未显示"
-        
-        return message.reply(response)
-        
-    except Exception as e:
-        return message.reply(f"搜索过程中出现错误: {str(e)}")
-
-
-@command(tokens=["oier排行", "OI排行榜"])
-def oier_ranking(message: RobotMessage):
-    """查看OI选手排行榜"""
-    try:
-        # 移除@标签并解析命令
-        content = re.sub(r'<@!\d+>', '', message.content).strip().split()
-        if len(content) < 1:
-            return message.reply("请输入命令，如: oier排行")
-        
-        # 解析数量参数
-        limit_str = content[1] if len(content) > 1 else ''
-        print(f"[oierdb-debug] 排行榜数量: {limit_str}")
-        
-        # 解析数量参数
-        limit = 10  # 默认显示10名
-        if limit_str:
-            try:
-                limit = int(limit_str)
-                if limit < 1:
-                    limit = 10
-                elif limit > 50:
-                    limit = 50  # 最多显示50名
-            except ValueError:
-                return message.reply("请输入有效的数量，如: /oier排行 20")
-        
-        # 获取排行榜
-        rankings = oierdb_instance.get_ranking(limit)
-        
-        if not rankings:
-            return message.reply("无法获取排行榜数据")
-        
-        response = f"CCF等级排行榜 (前{len(rankings)}名):\n\n"
-        
-        for i, result in enumerate(rankings, 1):
-            response += f"{i:2d}. {result['name']}\n"
-            response += f"CCF等级: {result['ccf_level']}\n"
-            response += f"获奖次数: {len(result['records'])}\n"
-            
-            # 显示最高荣誉
-            if result['records']:
-                # 按比赛重要性和奖项等级排序
-                best_record = max(result['records'], key=lambda r: (
-                    3 if r['contest_type'] == 'NOI' else 2 if 'NOIP' in r['contest_type'] else 1,
-                    5 if '金牌' in r['level'] else 4 if '银牌' in r['level'] else 3 if '铜牌' in r['level'] else 1
-                ))
-                response += f"最佳成绩: {best_record['contest_name']}\n"
-            
-            response += "\n"
-        
-        return message.reply(response)
-        
-    except Exception as e:
-        return message.reply(f"获取排行榜时出现错误: {str(e)}")
-
 
 def format_grade_display(grade_str: str) -> str:
     """
