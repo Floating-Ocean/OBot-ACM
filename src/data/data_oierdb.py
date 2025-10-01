@@ -134,8 +134,10 @@ class OIerDB:
 
     def _get_data_path(self, filename: str) -> str:
         """获取数据文件路径"""
+        # 从src/data目录向上两级到项目根目录，然后进入lib/oierdb
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(current_dir, "oierdb", filename)
+        project_root = os.path.dirname(os.path.dirname(current_dir))  # 向上两级到项目根目录
+        return os.path.join(project_root, "lib", "oierdb", filename)
 
     def _parse_contest_info(self, contest_name: str) -> Dict[str, Any]:
         """解析比赛名称，提取比赛类型和年份"""

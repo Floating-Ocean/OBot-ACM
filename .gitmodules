@@ -7,6 +7,6 @@
 [submodule "lib/Huo-Zi-Yin-Shua"]
 	path = lib/Huo-Zi-Yin-Shua
 	url = https://github.com/DSP-8192/HuoZiYinShua
-[submodule "src/data/oierdb"]
-	path = src/data/oierdb
+[submodule "lib/oierdb"]
+	path = lib/oierdb
 	url = https://github.com/coperlm/oierdb.git
