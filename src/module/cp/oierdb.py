@@ -101,7 +101,7 @@ def search_oier(message: RobotMessage):
             return message.reply("❌ 不支持的搜索类型，请使用: 学校、姓名")
         
         # 执行搜索
-        results = oierdb_instance.search(query, type_mapping[search_type], limit=15)
+        results = oierdb_instance.search(query, limit=15)
         
         if not results:
             return message.reply(f"❌ 未找到包含 '{query}' 的{search_type}相关选手")

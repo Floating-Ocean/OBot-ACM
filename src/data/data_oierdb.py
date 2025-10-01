@@ -194,8 +194,15 @@ class OIerDB:
                 self.contests[contest_data["name"]] = contest_data
             
             Constants.log.info(f"加载了 {len(self.contests)} 个比赛定义")
+        except FileNotFoundError:
+            Constants.log.error(f"比赛数据文件不存在: {contests_file}")
+            raise
+        except json.JSONDecodeError as e:
+            Constants.log.error(f"比赛数据JSON格式错误: {e}")
+            raise
         except Exception as e:
-            Constants.log.error(f"加载比赛数据失败: {e}")
+            Constants.log.error(f"加载比赛数据时发生未知错误: {e}")
+            raise
 
     def load_raw_data(self):
         """加载原始数据文件 raw.txt"""

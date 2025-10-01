@@ -9,4 +9,4 @@
 	url = https://github.com/DSP-8192/HuoZiYinShua
 [submodule "src/data/oierdb"]
 	path = src/data/oierdb
-	url = git@github.com:coperlm/oierdb.git
+	url = https://github.com/coperlm/oierdb.git
