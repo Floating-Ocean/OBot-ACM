@@ -306,7 +306,7 @@ def query_single_player(name: str) -> str:
                             level_info = f" {level}" if level else ""
                             response += f"{contest}{level_info}{grade_info}\n"
         else:
-            response += "📝 暂无获奖记录"
+            response += "暂无获奖记录"
     
     return response
 
@@ -348,6 +348,6 @@ def query_batch_players(names: list) -> str:
             response += "\n"
             
         else:
-            response += f"{i}. {name} ❌ 未找到\n"
+            response += f"{i}. {name} 未找到\n"
 
     return response
