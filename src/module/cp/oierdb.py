@@ -175,7 +175,7 @@ def query_single_player(name: str) -> str:
         # 单个选手详细信息
         result = results[0]
         uid_info = f" (UID: {result.get('uid', '未知')})" if result.get('uid') else ""
-        response = f" [OIerDb]选手查询\n\n"
+        response = f" [OIerDb] 选手查询\n\n"
         response += f"{result['name']}{uid_info} \n"
 
         # 按学校分类显示获奖记录
@@ -320,7 +320,7 @@ def query_single_player(name: str) -> str:
 
 def query_batch_players(names: list) -> str:
     """批量查询选手信息"""
-    response = f"[OIerDb]选手批量查询 ({len(names)}人)\n\n"
+    response = f"[OIerDb] 选手批量查询 ({len(names)}人)\n"
     found_count = 0
 
     for i, name in enumerate(names, 1):
@@ -336,7 +336,7 @@ def query_batch_players(names: list) -> str:
                 result = results[0]
                 multiple_info = ""
             
-            response += f"#{i} {result['name']}"
+            response += f"\n#{i} {result['name']}"
             response += multiple_info + "\n"
             
             # 显示关键信息：CCF等级、CCF分数、获奖次数
@@ -345,18 +345,16 @@ def query_batch_players(names: list) -> str:
             
             # 显示学校和省份信息（简化）
             if result.get('schools'):
-                school_info = result['schools'][0] if len(result['schools']) == 1 else f"@{result['schools'][0]}等{len(result['schools'])}校"
-                response += f"{school_info}"
+                school_info = result['schools'][0] if len(result['schools']) == 1 else f"{result['schools'][0]}等{len(result['schools'])}校"
+                response += f"@{school_info}"
                 
             if result.get('provinces'):
-                response += f" /  {', '.join(result['provinces'][:2])}"
+                response += f" / {', '.join(result['provinces'][:2])}"
                 if len(result['provinces']) > 2:
                     response += "等"
             response += "\n"
             
         else:
             response += f"{i}. {name} ❌ 未找到\n"
-        response += "\n"
-    
-    response += f"成功找到 {found_count}/{len(names)} 个选手"
+
     return response
