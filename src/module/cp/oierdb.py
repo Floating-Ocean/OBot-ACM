@@ -25,14 +25,9 @@ def query_oier(message: RobotMessage):
     try:
         # 移除@标签并解析命令
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
-        print(f"[oierdb-debug] 原始消息: {message.content}")
-        print(f"[oierdb-debug] 解析后内容: {content}")
         
         if len(content) < 1:
             return message.reply("请输入命令，如: oier 张三")
-        
-        # 检查是否是oier命令（不需要严格匹配，因为已经通过tokens匹配了）
-        print(f"[oierdb-debug] 第一个词: {content[0].lower()}")
         
         # 获取姓名参数
         names = content[1:] if len(content) > 1 else []
@@ -163,10 +158,8 @@ def query_single_player(name: str) -> str:
     """查询单个选手详细信息"""
     results = oierdb_instance.query_by_name(name)
     
-    print(f"[oierdb-debug] 查询 '{name}' 返回 {len(results)} 个结果")
-    
     if not results:
-        return f"未找到选手 '{name}'"
+        return f"[OIerDb] 未找到选手 '{name}'"
     
     if len(results) > 1:
         # 多个同名选手
@@ -174,8 +167,8 @@ def query_single_player(name: str) -> str:
     else:
         # 单个选手详细信息
         result = results[0]
-        uid_info = f" (UID: {result.get('uid', '未知')})" if result.get('uid') else ""
-        response = f" [OIerDb] 选手查询\n\n"
+        uid_info = f"(UID: {result.get('uid', '未知')})" if result.get('uid') else ""
+        response = f"[OIerDb] 选手查询\n\n"
         response += f"{result['name']}{uid_info} \n"
 
         # 按学校分类显示获奖记录
@@ -197,7 +190,7 @@ def query_single_player(name: str) -> str:
                 oier_obj = result.get('oier_obj')
                 if oier_obj:
                     school_ccf_score, school_ccf_level = oier_obj.calculate_school_ccf_level(school)
-                    ccf_info = f"CCF等级: {school_ccf_level} 级"
+                    ccf_info = f"CCF等级: {school_ccf_level}"
                 else:
                     ccf_info = ""
                 
