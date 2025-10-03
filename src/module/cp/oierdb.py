@@ -158,7 +158,7 @@ def query_single_player(name: str) -> str:
         result = results[0]
         uid_info = f"(UID: {result.get('uid', '未知')})" if result.get('uid') else ""
         response = f"[OIerDb] 选手查询\n\n"
-        response += f"{result['name']}{uid_info} \n"
+        response += f"{result['name']}{uid_info}"
 
         # 按学校分类显示获奖记录
         records = result['records']
@@ -253,11 +253,17 @@ def query_single_player(name: str) -> str:
                 
                 # 按重要性排序显示比赛类型
                 type_order = ['NOI', 'IOI', 'WC', 'CTSC', 'APIO', 'CSP提高', 'CSP入门', 'NOIP提高', 'NOIP普及', 'NOID类']
+                
+                # 计算该学校总的记录数，用于判断是否是最后一条
+                total_records = sum(len(contest_types[ct]) for ct in contest_types if ct in type_order)
+                record_count = 0
+                
                 for contest_type in type_order:
                     if contest_type in contest_types:
                         records_of_type = contest_types[contest_type]
 
                         for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
+                            record_count += 1
                             year = record['year']
                             contest = record['contest_name']
                             grade = record.get('grade', '').strip()
@@ -271,7 +277,9 @@ def query_single_player(name: str) -> str:
                                 grade_display = ""
                             
                             level_display = f"[{level}]" if level else "[未知]"
-                            response += f"{level_display} {contest}{grade_display}\n"
+                            # 判断是否是最后一条记录，如果是则不换行
+                            line_end = "" if record_count == total_records and cnt == len(school_records) else "\n"
+                            response += f"{level_display} {contest}{grade_display}{line_end}"
                 
                 # 显示其他类型
                 for contest_type in contest_types:
@@ -334,10 +342,17 @@ def query_batch_players(names: list) -> str:
                 response += f" / {', '.join(result['provinces'][:2])}"
                 if len(result['provinces']) > 2:
                     response += "等"
-            response += "\n"
+            
+            # 判断是否是最后一个选手,如果不是则换行
+            if i < len(names):
+                response += "\n"
             
         else:
-            response += f"{i}. {name} 未找到\n"
+            # 未找到的选手
+            if i < len(names):
+                response += f"\n#{i} {name} 未找到\n"
+            else:
+                response += f"\n#{i} {name} 未找到"
 
     return response
 
