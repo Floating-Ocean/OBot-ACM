@@ -2,17 +2,7 @@ import re
 
 from src.core.bot.decorator import module, command
 from src.core.bot.message import RobotMessage
-from src.core.constants import Constants
-from src.core.util.tools import run_py_file
 from src.platform.collect.cpcfinder import CPCFinder
-
-_oierdb_lib_path = Constants.modules_conf.get_lib_path("OIerDb")
-
-
-def oierdb_daily_update_job():
-    Constants.log.info('[oierdb] 每日数据库更新任务开始')
-    run_py_file('main.py', _oierdb_lib_path, log_ignore_regex=r'.*%.*\|.*\|.*')
-    Constants.log.info('[oierdb] 每日数据库更新任务完成')
 
 
 def _format_cpc_rank(official: bool, rank: int, official_rank: int) -> str:
@@ -22,7 +12,8 @@ def _format_cpc_rank(official: bool, rank: int, official_rank: int) -> str:
         return f"*{rank}"
 
 
-@command(tokens=['cpcfinder', 'xcpcfinder', 'cpcfind', 'xcpcfind', 'cpcfd', 'xcpcfd'])
+@command(tokens=['cpcfinder', 'xcpcfinder', 'cpcfind', 'xcpcfind', 'cpcfd', 'xcpcfd',
+                 'acm', 'icpc', 'ccpc', '大学生程序设计竞赛'])
 def reply_cpcfinder(message: RobotMessage):
     try:
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
@@ -70,7 +61,7 @@ def reply_cpcfinder(message: RobotMessage):
 
 
 @module(
-    name="Contestant-Finder",
+    name="Contestant.CPCFinder",
     version="v1.0.1"
 )
 def register_module():

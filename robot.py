@@ -14,7 +14,6 @@ from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, dispatch_message
 from src.core.constants import Constants, InvalidGitCommit
-from src.module.cp.contestant import oierdb_daily_update_job
 from src.module.cp.peeper import peeper_daily_update_job
 
 daily_sched = BlockingScheduler()
@@ -22,7 +21,6 @@ daily_sched = BlockingScheduler()
 
 def daily_sched_thread():
     daily_sched.add_job(peeper_daily_update_job, "cron", hour=0, minute=0, args=[])
-    daily_sched.add_job(oierdb_daily_update_job, "cron", hour=0, minute=0, args=[])
     daily_sched.start()
 
 
