@@ -9,4 +9,4 @@
 	url = https://github.com/DSP-8192/HuoZiYinShua.git
 [submodule "lib/OIerDb"]
 	path = lib/OIerDb
-	url = https://github.com/coperlm/oierdb.git
+	url = https://github.com/OIerDb-ng/OIerDb-data-generator.git

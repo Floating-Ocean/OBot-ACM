@@ -133,10 +133,17 @@ class OIerDB:
 
     def _get_data_path(self, filename: str) -> str:
         """获取数据文件路径"""
-        # 从src/data目录向上两级到项目根目录，然后进入lib/oierdb
+        # 从src/data目录向上两级到项目根目录，然后进入lib/OIerDb
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))  # 向上两级到项目根目录
-        return os.path.join(project_root, "lib", "oierdb", filename)
+        
+        # 根据文件类型确定子目录
+        # raw.txt 和 school.txt 在 data/ 文件夹
+        # contests.json 等配置文件在 static/ 文件夹
+        if filename in ["raw.txt", "school.txt"]:
+            return os.path.join(project_root, "lib", "OIerDb", "data", filename)
+        else:
+            return os.path.join(project_root, "lib", "OIerDb", "static", filename)
 
     def _parse_contest_info(self, contest_name: str) -> Dict[str, Any]:
         """解析比赛名称，提取比赛类型和年份"""
@@ -190,8 +197,13 @@ class OIerDB:
             with open(contests_file, "r", encoding="utf-8") as f:
                 contests_data = json.load(f)
             
-            for contest_data in contests_data:
-                self.contests[contest_data["name"]] = contest_data
+            # 新格式的 contests.json 是一个字典
+            if isinstance(contests_data, dict):
+                self.contests = contests_data
+            # 旧格式是列表
+            elif isinstance(contests_data, list):
+                for contest_data in contests_data:
+                    self.contests[contest_data["name"]] = contest_data
         except FileNotFoundError:
             Constants.log.warning("[OIerDb] 比赛数据文件不存在")
             raise
