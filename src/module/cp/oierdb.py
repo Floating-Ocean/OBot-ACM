@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: UTF-8 -*-
 """
 OIerDB查询模块
 提供OI选手数据库查询功能
@@ -9,15 +7,6 @@ import re
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.data.data_oierdb import oierdb_instance
-
-__oierdb_version__ = "v1.0.0"
-
-@module(
-    name="OIerDB查询器",
-    version=__oierdb_version__
-)
-def register_module():
-    pass
 
 @command(tokens=["oier", "OI选手", "信息学奥赛"])
 def query_oier(message: RobotMessage):
@@ -33,13 +22,13 @@ def query_oier(message: RobotMessage):
         names = content[1:] if len(content) > 1 else []
         
         if not names:
-            return message.reply("""OIerDB查询帮助:
+            return message.reply("""[OIerDb]查询帮助:
 
-📝 选手查询:
+选手查询:
   oier 张三              - 查询单个选手详细信息
   oier 张三 李四 王五     - 批量查询多个选手
 
-💡 提示: 
+提示: 
   - 支持空格分隔多个姓名
   - 单个查询显示详细信息，批量查询显示简要信息""")
         
@@ -58,7 +47,7 @@ def query_oier(message: RobotMessage):
         return message.reply(response)
         
     except Exception as e:
-        return message.reply(f"查询过程中出现错误: {str(e)}")
+        message.report_exception('Contestant.OIerDb', e)
 
 def format_grade_display(grade_str: str) -> str:
     """
@@ -351,3 +340,10 @@ def query_batch_players(names: list) -> str:
             response += f"{i}. {name} 未找到\n"
 
     return response
+
+@module(
+    name="Contestant.OIerDb",
+    version="v1.0.0"
+)
+def register_module():
+    pass

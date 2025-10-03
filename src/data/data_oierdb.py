@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: UTF-8 -*-
 """
 OIerDB 数据访问模块
 用于查询 OIer 数据库中的选手信息、比赛记录等
@@ -194,16 +192,16 @@ class OIerDB:
             
             for contest_data in contests_data:
                 self.contests[contest_data["name"]] = contest_data
-            
-            Constants.log.info(f"[oierdb] 加载了 {len(self.contests)} 个比赛定义")
         except FileNotFoundError:
-            Constants.log.error(f"[oierdb] 比赛数据文件不存在: {contests_file}")
+            Constants.log.warning("[OIerDb] 比赛数据文件不存在")
             raise
         except json.JSONDecodeError as e:
-            Constants.log.error(f"[oierdb] 比赛数据JSON格式错误: {e}")
+            Constants.log.warning("[OIerDb] 比赛数据JSON格式错误")
+            Constants.log.exception(f"[OIerDb] {e}")
             raise
         except Exception as e:
-            Constants.log.error(f"[oierdb] 加载比赛数据时发生未知错误: {e}")
+            Constants.log.warning("[OIerDb] 加载比赛数据时发生未知错误")
+            Constants.log.exception(f"[OIerDb] {e}")
             raise
 
     def load_raw_data(self):
@@ -259,7 +257,8 @@ class OIerDB:
                         records_by_name[name].append(record)
                         
                     except Exception as e:
-                        Constants.log.error(f"[oierdb] 解析第 {line_num} 行数据失败: {line}, 错误: {e}")
+                        Constants.log.warning(f"[OIerDb] 解析第 {line_num} 行数据失败: {line}")
+                        Constants.log.exception(f"[OIerDb] {e}")
                         continue
             
             # 创建 OIer 对象
@@ -270,25 +269,22 @@ class OIerDB:
             
             # 按CCF等级和分数排序
             self.oiers.sort(key=lambda x: (x.ccf_level, x.ccf_score), reverse=True)
-            
-            Constants.log.info(f"[oierdb] 从 raw.txt 加载了 {len(self.oiers)} 位选手，共 {sum(len(oier.records) for oier in self.oiers)} 条记录")
-            
         except Exception as e:
-            Constants.log.error(f"[oierdb] 加载原始数据失败: {e}")
+            Constants.log.warning("[OIerDb] 加载原始数据失败")
+            Constants.log.exception(f"[OIerDb] {e}")
             raise
 
     def load_data(self):
         """加载所有数据"""
         if not self.data_loaded:
             try:
-                Constants.log.info("[oierdb] 正在加载 OIerDB 原始数据...")
                 self.load_contests()
                 self.load_raw_data()
                 
                 self.data_loaded = True
-                Constants.log.info("[oierdb] OIerDB 数据加载完成！")
             except Exception as e:
-                Constants.log.error(f"[oierdb] 数据加载失败: {e}")
+                Constants.log.warning("[OIerDb] 数据加载失败")
+                Constants.log.exception(f"[OIerDb] {e}")
                 raise
 
     def query_by_name(self, name: str) -> List[Dict[str, Any]]:
