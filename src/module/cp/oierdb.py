@@ -4,6 +4,8 @@ OIerDB查询模块
 """
 
 import re
+from datetime import datetime
+from typing import Optional
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.data.data_oierdb import oierdb_instance
@@ -78,7 +80,11 @@ def format_grade_display(grade_str: str) -> str:
     return grade
 
 
-def calculate_current_status(first_award_year: int, first_award_grade: str, current_year: int = 2025) -> str:
+def calculate_current_status(
+    first_award_year: int,
+    first_award_grade: str,
+    current_year: Optional[int] = None
+) -> str:
     """
     根据第一个奖项的年份和年级，推算选手在当前年份的状态
     
@@ -92,6 +98,9 @@ def calculate_current_status(first_award_year: int, first_award_grade: str, curr
     """
     if not first_award_year or not first_award_grade:
         return "无法推算"
+
+    if current_year is None:
+        current_year = datetime.now().year
     
     # 年级映射到标准年级数字 (1-12)
     grade_mapping = {
@@ -228,8 +237,7 @@ def query_single_player(name: str) -> str:
                 
                 current_status = calculate_current_status(
                     status_record['year'], 
-                    status_record.get('grade', ''), 
-                    2025
+                    status_record.get('grade', '')
                 )
                 
                 ccf_display = f"{ccf_info}" if ccf_info else ""
