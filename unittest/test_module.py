@@ -9,6 +9,7 @@ from botpy.errors import ServerError
 
 from src.core.util.exception import handle_exception, UnauthorizedError, ModuleRuntimeError
 from src.core.util.tools import decode_range
+from src.platform.collect.cpcfinder import CPCFinder
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces, ProbInfo
@@ -98,6 +99,13 @@ class Module(unittest.TestCase):
         self.assertIsInstance(pickup_prob, dict)
         print(pickup_prob)
 
+    def test_cpcfinder(self):
+        stu_id = CPCFinder.find_student_id("蒋凌宇", "北京大学")
+        self.assertIsInstance(stu_id, str)
+        stu_general = CPCFinder.get_student_general(stu_id)
+        print(stu_general)
+        stu_awards = CPCFinder.get_student_awards(stu_id)
+        print(stu_awards)
 
 
 if __name__ == '__main__':

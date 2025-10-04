@@ -42,18 +42,14 @@ class Render(unittest.TestCase):
         png2jpg("test_color_qrcode.png")
 
     def test_contest_list(self):
-        upcoming_contests, running_contests, finished_contests = [], [], []
+        running_contests, upcoming_contests, finished_contests = [], [], []
         for platform in [Codeforces, AtCoder, NowCoder, ManualPlatform]:
-            upcoming, running, finished = platform.get_contest_list()
-            upcoming_contests.extend(upcoming)
+            running, upcoming, finished = platform.get_contest_list()
             running_contests.extend(running)
+            upcoming_contests.extend(upcoming)
             finished_contests.extend(finished)
 
-        upcoming_contests.sort(key=lambda c: c.start_time)
-        running_contests.sort(key=lambda c: c.start_time)
-        finished_contests.sort(key=lambda c: c.start_time)
-
-        contest_list_img = ContestListRenderer(upcoming_contests, running_contests, finished_contests).render()
+        contest_list_img = ContestListRenderer(running_contests, upcoming_contests, finished_contests).render()
         self.assertIsNotNone(contest_list_img)
         contest_list_img.write_file("test_contest_list.png")
 
@@ -102,7 +98,7 @@ class Render(unittest.TestCase):
 
     def test_about(self):
         about_img = AboutRenderer(
-            ("OBot Core", f"{Constants.core_version}-{Constants.git_commit_hash}"),
+            ("OBot Core", f"{Constants.core_version}-{Constants.git_commit.hash_short}"),
             get_all_modules_info()
         ).render()
         self.assertIsNotNone(about_img)
