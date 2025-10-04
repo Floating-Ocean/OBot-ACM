@@ -6,7 +6,7 @@ OIerDB 数据访问模块
 
 import os
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from collections import defaultdict
 from src.core.constants import Constants
 import re

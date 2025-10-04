@@ -47,7 +47,7 @@ def query_oier(message: RobotMessage):
         return message.reply(response)
         
     except Exception as e:
-        message.report_exception('Contestant.OIerDb', e)
+        return message.report_exception('Contestant.OIerDb', e)
 
 def format_grade_display(grade_str: str) -> str:
     """
@@ -264,7 +264,6 @@ def query_single_player(name: str) -> str:
 
                         for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
                             record_count += 1
-                            year = record['year']
                             contest = record['contest_name']
                             grade = record.get('grade', '').strip()
                             level = record.get('level', '').strip()
@@ -288,7 +287,6 @@ def query_single_player(name: str) -> str:
                         records_of_type = contest_types[contest_type]
 
                         for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
-                            year = record['year']
                             contest = record['contest_name']
                             grade = record.get('grade', '').strip()
                             level = record.get('level', '').strip()
