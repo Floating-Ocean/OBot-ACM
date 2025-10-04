@@ -96,7 +96,7 @@ class Constants:
     log = logging.get_logger()
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
-    core_version = "v5.0.0-beta.3"
+    core_version = "v5.0.0-beta.5"
     git_commit = _get_git_commit()
 
     key_words = [
