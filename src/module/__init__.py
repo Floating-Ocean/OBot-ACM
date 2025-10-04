@@ -13,6 +13,7 @@ def register_all_modules():
     from .tool.pick_one import register_module
     from .tool.rand import register_module
     from .tool.uptime import register_module
+    from .cp.oierdb import register_module       # 新增OIerDB查询模块
 
 
 register_all_modules()
