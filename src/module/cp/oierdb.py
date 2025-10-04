@@ -16,7 +16,7 @@ def query_oier(message: RobotMessage):
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
         
         if len(content) < 1:
-            return message.reply("请输入命令，如: oier 张三")
+            return message.reply("请输入命令，如: oier 张三", modal_words=False)
         
         # 获取姓名参数
         names = content[1:] if len(content) > 1 else []
@@ -30,11 +30,11 @@ def query_oier(message: RobotMessage):
 
 提示: 
   - 支持空格分隔多个姓名
-  - 单个查询显示详细信息，批量查询显示简要信息""")
+  - 单个查询显示详细信息，批量查询显示简要信息""", modal_words=False)
         
         # 限制查询数量
         if len(names) > 10:
-            return message.reply("单次查询最多支持10个选手")
+            return message.reply("单次查询最多支持10个选手", modal_words=False)
         
         # 执行查询
         if len(names) == 1:
@@ -44,7 +44,7 @@ def query_oier(message: RobotMessage):
             # 批量选手查询
             response = query_batch_players(names)
         
-        return message.reply(response)
+        return message.reply(response, modal_words=False)
         
     except Exception as e:
         return message.report_exception('Contestant.OIerDb', e)
