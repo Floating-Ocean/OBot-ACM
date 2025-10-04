@@ -16,15 +16,16 @@ def query_oier(message: RobotMessage):
     try:
         # 移除@标签并解析命令
         content = re.sub(r'<@!\d+>', '', message.content).strip().split()
-        
+
         if len(content) < 1:
-            return message.reply("请输入命令，如: oier 张三", modal_words=False)
-        
+            message.reply("请输入命令，如: oier 张三", modal_words=False)
+            return
+
         # 获取姓名参数
         names = content[1:] if len(content) > 1 else []
-        
+
         if not names:
-            return message.reply("""[OIerDb]查询帮助:
+            message.reply("""[OIerDb]查询帮助:
 
 选手查询:
   oier 张三              - 查询单个选手详细信息
@@ -33,11 +34,13 @@ def query_oier(message: RobotMessage):
 提示: 
   - 支持空格分隔多个姓名
   - 单个查询显示详细信息，批量查询显示简要信息""", modal_words=False)
-        
+            return
+
         # 限制查询数量
         if len(names) > 10:
-            return message.reply("单次查询最多支持10个选手", modal_words=False)
-        
+            message.reply("单次查询最多支持10个选手", modal_words=False)
+            return
+
         # 执行查询
         if len(names) == 1:
             # 单个选手详细查询
@@ -45,11 +48,13 @@ def query_oier(message: RobotMessage):
         else:
             # 批量选手查询
             response = query_batch_players(names)
-        
-        return message.reply(response, modal_words=False)
+
+        message.reply(response, modal_words=False)
+        return
         
     except Exception as e:
-        return message.report_exception('Contestant.OIerDb', e)
+        message.report_exception('Contestant.OIerDb', e)
+        return
 
 def format_grade_display(grade_str: str) -> str:
     """
@@ -91,7 +96,7 @@ def calculate_current_status(
     Args:
         first_award_year: 第一个奖项的年份
         first_award_grade: 第一个奖项时的年级
-        current_year: 当前年份，默认2025
+        current_year: 当前年份，默认为当前系统年份
     
     Returns:
         选手当前状态的描述字符串
