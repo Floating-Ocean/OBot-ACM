@@ -178,6 +178,10 @@ class Constants:
             Help("/nk info [handle]", "获取用户名为 handle 的 NowCoder 详细用户信息."),
             Help("/nk contests", "列出最近的 NowCoder 比赛.")
         ],
+        'contestant': [
+            Help("/cpcfinder [name] [school]", "获取名为 name 且学校为 school 的 XCPC 大学生程序设计竞赛选手获奖信息."),
+            Help("/oierdb [name]", "获取名为 name 的 OI 信息学奥赛选手获奖信息，支持批量查询."),
+        ],
         'random': [
             Help("/rand [num/int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
             Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500]."),

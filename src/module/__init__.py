@@ -4,6 +4,7 @@ def register_all_modules():
     from .cp.cf import register_module
     from .cp.contest_manual import register_module
     from .cp.cpcfinder import register_module
+    from .cp.oierdb import register_module
     from .cp.nk import register_module
     from .cp.peeper import register_module
     from .game.guess_interval import register_module
@@ -13,7 +14,6 @@ def register_all_modules():
     from .tool.pick_one import register_module
     from .tool.rand import register_module
     from .tool.uptime import register_module
-    from .cp.oierdb import register_module       # 新增OIerDB查询模块
 
 
 register_all_modules()
