@@ -7,10 +7,10 @@ from typing import Callable
 from pypinyin import pinyin, Style
 from thefuzz import process
 
-from src.core.lib.huo_zi_yin_shua import HuoZiYinShua
 from src.core.bot.decorator import command, get_all_modules_info
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
+from src.core.lib.huo_zi_yin_shua import HuoZiYinShua
 from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, check_is_int
 from src.data.data_cache import get_cached_prefix
 from src.platform.manual.manual import ManualPlatform
@@ -250,7 +250,7 @@ def reply_about(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('About-Renderer')
     about_img = AboutRenderer(
-        ("OBot Core", f"{Constants.core_version}-{Constants.git_commit_hash}"),
+        ("OBot Core", f"{Constants.core_version}-{Constants.git_commit.hash_short}"),
         get_all_modules_info()
     ).render()
     about_img.write_file(f"{cached_prefix}.png")

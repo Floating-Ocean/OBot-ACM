@@ -50,13 +50,11 @@ class NowCoder(CompetitivePlatform):
     }
 
     @classmethod
-    def _api(cls, url: str) -> list[dict] | int:
-        json_data = fetch_url_json(url, throw=False, method='get')
+    def _api(cls, url: str) -> list[dict]:
+        json_data = fetch_url_json(url, method='get')
 
-        if isinstance(json_data, int) or json_data['msg'] != "OK":
-            if isinstance(json_data, int):
-                return -1
-            return 0
+        if json_data['msg'] != "OK":
+            raise ValueError("Invalid response for nowcoder api")
 
         data_list = json_data['data']['dataList']
         all_data = list(data_list)
@@ -64,9 +62,9 @@ class NowCoder(CompetitivePlatform):
         # 爬取所有页
         page_count = json_data['data']['pageInfo']['pageCount']
         for page in range(2, page_count + 1):
-            json_data = fetch_url_json(f"{url}&page={page}", throw=False, method='get')
-            if isinstance(json_data, int) or json_data['msg'] != "OK":
-                return -1
+            json_data = fetch_url_json(f"{url}&page={page}", method='get')
+            if json_data['msg'] != "OK":
+                raise ValueError("Invalid response for nowcoder api")
             all_data.extend(list(json_data['data']['dataList']))
 
         return all_data
@@ -128,12 +126,6 @@ class NowCoder(CompetitivePlatform):
     def _fetch_team_members_info(cls, handle: str, inline: bool = False) -> str:
         url = f"https://ac.nowcoder.com/acm/team/member-list?token=&teamId={handle}"
         members = cls._api(url)
-
-        if members == -1:
-            return "查询异常"
-        if members == 0:
-            return "用户不存在"
-
         member_infos = []
 
         for member in members:
@@ -150,10 +142,6 @@ class NowCoder(CompetitivePlatform):
     def _fetch_user_teams_info(cls, handle: str) -> str | None:
         url = f"https://ac.nowcoder.com/acm/contest/profile/user-team-list?token=&uid={handle}"
         teams = cls._api(url)
-
-        if isinstance(teams, int):
-            return None
-
         teams_infos = []
 
         for team in teams:
@@ -178,7 +166,7 @@ class NowCoder(CompetitivePlatform):
         return social_info
 
     @classmethod
-    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
+    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
         running_contests: list[Contest] = []
         upcoming_contests: list[Contest] = []
         finished_contests_today: list[Contest] = []
@@ -197,7 +185,7 @@ class NowCoder(CompetitivePlatform):
 
         for category, category_name in cls.contest_category.items():
             top_category_id, category_id = category
-            html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/vip-index?"
+            html = fetch_url_element("https://ac.nowcoder.com/acm/contest/vip-index?"
                                      f"topCategoryFilter={top_category_id}&"
                                      f"categoryFilter={category_id}")
             js_current = html.xpath("//div[@class='platform-mod js-current']//div[@class='platform-item-cont']")
@@ -227,8 +215,10 @@ class NowCoder(CompetitivePlatform):
         return running_contests, upcoming_contests, finished_contests
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | str:
+    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
         html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/profile/{handle}")
+        if html.xpath("//div[@class='null']"):
+            return None
 
         is_group = len(html.xpath("//a[@class='group-member-btn']")) > 0
         if is_group:
@@ -246,8 +236,10 @@ class NowCoder(CompetitivePlatform):
                                 social=social, rank=rank, rank_alias=rank, rating=rating, platform=cls).render()
 
     @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str | None]:
+    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
         html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/profile/{handle}")
+        if html.xpath("//div[@class='null']"):
+            return None
 
         sections = []
 
@@ -292,12 +284,6 @@ class NowCoder(CompetitivePlatform):
                f"uid={handle}&onlyJoinedFilter=true&searchContestName=&onlyRatingFilter=true&"
                f"contestEndFilter=true")
         rated_contests = cls._api(url)
-
-        if rated_contests == -1:
-            return "查询异常"
-        if rated_contests == 0:
-            return "用户不存在"
-
         contest_count = len(rated_contests)
         if contest_count == 0:
             return "还未参加过 Rated 比赛"

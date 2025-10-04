@@ -2,18 +2,14 @@ from datetime import datetime
 
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_img, \
-    draw_mask_rect, tuple_to_color, hex_to_color, calculate_width, darken_color
+    draw_mask_rect, hex_to_color, calculate_width, darken_color
 
 from src.core.constants import Constants
-from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection
+from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection, SimpleCardRenderer
 from src.render.svg.render_uptime_status import render_uptime_status, get_percentile_color
 
-_CONTENT_WIDTH = 1536
-_TOP_PADDING = 168
-_BOTTOM_PADDING = 128
-_SIDE_PADDING = 108
+_CONTENT_WIDTH = 1472
 _UPTIME_SECTION_PADDING = 96
-_SECTION_PADDING = 108
 
 
 class _TitleSection(RenderableSection):
@@ -76,7 +72,7 @@ class _CopyrightSection(RenderableSection):
 class _UptimeStatusSection(RenderableSvgSection):
 
     def _get_max_width(self) -> int:
-        return _CONTENT_WIDTH + 64 - _SIDE_PADDING * 2
+        return _CONTENT_WIDTH
 
     def _generate_svg(self) -> tuple[str, int, int]:
         return render_uptime_status(self._current_status)
@@ -113,7 +109,7 @@ class _UptimeMonitorItem(RenderableSection):
         status_text_width = calculate_width(self.str_status)
 
         draw_text(img, self.str_name, current_x, current_y)
-        current_x = _CONTENT_WIDTH + 64 - current_x - status_text_width
+        current_x = current_x + _CONTENT_WIDTH - status_text_width
         draw_img(img, self.img_dot, Loc(current_x - 48, current_y + 6, 40, 40))
         current_y = draw_text(img, self.str_status, current_x, current_y)
 
@@ -147,35 +143,25 @@ class _UptimeMonitorSection(RenderableSection):
         return current_y
 
 
-class UptimeRenderer(Renderer):
+class UptimeRenderer(SimpleCardRenderer):
     """渲染服务状态"""
 
     def __init__(self, current_status: dict, svg_ts_path: str):
+        super().__init__()
         self._current_status = current_status
         self._svg_ts_path = svg_ts_path
 
-    def render(self) -> pixie.Image:
+    @classmethod
+    def _get_content_width(cls) -> int:
+        return _CONTENT_WIDTH
+
+    def _render_background_rect(self, img: pixie.Image, background_loc: Loc):
+        draw_mask_rect(img, background_loc, (252, 252, 252), 96)
+
+    def _get_render_sections(self) -> list[RenderableSection]:
         section_title = _TitleSection(self._current_status["statistics"]["counts"]["down"])
         section_uptime_monitor = _UptimeMonitorSection(self._current_status["psp"]["monitors"],
                                                        self._svg_ts_path)
         section_copyright = _CopyrightSection()
 
-        render_sections = [section_title, section_uptime_monitor, section_copyright]
-
-        width, height = (_CONTENT_WIDTH,
-                         sum(section.get_height() for section in render_sections) +
-                         _SECTION_PADDING * (len(render_sections) - 1) +
-                         _TOP_PADDING + _BOTTOM_PADDING)
-
-        img = pixie.Image(width + 64, height + 64)
-        img.fill(tuple_to_color((0, 0, 0, 255)))  # 填充背景
-
-        draw_mask_rect(img, Loc(32, 32, width, height), (252, 252, 252), 96)
-
-        current_x, current_y = _SIDE_PADDING, _TOP_PADDING - _SECTION_PADDING
-
-        for section in render_sections:
-            current_y += _SECTION_PADDING
-            current_y = section.render(img, current_x, current_y)
-
-        return img
+        return [section_title, section_uptime_monitor, section_copyright]

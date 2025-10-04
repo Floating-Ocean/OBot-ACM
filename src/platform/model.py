@@ -76,25 +76,23 @@ class CompetitivePlatform(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
+    def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
         """
         需被重载。
         指定平台分类比赛列表
         其中，已结束的比赛为 上一个已结束的比赛 与 当天所有已结束的比赛 的并集
-        :return: tuple[正在进行的比赛, 待举行的比赛，已结束的比赛] | None
+        :return: tuple[正在进行的比赛, 待举行的比赛，已结束的比赛]
         """
         pass
 
     @classmethod
-    def get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]] | None:
+    def get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
         """
         指定平台分类比赛列表，限定一个月内
         其中，已结束的比赛为 上一个已结束的比赛 与 当天所有已结束的比赛 的并集
-        :return: tuple[正在进行的比赛, 待举行的比赛，已结束的比赛] | None
+        :return: tuple[正在进行的比赛, 待举行的比赛，已结束的比赛]
         """
         contests = cls._get_contest_list()
-        if contests is None:
-            return None
 
         running_full_contests, upcoming_full_contests, finished_full_contests = contests
         running_contests = [contest for contest in running_full_contests
@@ -105,56 +103,26 @@ class CompetitivePlatform(abc.ABC):
                                                 get_a_month_timestamp_range())]
         finished_contests = finished_full_contests
 
-        return running_contests, upcoming_contests, finished_contests
-
-    @classmethod
-    def get_recent_contests(cls) -> str:
-        """
-        指定平台待举行的比赛以及上一个已结束的比赛
-        :return: 格式化后的相关信息
-        """
-        contest_list = cls.get_contest_list()
-
-        if contest_list is None:
-            return "查询异常"
-
-        running_contests, upcoming_contests, finished_contests = contest_list
         running_contests.sort(key=lambda c: c.start_time)
         upcoming_contests.sort(key=lambda c: c.start_time)
         finished_contests.sort(key=lambda c: c.start_time)
 
-        info = ""
-
-        if len(running_contests) > 0:
-            info += ">> 正在进行的比赛 >>\n\n"
-            info += '\n\n'.join([contest.format() for contest in running_contests])
-            info += "\n\n"
-
-        if len(upcoming_contests) == 0:
-            info += ">> 最近没有比赛 >>\n\n"
-        else:
-            info += ">> 即将开始的比赛 >>\n\n"
-            info += '\n\n'.join([contest.format() for contest in upcoming_contests])
-            info += "\n\n"
-
-        info += ">> 上一场已结束的比赛 >>\n\n" + finished_contests[0].format()
-
-        return info
+        return running_contests, upcoming_contests, finished_contests
 
     @classmethod
     @abc.abstractmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | str:
+    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
         """
         获取指定用户的基础信息卡片
-        :return: 绘制完成的图片对象 | 错误信息
+        :return: 绘制完成的图片对象 | None
         """
         pass
 
     @classmethod
     @abc.abstractmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str | None]:
+    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
         """
         获取指定用户的详细信息
-        :return: tuple[信息, 头像url | None]
+        :return: tuple[信息, 头像url] | None
         """
         pass

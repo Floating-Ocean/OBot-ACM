@@ -6,6 +6,7 @@ from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import get_simple_qrcode, png2jpg
 from src.data.data_cache import get_cached_prefix
 from src.platform.online.atcoder import AtCoder
+from src.render.pixie.render_contest_list import ContestListRenderer
 
 _ATC_HELP = '\n'.join(HelpStrList(Constants.help_contents["atcoder"]))
 
@@ -15,9 +16,9 @@ def send_user_id_card(message: RobotMessage, handle: str):
 
     id_card = AtCoder.get_user_id_card(handle)
 
-    if isinstance(id_card, str):
-        content = (f"[AtCoder ID] {handle}"
-                   f"{id_card}")
+    if not id_card:
+        content = (f"[AtCoder ID] {handle}\n\n"
+                   "用户不存在")
         message.reply(content, modal_words=False)
     else:
         cached_prefix = get_cached_prefix('Platform-ID')
@@ -28,12 +29,13 @@ def send_user_id_card(message: RobotMessage, handle: str):
 def send_user_info(message: RobotMessage, handle: str):
     message.reply(f"正在查询 {handle} 的 AtCoder 平台信息，请稍等")
 
-    info, avatar = AtCoder.get_user_info(handle)
-
-    if avatar is None:
+    user = AtCoder.get_user_info(handle)
+    if user is None:
         content = (f"[AtCoder] {handle}\n\n"
-                   f"{info}")
+                   "用户不存在")
+        avatar = None
     else:
+        info, avatar = user
         last_contest = AtCoder.get_user_last_contest(handle)
         content = (f"[AtCoder] {handle}\n\n"
                    f"{info}\n\n"
@@ -73,14 +75,15 @@ def send_prob_filter_tag(message: RobotMessage, contest_type: str, limit: str = 
 
 
 def send_contest(message: RobotMessage):
-    message.reply(f"正在查询近期 AtCoder 比赛，请稍等")
+    message.reply("正在查询近期 AtCoder 比赛，请稍等")
 
-    info = AtCoder.get_recent_contests()
+    running, upcoming, finished = AtCoder.get_contest_list()
 
-    content = (f"[AtCoder] 近期比赛\n\n"
-               f"{info}")
+    cached_prefix = get_cached_prefix('Contest-List-Renderer')
+    contest_list_img = ContestListRenderer(running, upcoming, finished).render()
+    contest_list_img.write_file(f"{cached_prefix}.png")
 
-    message.reply(content, modal_words=False)
+    message.reply("[AtCoder] 近期比赛", png2jpg(f"{cached_prefix}.png"))
 
 
 @command(tokens=['atc', 'atcoder'])
@@ -135,7 +138,7 @@ def reply_atc_request(message: RobotMessage):
 
 @module(
     name="AtCoder",
-    version="v1.3.1"
+    version="v1.4.0"
 )
 def register_module():
     pass
