@@ -1,0 +1,98 @@
+name: Submodule Updates
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Submodule Update
+    runs-on: ubuntu-latest
+    env:
+      PARENT_REPOSITORY: 'Floating-Ocean/OBot-ACM'
+      CHECKOUT_BRANCH: 'main'
+      PR_AGAINST_BRANCH: 'main'
+      OWNER: 'Floating-Ocean'
+      LABEL: 'dependencies'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Checkout Parent Repository And Branch
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.ACTION_TOKEN }}
+          repository: ${{ env.PARENT_REPOSITORY }}
+          ref: ${{ env.CHECKOUT_BRANCH }}
+          submodules: true
+          fetch-depth: 0
+
+      - name: Update Submodules And Create Branch
+        shell: bash
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git submodule update --remote --merge
+          git add .
+          # 检查是否有变更需要提交
+          if git diff-index --quiet HEAD --; then
+            echo "No changes in submodules."
+            exit 0
+          else
+            git checkout -b $GITHUB_RUN_ID
+            git commit -m "build(deps): 更新 lib 依赖"
+            git push --set-upstream origin $GITHUB_RUN_ID
+          fi
+
+      - name: Create PR Against Target Branch
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.ACTION_TOKEN }}
+          script: |
+            // 只有在上一步有变更时才创建PR
+            const hasChanges = `${{ steps.update-submodules-and-create-branch.outcome }}` !== 'success';
+            if (hasChanges) {
+              console.log('No changes detected, skipping PR creation.');
+              return;
+            }
+            
+            const repoName = '${{ env.PARENT_REPOSITORY }}'.split('/')[1].trim();
+            await github.rest.pulls.create({
+              owner: '${{ env.OWNER }}',
+              repo: repoName,
+              head: process.env.GITHUB_RUN_ID,
+              base: '${{ env.PR_AGAINST_BRANCH }}',
+              title: `[Auto-generated] Submodule Updates ${process.env.GITHUB_RUN_ID}`,
+              body: `This PR was automatically generated to update submodules to their latest versions.`,
+            });
+
+      - name: Add Labels to PR
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.ACTION_TOKEN }}
+          script: |
+            const repoName = '${{ env.PARENT_REPOSITORY }}'.split('/')[1].trim();
+            const res = await github.rest.pulls.list({
+              owner: '${{ env.OWNER }}',
+              repo: repoName,
+              state: 'open',
+              head: '${{ env.OWNER }}:' + process.env.GITHUB_RUN_ID,
+            });
+            
+            if (res.data.length > 0) {
+              const prNumber = res.data[0].number;  
+              await github.rest.issues.addLabels({
+                issue_number: prNumber,
+                owner: '${{ env.OWNER }}',
+                repo: repoName,
+                labels: ['${{ env.LABEL }}']
+              });
+            }
