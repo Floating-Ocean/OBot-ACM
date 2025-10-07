@@ -47,12 +47,10 @@ jobs:
             BRANCH_NAME="submodule-update-${{ github.run_id }}"
             git checkout -b "$BRANCH_NAME"
             git commit -m "build(deps): 更新 lib 依赖"
-            git push --set-upstream origin "$BRANCH_NAME"
+            git push https://${{ secrets.ACTION_TOKEN }}@github.com/${{ env.PARENT_REPOSITORY }}.git "$BRANCH_NAME"
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACTION_TOKEN }}
 
       - name: Create PR Against Target Branch
         if: steps.update-submodules.outputs.has_changes == 'true'
