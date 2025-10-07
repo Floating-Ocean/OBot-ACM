@@ -47,9 +47,9 @@ jobs:
             echo "No changes in submodules."
             exit 0
           else
-            git checkout -b `submodule/${{ GITHUB_RUN_ID }}`
+            git checkout -b `submodule/${{ github.run_id }}`
             git commit -m "build(deps): 更新 lib 依赖"
-            git push --set-upstream origin `submodule/${{ GITHUB_RUN_ID }}`
+            git push --set-upstream origin `submodule/${{ github.run_id }}`
           fi
 
       - name: Create PR Against Target Branch
