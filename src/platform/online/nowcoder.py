@@ -3,6 +3,7 @@ import re
 import time
 from datetime import datetime
 from html import unescape
+from urllib.parse import quote_plus
 
 import pixie
 from lxml.etree import Element
@@ -75,6 +76,7 @@ class NowCoder(CompetitivePlatform):
     @classmethod
     def _api_standings(cls, contest_id: int, search_name: str) -> tuple[str, list[dict]]:
         """榜单数据格式和其他的不一样，分开写，比普通的多返回一个赛制类型"""
+        search_name = quote_plus(str(search_name).strip())
         url = ("https://ac.nowcoder.com/acm-heavy/acm/contest/real-time-rank-data?"
                f"id={contest_id}&searchUserName={search_name}&limit=0")
         json_data = fetch_url_json(url, method='get')
@@ -145,12 +147,14 @@ class NowCoder(CompetitivePlatform):
 
     @classmethod
     def _fetch_user_rating(cls, handle: str) -> str:
+        handle = quote_plus(str(handle).strip())
         html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/profile/{handle}")
         rating = int(html.xpath("//div[contains(@class, 'state-num rate-score')]/text()")[0])
         return cls._format_rating(rating)
 
     @classmethod
     def _fetch_team_members_info(cls, handle: str, inline: bool = False) -> str:
+        handle = quote_plus(str(handle).strip())
         url = f"https://ac.nowcoder.com/acm/team/member-list?token=&teamId={handle}"
         members = cls._api(url)
         member_infos = []
@@ -167,6 +171,7 @@ class NowCoder(CompetitivePlatform):
 
     @classmethod
     def _fetch_user_teams_info(cls, handle: str) -> str | None:
+        handle = quote_plus(str(handle).strip())
         url = f"https://ac.nowcoder.com/acm/contest/profile/user-team-list?token=&uid={handle}"
         teams = cls._api(url)
         teams_infos = []
@@ -252,6 +257,7 @@ class NowCoder(CompetitivePlatform):
 
     @classmethod
     def _get_specified_contest(cls, search_name: str) -> tuple[int, str] | None:
+        search_name = quote_plus(str(search_name).strip())
         html = fetch_url_element("https://ac.nowcoder.com/acm-heavy/acm/contest/search?"
                                  f"searchName={search_name}")
         tr_elements = html.xpath('//tr[@class="js-nc-wrap-link js-item"]')
@@ -284,6 +290,7 @@ class NowCoder(CompetitivePlatform):
 
     @classmethod
     def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+        handle = quote_plus(str(handle).strip())
         html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/profile/{handle}")
         if html.xpath("//div[@class='null']"):
             return None
@@ -305,6 +312,7 @@ class NowCoder(CompetitivePlatform):
 
     @classmethod
     def get_user_info(cls, handle: str) -> tuple[str, str] | None:
+        handle = quote_plus(str(handle).strip())
         html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/profile/{handle}")
         if html.xpath("//div[@class='null']"):
             return None
@@ -348,9 +356,9 @@ class NowCoder(CompetitivePlatform):
 
     @classmethod
     def get_user_last_contest(cls, handle: str) -> str:
-        url = (f"https://ac.nowcoder.com/acm-heavy/acm/contest/profile/contest-joined-history?token=&"
-               f"uid={handle}&onlyJoinedFilter=true&searchContestName=&onlyRatingFilter=true&"
-               f"contestEndFilter=true")
+        handle = quote_plus(str(handle).strip())
+        url = ("https://ac.nowcoder.com/acm-heavy/acm/contest/profile/contest-joined-history?"
+               f"uid={handle}&onlyJoinedFilter=true&onlyRatingFilter=true&contestEndFilter=true")
         rated_contests = cls._api(url)
         contest_count = len(rated_contests)
         if contest_count == 0:

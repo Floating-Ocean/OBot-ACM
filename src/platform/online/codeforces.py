@@ -2,7 +2,7 @@ import random
 import re
 import time
 from dataclasses import dataclass
-from urllib.parse import quote_plus
+from urllib.parse import urlencode
 
 import pixie
 from thefuzz import process
@@ -54,10 +54,9 @@ class Codeforces(CompetitivePlatform):
     @classmethod
     def _decode_api_url(cls, api: str, **kwargs) -> str:
         url = f"https://codeforces.com/api/{api}"
-        if len(kwargs) > 0:
-            payload = '&'.join([f'{key.strip("_")}={quote_plus(str(val))}'
-                                for key, val in kwargs.items()])
-            url += f"?{payload}"
+        if kwargs:
+            payload = urlencode({k.strip("_"): v for k, v in kwargs.items()}, doseq=True)
+            route = f"{url}?{payload}"
         return url
 
     @classmethod

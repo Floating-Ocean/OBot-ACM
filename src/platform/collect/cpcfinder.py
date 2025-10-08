@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from urllib.parse import quote
+from urllib.parse import quote_plus
 
 from src.core.util.tools import fetch_url_json
 
@@ -44,8 +44,8 @@ class CPCFinder:
 
     @classmethod
     def find_student_id(cls, name: str, school: str) -> str | int:
-        name = quote(name.strip())
-        school = quote(school.strip())
+        name = quote_plus(str(name).strip())
+        school = quote_plus(str(school).strip())
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student?"
                                    f"name={name}&school={school}", method='get')
         if 'data' not in json_data:

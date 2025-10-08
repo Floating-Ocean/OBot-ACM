@@ -1,5 +1,6 @@
 import random
 from datetime import datetime
+from urllib.parse import quote_plus
 
 import pixie
 from lxml.etree import Element
@@ -129,6 +130,7 @@ class AtCoder(CompetitivePlatform):
 
     @classmethod
     def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+        handle = quote_plus(str(handle).strip())
         html = fetch_url_element(f"https://atcoder.jp/users/{handle}",
                                  accept_codes=[200, 404])
         if html.xpath('//text()[contains(., "404 Not Found")]'):
@@ -151,6 +153,7 @@ class AtCoder(CompetitivePlatform):
 
     @classmethod
     def get_user_info(cls, handle: str) -> tuple[str, str] | None:
+        handle = quote_plus(str(handle).strip())
         html = fetch_url_element(f"https://atcoder.jp/users/{handle}",
                                  accept_codes=[200, 404])
         if html.xpath('//text()[contains(., "404 Not Found")]'):
@@ -191,6 +194,7 @@ class AtCoder(CompetitivePlatform):
 
     @classmethod
     def get_user_last_contest(cls, handle: str) -> str:
+        handle = quote_plus(str(handle).strip())
         url = f"https://atcoder.jp/users/{handle}/history/json"
         json_data = fetch_url_json(url, method='get')
 
