@@ -55,6 +55,26 @@ def send_contest(message: RobotMessage):
     message.reply("[NowCoder] 近期比赛", png2jpg(f"{cached_prefix}.png"))
 
 
+def send_user_contest_standings(message: RobotMessage, search_name: str, contest_name: str):
+    message.reply(f"正在查询匹配 {contest_name} 的比赛中 {search_name} 的榜单信息，请稍等")
+    content = f"[NowCoder] {search_name} 比赛榜单查询\n\n"
+
+    standings = NowCoder.get_user_contest_standings(search_name, contest_name)
+    if not standings:
+        content += "比赛不存在"
+    else:
+        contest_info, standings_info = standings
+        content += f"{contest_info}\n\n"
+        if len(standings_info) > 0:
+            content += '\n\n'.join(standings_info[:10])
+            if len(standings_info) > 10:
+                content += "\n\n最多展示 10 条榜单信息"
+        else:
+            content += '暂无榜单信息'
+
+    message.reply(content, modal_words=False)
+
+
 @command(tokens=['nk', 'nc', 'nowcoder'])
 def reply_nk_request(message: RobotMessage):
     try:
@@ -89,6 +109,13 @@ def reply_nk_request(message: RobotMessage):
 
         elif func == "contest" or func == "contests":
             send_contest(message)
+
+        elif func == "status" or func == "stand" or func == "standing" or func == "standings":
+            if len(content) != 4:
+                message.reply("请输入正确的指令格式，如:\n\n"
+                              f"/nc {func} jiangly 2025牛客暑期多校训练营", modal_words=False)
+            else:
+                send_user_contest_standings(message, content[2], content[3])
 
         else:
             message.reply(f'[NowCoder]\n\n{_NK_HELP}', modal_words=False)

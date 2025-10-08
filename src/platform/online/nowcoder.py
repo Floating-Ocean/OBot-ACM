@@ -1,11 +1,14 @@
+import json
 import re
+import time
 from datetime import datetime
+from html import unescape
 
 import pixie
 from lxml.etree import Element
 
 from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, check_intersect, \
-    get_today_timestamp_range
+    get_today_timestamp_range, format_timestamp, format_seconds
 from src.platform.model import CompetitivePlatform, Contest
 from src.render.pixie.render_user_card import UserCardRenderer
 
@@ -68,6 +71,30 @@ class NowCoder(CompetitivePlatform):
             all_data.extend(list(json_data['data']['dataList']))
 
         return all_data
+
+    @classmethod
+    def _api_standings(cls, contest_id: int, search_name: str) -> tuple[str, list[dict]]:
+        """榜单数据格式和其他的不一样，分开写，比普通的多返回一个赛制类型"""
+        url = ("https://ac.nowcoder.com/acm-heavy/acm/contest/real-time-rank-data?"
+               f"id={contest_id}&searchUserName={search_name}&limit=0")
+        json_data = fetch_url_json(url, method='get')
+
+        if json_data['msg'] != "OK":
+            raise ValueError("Invalid response for nowcoder api")
+
+        data_list = json_data['data']['rankData']
+        all_data = list(data_list)
+        rank_type = json_data['data']['basicInfo']['rankType']
+
+        # 爬取所有页
+        page_count = json_data['data']['basicInfo']['pageCount']
+        for page in range(2, page_count + 1):
+            json_data = fetch_url_json(f"{url}&page={page}", method='get')
+            if json_data['msg'] != "OK":
+                raise ValueError("Invalid response for nowcoder api")
+            all_data.extend(list(json_data['data']['rankData']))
+
+        return rank_type, all_data
 
     @classmethod
     def _extract_timestamp(cls, time_str: str) -> int:
@@ -166,6 +193,15 @@ class NowCoder(CompetitivePlatform):
         return social_info
 
     @classmethod
+    def _format_standing(cls, rank_type: str, standing: dict) -> str:
+        participate_type = '团队' if standing['team'] else '个人'
+        supplement = (f"罚时 {standing['penaltyTime'] // 60000}" if rank_type == 'ICPC' else
+                      f"总分 {standing['totalScore']}")
+        standing = (f"#{standing['ranking']} {standing['userName']} @{standing['school']}\n"
+                    f"{participate_type}，通过 {standing['acceptedCount']} 题，{supplement}")
+        return standing
+
+    @classmethod
     def _get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
         running_contests: list[Contest] = []
         upcoming_contests: list[Contest] = []
@@ -213,6 +249,38 @@ class NowCoder(CompetitivePlatform):
             finished_contests = finished_contests_today
 
         return running_contests, upcoming_contests, finished_contests
+
+    @classmethod
+    def _get_specified_contest(cls, search_name: str) -> tuple[int, str] | None:
+        html = fetch_url_element("https://ac.nowcoder.com/acm-heavy/acm/contest/search?"
+                                 f"searchName={search_name}")
+        tr_elements = html.xpath('//tr[@class="js-nc-wrap-link js-item"]')
+        if not tr_elements:
+            return None
+
+        # 牛客直接把每个比赛的 json 数据放在了 data-json 里，读即可
+        data_json = tr_elements[0].get('data-json')
+        unescaped_json = unescape(data_json)
+        contest = json.loads(unescaped_json)
+        contest_id = contest['contestId']
+
+        phase = "即将开始"
+        if time.time() >= contest['contestStartTime'] / 1000:
+            phase = "正在比赛中"
+        if time.time() >= contest['contestEndTime'] / 1000:
+            phase = "已结束"
+
+        rated_info = "为所有人计分" if contest['settingInfo']['ratingStatus'] != 'No' else '不计分'
+        if contest['settingInfo']['needRatingUpperLimit']:
+            unrated_range = contest['settingInfo']['ratingUpperLimit']
+            rated_info = f"为 0-{unrated_range} 计分"
+
+        formatted_contest = (
+            f"[{contest_id}] {contest['contestName']}\n"
+            f"{phase}, {format_timestamp(contest['contestStartTime'] // 1000)}\n"
+            f"持续 {format_seconds(contest['contestDuration'] // 1000)}, {rated_info}"
+        )
+        return contest_id, formatted_contest
 
     @classmethod
     def get_user_id_card(cls, handle: str) -> pixie.Image | None:
@@ -300,3 +368,15 @@ class NowCoder(CompetitivePlatform):
                 f"Rating 变化: {format_int_delta(int(last['changeValue']))}\n")
 
         return info
+
+    @classmethod
+    def get_user_contest_standings(cls, search_name: str, contest_name: str) -> tuple[str, list[str]] | None:
+        contest = cls._get_specified_contest(contest_name)
+        if not contest:
+            return None
+        contest_id, contest_info = contest
+
+        rank_type, standing_data = cls._api_standings(contest_id, search_name)
+        standings_info = [cls._format_standing(rank_type, standing) for standing in standing_data]
+
+        return contest_info, standings_info
