@@ -56,7 +56,7 @@ class Codeforces(CompetitivePlatform):
         url = f"https://codeforces.com/api/{api}"
         if kwargs:
             payload = urlencode({k.strip("_"): v for k, v in kwargs.items()}, doseq=True)
-            route = f"{url}?{payload}"
+            url = f"{url}?{payload}"
         return url
 
     @classmethod
