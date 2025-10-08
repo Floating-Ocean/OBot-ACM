@@ -67,6 +67,23 @@ class Renderer(abc.ABC):
 class RenderableSection(abc.ABC):
     """图片渲染分块基类"""
 
+    def _split_columns(self,
+                       contests: list["RenderableSection"]) -> list[list["RenderableSection"]]:
+        """适用于嵌套且需分栏的场景，根据高度进行分栏"""
+        total_height = sum(contest.get_height() for contest in contests)
+        columns = self.get_columns()
+        column_height = 0
+
+        split_contests = [[]]
+        for contest in contests:
+            column_height += contest.get_height()
+            split_contests[-1].append(contest)
+            if column_height > total_height / columns:
+                split_contests.append([])
+                column_height = 0
+
+        return split_contests
+
     def get_columns(self):
         """占几列，重写本方法以实现多列"""
         return 1

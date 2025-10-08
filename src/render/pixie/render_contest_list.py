@@ -107,20 +107,6 @@ class _TitleSection(RenderableSection):
 
 class _ContestsSection(RenderableSection):
 
-    def _split_columns(self, contests: list[_ContestItem]) -> list[list[_ContestItem]]:
-        total_height = sum(contest.get_height() for contest in contests)
-        column_height = 0
-
-        split_contests = [[]]
-        for contest in contests:
-            column_height += contest.get_height()
-            split_contests[-1].append(contest)
-            if column_height > total_height / self._column:
-                split_contests.append([])
-                column_height = 0
-
-        return split_contests
-
     def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest],
                  finished_contests: list[Contest]):
         mild_ext_color = (0, 0, 0, 192)
@@ -143,7 +129,6 @@ class _ContestsSection(RenderableSection):
         self.str_finished_title = StyledString(
             "ENDED 已结束", 'H', 52, padding_bottom=72, font_color=mild_ext_color
         )
-        self._column = self.get_columns()
 
     def get_columns(self):
         max_column = 0
