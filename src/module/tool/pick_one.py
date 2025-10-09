@@ -96,7 +96,7 @@ def reply_pick_one(message: RobotMessage):
         parse_info = img_parser[picked]
         comments = (
             "" if not parse_info['comments'] else
-            ("评论: \n" + ('\n'.join(f"{idx}. {content}" for idx, content in
+            ("评论: \n" + ('\n'.join(f"{idx + 1}. {content}" for idx, content in
                                      enumerate(parse_info['comments']))) + "\n")
         )
         add_time = time.strftime('%y/%m/%d %H:%M:%S',
@@ -165,8 +165,84 @@ def reply_save_one(message: RobotMessage):
         message.reply("猜你想找：/导入比赛", modal_words=False)
 
     else:
-        img_help = f"关键词 {what} 未被记录，请联系bot管理员添加" if len(what) > 0 else "请指定需要添加的图片的关键词"
-        message.reply(img_help)
+        message.reply(f"关键词 {what} 未被记录，请联系bot管理员添加")
+
+
+def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str) -> dict | None:
+    if len(message.tokens) < 2:
+        message.reply(f"请指定想要{action}的图片的关键词")
+        return None
+
+    if len(message.tokens) < 3:
+        message.reply(f"请指定想要{action}的图片的 ID")
+        return None
+
+    what = message.tokens[1].lower()
+    hash_id = message.tokens[2].lower()
+    parser_key = f"{hash_id}.gif"
+
+    if what not in data.match_dict:
+        message.reply(f"关键词 {what} 未被记录，请联系bot管理员添加")
+        return None
+
+    img_key = data.match_dict[what]
+    img_parser = get_img_parser(img_key)
+    if parser_key not in img_parser:
+        message.reply("ID 不存在，建议查询后直接复制粘贴")
+        return None
+
+    return img_parser
+
+
+@command(tokens=["点赞来只*", "点赞*", "喜欢来只*", "喜欢*", "爱来只*", "爱*", "love*", "like*"])
+def reply_like_one(message: RobotMessage):
+    data = get_pick_one_data()
+
+    img_parser = _get_specified_img_parser(data, message, "点赞")
+    if img_parser is None:
+        return
+
+    what = message.tokens[1].lower()
+    hash_id = message.tokens[2].lower()
+    img_key = data.match_dict[what]
+    parser_key = f"{hash_id}.gif"
+
+    img_parser[parser_key]['likes'] += 1
+    save_img_parser(img_key, img_parser)
+
+    message.reply(f"点赞成功，目前有 {img_parser[parser_key]['likes']} 个赞")
+
+
+@command(tokens=["评论来只*", "评论*", "comment*", "say*"])
+def reply_like_one(message: RobotMessage):
+    data = get_pick_one_data()
+
+    img_parser = _get_specified_img_parser(data, message, "评论")
+    if img_parser is None:
+        return
+
+    if len(message.tokens) < 4:
+        message.reply("请输入评论内容")
+        return
+
+    what = message.tokens[1].lower()
+    hash_id = message.tokens[2].lower()
+    comment = message.tokens[3].strip()
+    img_key = data.match_dict[what]
+    parser_key = f"{hash_id}.gif"
+
+    if len(comment) > 32:
+        message.reply("评论字数过长，请限制在 32 个字符内")
+        return
+
+    if comment in img_parser[parser_key]['comments']:
+        message.reply("评论重复，添加失败")
+        return
+
+    img_parser[parser_key]['comments'] += [comment]
+    save_img_parser(img_key, img_parser)
+
+    message.reply(f"评论成功，目前有 {len(img_parser[parser_key]['comments'])} 个评论")
 
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit"], permission_level=PermissionLevel.MOD)
@@ -195,7 +271,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v3.3.0"
+    version="v5.0.0"
 )
 def register_module():
     pass
