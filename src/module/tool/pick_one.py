@@ -1,4 +1,6 @@
+import os
 import random
+import time
 
 import easyocr
 from thefuzz import process
@@ -20,7 +22,16 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
 
     for name, full_path in list_img(img_key):
         if name in old_data:
-            data[name] = old_data[name]
+            parser_data = old_data[name]
+            if isinstance(parser_data, str):
+                parser_data = {
+                    'ocr_text': parser_data,
+                    'add_time': os.stat(full_path).st_mtime,
+                    'likes': 0,
+                    'comments': [],
+                    'pickup_times': 0
+                }
+            data[name] = parser_data
         else:
             if not notified:
                 message.reply("图片处理中，请稍等\n若等待时间较长，可尝试重新发送消息")
@@ -30,8 +41,14 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                     ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True)
                 correct_img = read_image_with_opencv(full_path)  # 修复全都修改为 gif 的兼容性问题
                 Constants.log.info(f"[ocr] 正在识别 {full_path}")
-                ocr_result = ''.join(ocr_reader.readtext(correct_img, detail=0))
-                data[name] = ocr_result
+                ocr_text = ''.join(ocr_reader.readtext(correct_img, detail=0))
+                data[name] = {
+                    'ocr_text': ocr_text,
+                    'add_time': time.time(),
+                    'likes': 0,
+                    'comments': [],
+                    'pickup_times': 0
+                }
             except Exception as e:
                 Constants.log.warning("[ocr] 识别出错.")
                 Constants.log.exception(f"[ocr] {e}")
@@ -74,8 +91,30 @@ def reply_pick_one(message: RobotMessage):
     img_parser = get_img_parser(img_key)
 
     def reply_ok(query_tag: str, query_more_tip: str, picked: str):
-        message.reply(f"来了一只{query_tag}{current_config.id}{query_more_tip}",
-                      img_path=get_img_full_path(img_key, picked))
+        """回复模糊匹配的表情包"""
+        hash_id = picked.rsplit('.', 1)[0]
+        parse_info = img_parser[picked]
+        comments = (
+            "" if not parse_info['comments'] else
+            ("评论: \n" + ('\n'.join(f"{idx}. {content}" for idx, content in
+                                     enumerate(parse_info['comments']))) + "\n")
+        )
+        add_time = time.strftime('%y/%m/%d %H:%M:%S',
+                                 time.localtime(parse_info['add_time']))
+
+        # 记录抬起次数
+        parse_info['pickup_times'] += 1
+        img_parser[picked] = parse_info
+        save_img_parser(img_key, img_parser)
+
+        if query_more_tip:
+            query_more_tip = f"\n{query_more_tip}"
+        message.reply(f"[Pick-One] 来了只{query_tag}{current_config.id}\n\n"
+                      f"ID: {hash_id}\n"
+                      f"点赞: {parse_info['likes']} 次\n{comments}"
+                      f"抬起次数: {parse_info['pickup_times']} 次\n"
+                      f"添加时间: {add_time}{query_more_tip}",
+                      img_path=get_img_full_path(img_key, picked), modal_words=False)
 
     reply_fuzzy_matching(message, img_parser, f"{current_config.id} 的图片", 2, reply_ok)
 
