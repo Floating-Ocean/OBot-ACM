@@ -130,7 +130,7 @@ class _UptimeMonitorSection(RenderableSection):
 
     def get_height(self):
         return (sum(monitor.get_height() for monitor in self.section_monitor_items) +
-                _UPTIME_SECTION_PADDING * (len(self.section_monitor_items) - 1))
+                _UPTIME_SECTION_PADDING * max(0, len(self.section_monitor_items) - 1))
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y

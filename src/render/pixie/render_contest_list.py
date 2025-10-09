@@ -191,7 +191,7 @@ class _ContestsSection(RenderableSection):
                     column_split = self._split_columns(_contests)
                     height += calculate_height(_type_title_text)
                     height += max(sum(contest.get_height() for contest in column) +
-                                  _CONTEST_PADDING * (len(column) - 1)  # 各比赛间的 padding
+                                  _CONTEST_PADDING * max(0, len(column) - 1)  # 各比赛间的 padding
                                   for column in column_split) + _TYPE_PADDING
         return height
 
