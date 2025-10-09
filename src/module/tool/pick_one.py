@@ -214,7 +214,7 @@ def reply_like_one(message: RobotMessage):
 
 
 @command(tokens=["评论来只*", "评论*", "comment*", "say*"])
-def reply_like_one(message: RobotMessage):
+def reply_comment_one(message: RobotMessage):
     data = get_pick_one_data()
 
     img_parser = _get_specified_img_parser(data, message, "评论")
