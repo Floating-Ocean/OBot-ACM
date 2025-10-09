@@ -7,10 +7,12 @@ cache/
 
 lib/Contest-List-Renderer/
 lib/Duel/
-lib/Pick-One/
+lib/Pick-One/**
+!lib/Pick-One/
 !lib/Pick-One/config_example.json
 
-unittest/
+unittest/**
+!unitest/
 !unittest/**.py
 
 **.log
