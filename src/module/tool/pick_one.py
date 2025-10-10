@@ -104,7 +104,7 @@ def reply_pick_one(message: RobotMessage):
         add_time = time.strftime('%y/%m/%d %H:%M:%S',
                                  time.localtime(parse_info['add_time']))
 
-        # 记录抬起次数
+        # 记录提起次数
         parse_info['pickup_times'] += 1
         img_parser[picked] = parse_info
         save_img_parser(img_key, img_parser)
@@ -114,7 +114,7 @@ def reply_pick_one(message: RobotMessage):
         message.reply(f"[Pick-One] 来了只{query_tag}{current_config.id}\n\n"
                       f"ID: {hash_id}\n"
                       f"点赞: {parse_info['likes']} 次\n{comments}"
-                      f"抬起次数: {parse_info['pickup_times']} 次\n"
+                      f"提起次数: {parse_info['pickup_times']} 次\n"
                       f"添加时间: {add_time}{query_more_tip}",
                       img_path=get_img_full_path(img_key, picked), modal_words=False)
 
@@ -222,10 +222,11 @@ def reply_like_one(message: RobotMessage):
     img_key = data.match_dict[what]
     parser_key = f"{hash_id}.gif"
 
-    img_parser[parser_key]['likes'] += 1
+    likes = img_parser[parser_key]['likes'] + 1
+    img_parser[parser_key]['likes'] = likes
     save_img_parser(img_key, img_parser)
 
-    message.reply(f"点赞成功，目前有 {img_parser[parser_key]['likes']} 个赞")
+    message.reply(f"点赞成功，目前有 {likes} 个赞")
 
 
 @command(tokens=["评论来只*", "评论*", "comment*", "say*"])
@@ -254,10 +255,12 @@ def reply_comment_one(message: RobotMessage):
         message.reply("评论重复，添加失败")
         return
 
-    img_parser[parser_key]['comments'].append(comment)
+    comments = img_parser[parser_key]['comments']
+    comments.append(comment)
+    img_parser[parser_key]['comments'] = comments
     save_img_parser(img_key, img_parser)
 
-    message.reply(f"评论成功，目前有 {len(img_parser[parser_key]['comments'])} 个评论")
+    message.reply(f"评论成功，目前有 {len(comments)} 个评论")
 
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit"], permission_level=PermissionLevel.MOD)
