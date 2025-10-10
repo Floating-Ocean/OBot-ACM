@@ -1,4 +1,6 @@
+import os
 import random
+import time
 
 import easyocr
 from thefuzz import process
@@ -11,6 +13,8 @@ from src.core.util.tools import read_image_with_opencv
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
 
+_MAX_COMMENT_LENGTH = 32
+
 
 def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
     """解析图片文字"""
@@ -20,7 +24,16 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
 
     for name, full_path in list_img(img_key):
         if name in old_data:
-            data[name] = old_data[name]
+            parser_data = old_data[name]
+            if isinstance(parser_data, str):
+                parser_data = {
+                    'ocr_text': parser_data,
+                    'add_time': os.stat(full_path).st_mtime,
+                    'likes': 0,
+                    'comments': [],
+                    'pickup_times': 0
+                }
+            data[name] = parser_data
         else:
             if not notified:
                 message.reply("图片处理中，请稍等\n若等待时间较长，可尝试重新发送消息")
@@ -30,8 +43,14 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                     ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True)
                 correct_img = read_image_with_opencv(full_path)  # 修复全都修改为 gif 的兼容性问题
                 Constants.log.info(f"[ocr] 正在识别 {full_path}")
-                ocr_result = ''.join(ocr_reader.readtext(correct_img, detail=0))
-                data[name] = ocr_result
+                ocr_text = ''.join(ocr_reader.readtext(correct_img, detail=0))
+                data[name] = {
+                    'ocr_text': ocr_text,
+                    'add_time': time.time(),
+                    'likes': 0,
+                    'comments': [],
+                    'pickup_times': 0
+                }
             except Exception as e:
                 Constants.log.warning("[ocr] 识别出错.")
                 Constants.log.exception(f"[ocr] {e}")
@@ -74,8 +93,30 @@ def reply_pick_one(message: RobotMessage):
     img_parser = get_img_parser(img_key)
 
     def reply_ok(query_tag: str, query_more_tip: str, picked: str):
-        message.reply(f"来了一只{query_tag}{current_config.id}{query_more_tip}",
-                      img_path=get_img_full_path(img_key, picked))
+        """回复模糊匹配的表情包"""
+        hash_id = picked.rsplit('.', 1)[0]
+        parse_info = img_parser[picked]
+        comments = (
+            "" if not parse_info['comments'] else
+            ("评论: \n" + ('\n'.join(f"{idx + 1}. {content}" for idx, content in
+                                     enumerate(parse_info['comments']))) + "\n")
+        )
+        add_time = time.strftime('%y/%m/%d %H:%M:%S',
+                                 time.localtime(parse_info['add_time']))
+
+        # 记录提起次数
+        parse_info['pickup_times'] += 1
+        img_parser[picked] = parse_info
+        save_img_parser(img_key, img_parser)
+
+        if query_more_tip:
+            query_more_tip = f"\n{query_more_tip}"
+        message.reply(f"[Pick-One] 来了只{query_tag}{current_config.id}\n\n"
+                      f"ID: {hash_id}\n"
+                      f"点赞: {parse_info['likes']} 次\n{comments}"
+                      f"提起次数: {parse_info['pickup_times']} 次\n"
+                      f"添加时间: {add_time}{query_more_tip}",
+                      img_path=get_img_full_path(img_key, picked), modal_words=False)
 
     reply_fuzzy_matching(message, img_parser, f"{current_config.id} 的图片", 2, reply_ok)
 
@@ -126,8 +167,100 @@ def reply_save_one(message: RobotMessage):
         message.reply("猜你想找：/导入比赛", modal_words=False)
 
     else:
-        img_help = f"关键词 {what} 未被记录，请联系bot管理员添加" if len(what) > 0 else "请指定需要添加的图片的关键词"
-        message.reply(img_help)
+        message.reply(f"关键词 {what} 未被记录，请联系bot管理员添加")
+
+
+def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str) -> dict | None:
+    if len(message.tokens) < 2:
+        message.reply(f"请指定想要{action}的图片的关键词")
+        return None
+
+    if len(message.tokens) < 3:
+        message.reply(f"请指定想要{action}的图片的 ID")
+        return None
+
+    what = message.tokens[1].lower()
+    hash_id = message.tokens[2].lower()
+    parser_key = f"{hash_id}.gif"
+
+    if what not in data.match_dict:
+        message.reply(f"关键词 {what} 未被记录，请联系bot管理员添加")
+        return None
+
+    img_key = data.match_dict[what]
+    img_parser = get_img_parser(img_key)
+    if parser_key not in img_parser:
+        message.reply("ID 不存在，建议查询后直接复制粘贴")
+        return None
+
+    # 兼容旧版字符串结构（按需升级）
+    value = img_parser[parser_key]
+    if isinstance(value, str):
+        full_path = get_img_full_path(img_key, parser_key)
+        img_parser[parser_key] = {
+            'ocr_text': value,
+            'add_time': os.stat(full_path).st_mtime,
+            'likes': 0,
+            'comments': [],
+            'pickup_times': 0
+        }
+        save_img_parser(img_key, img_parser)
+
+    return img_parser
+
+
+@command(tokens=["点赞来只*", "点赞*", "喜欢来只*", "喜欢*", "爱来只*", "爱*", "love*", "like*"])
+def reply_like_one(message: RobotMessage):
+    data = get_pick_one_data()
+
+    img_parser = _get_specified_img_parser(data, message, "点赞")
+    if img_parser is None:
+        return
+
+    what = message.tokens[1].lower()
+    hash_id = message.tokens[2].lower()
+    img_key = data.match_dict[what]
+    parser_key = f"{hash_id}.gif"
+
+    likes = img_parser[parser_key]['likes'] + 1
+    img_parser[parser_key]['likes'] = likes
+    save_img_parser(img_key, img_parser)
+
+    message.reply(f"点赞成功，目前有 {likes} 个赞")
+
+
+@command(tokens=["评论来只*", "评论*", "comment*", "say*"])
+def reply_comment_one(message: RobotMessage):
+    data = get_pick_one_data()
+
+    img_parser = _get_specified_img_parser(data, message, "评论")
+    if img_parser is None:
+        return
+
+    if len(message.tokens) < 4:
+        message.reply("请输入评论内容")
+        return
+
+    what = message.tokens[1].lower()
+    hash_id = message.tokens[2].lower()
+    comment = message.tokens[3].strip()
+    img_key = data.match_dict[what]
+    parser_key = f"{hash_id}.gif"
+
+    if len(comment) > _MAX_COMMENT_LENGTH:
+        message.reply(f"评论字数过长，请限制在 {_MAX_COMMENT_LENGTH} 个字符内")
+        return
+
+    if comment in img_parser[parser_key]['comments']:
+        message.reply("评论重复，添加失败")
+        return
+
+    comments = img_parser[parser_key]['comments']
+    comments.append(comment)
+    img_parser[parser_key]['comments'] = comments
+    save_img_parser(img_key, img_parser)
+
+    message.reply(f"评论成功，目前有 {len(comments)} 个评论")
 
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit"], permission_level=PermissionLevel.MOD)
@@ -156,7 +289,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v3.3.0"
+    version="v5.0.0"
 )
 def register_module():
     pass

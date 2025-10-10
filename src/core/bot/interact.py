@@ -96,9 +96,9 @@ def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name
             if len(message.tokens) > query_idx + 1:
                 query_more_tip += f"，在 {len(picked_tuple)} 个候选中排名第 {pick_idx} "
             else:
-                query_more_tip += f"，共有 {len(picked_tuple)} 个候选"
+                query_more_tip += f"，共 {len(picked_tuple)} 个候选"
                 if len(picked_tuple) > 1:
-                    query_more_tip += "，可以在指令后追加编号参数查询更多"
+                    query_more_tip += "，可在指令后追加编号参数查询更多"
 
             if ratio >= 95:  # 简单的评价反馈
                 query_tag = "完美满足条件的"
