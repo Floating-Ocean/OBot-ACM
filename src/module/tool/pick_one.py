@@ -193,6 +193,19 @@ def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str)
         message.reply("ID 不存在，建议查询后直接复制粘贴")
         return None
 
+    # 兼容旧版字符串结构（按需升级）
+    value = img_parser[parser_key]
+    if isinstance(value, str):
+        full_path = get_img_full_path(img_key, parser_key)
+        img_parser[parser_key] = {
+            'ocr_text': value,
+            'add_time': os.stat(full_path).st_mtime,
+            'likes': 0,
+            'comments': [],
+            'pickup_times': 0
+        }
+        save_img_parser(img_key, img_parser)
+
     return img_parser
 
 
