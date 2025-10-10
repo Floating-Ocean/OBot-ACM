@@ -70,6 +70,22 @@ class Platform(unittest.TestCase):
             self.assertIsNotNone(img)
             img.write_file(f"nk_user_card_{handle}.png")
 
+    def test_nowcoder_contest_search(self):
+        test_names = ['福建师范', '牛客周赛', '牛客国庆集训派对']
+        for name in test_names:
+            contest = NowCoder._get_specified_contest(name)
+            self.assertIsNotNone(contest)
+            contest_id, contest_info = contest
+            print(contest_id)
+            print(contest_info)
+
+    def test_nowcoder_contest_standing(self):
+        standing = NowCoder.get_user_contest_standings("福建师范", "牛客周赛")
+        self.assertIsNotNone(standing)
+        contest_info, standings_info = standing
+        print(contest_info)
+        print(standings_info)
+
 
 if __name__ == '__main__':
     unittest.main()

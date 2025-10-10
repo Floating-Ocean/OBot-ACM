@@ -67,6 +67,23 @@ class Renderer(abc.ABC):
 class RenderableSection(abc.ABC):
     """图片渲染分块基类"""
 
+    def _split_columns(self,
+                       contests: list["RenderableSection"]) -> list[list["RenderableSection"]]:
+        """适用于嵌套且需分栏的场景，根据高度进行分栏，基于贪心策略，放不下时全部放在最后一栏"""
+        total_height = sum(contest.get_height() for contest in contests)
+        columns = self.get_columns()
+        column_height = 0
+
+        split_contests = [[]]
+        for contest in contests:
+            column_height += contest.get_height()
+            split_contests[-1].append(contest)
+            if len(split_contests) < columns and column_height > total_height / columns:
+                split_contests.append([])
+                column_height = 0
+
+        return split_contests
+
     def get_columns(self):
         """占几列，重写本方法以实现多列"""
         return 1
@@ -186,7 +203,7 @@ class SimpleCardRenderer(Renderer, abc.ABC):
                  self._get_content_width() * max_column + _COLUMN_PADDING * (max_column - 1))
         height = (_CONTAINER_PADDING * 2 + _TOP_PADDING + _BOTTOM_PADDING +
                   sum(section.get_height() for section in render_sections) +
-                  _SECTION_PADDING * (len(render_sections) - 1))
+                  _SECTION_PADDING * max(0, len(render_sections) - 1))
 
         img = pixie.Image(width, height)
         img.fill(self._get_background_color())

@@ -50,14 +50,17 @@ ENTRY_SCRIPT = os.path.abspath("entry.py")
 
 # 包含 pid 的文件锁
 try:
-    with open(LOCK_PATH, 'rb') as lock_file:
-        old_pid = int(base64.b85decode(lock_file.read()).decode())
-        if psutil.pid_exists(old_pid):
-            proc = psutil.Process(old_pid)
-            # 验证进程身份，避免误杀
-            if ("python" in proc.name().lower() and
-                    any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
-                proc.kill()
+    if not os.path.exists(LOCK_PATH):
+        logger.warning("[obot-init] 锁文件不存在")
+    else:
+        with open(LOCK_PATH, 'rb') as lock_file:
+            old_pid = int(base64.b85decode(lock_file.read()).decode())
+            if psutil.pid_exists(old_pid):
+                proc = psutil.Process(old_pid)
+                # 验证进程身份，避免误杀
+                if ("python" in proc.name().lower() and
+                        any(ENTRY_SCRIPT in cmd for cmd in proc.cmdline())):
+                    proc.kill()
 except Exception as e:
     logger.warning("[obot-init] 读取文件锁异常")
     logger.exception(f"[obot-init] {e}")

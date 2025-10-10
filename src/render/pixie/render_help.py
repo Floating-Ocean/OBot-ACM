@@ -7,12 +7,12 @@ from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRender
 
 _CONTENT_WIDTH = 916
 _COLUMN_PADDING = 192
-_HELP_SECTION_PADDING = 72
-
-_SPLIT_POINT = 5
+_HELP_ITEM_PADDING = 64
+_HELP_SECTION_PADDING = 136
 
 
 class _HelpItem(RenderableSection):
+
     def __init__(self, single_help: Help):
         self._help = single_help
 
@@ -21,7 +21,7 @@ class _HelpItem(RenderableSection):
             max_width=_CONTENT_WIDTH
         )
         self.str_help = StyledString(
-            self._help.help, 'B', 28, font_color=(255, 255, 255, 228), padding_bottom=64,
+            self._help.help, 'B', 28, font_color=(255, 255, 255, 228),
             max_width=_CONTENT_WIDTH, line_multiplier=1.36
         )
 
@@ -36,48 +36,55 @@ class _HelpItem(RenderableSection):
         return current_y
 
 
-class _HelpSection(RenderableSection):
-    def __init__(self, helps: dict[str, list[Help]]):
-        self._helps = helps
-        self.section_help = [[_HelpItem(single_help) for single_help in help_items]
-                             for _, help_items in self._helps.items()]
+class _HelpBundle(RenderableSection):
 
-    def get_columns(self):
-        return 2
+    def __init__(self, helps: list[Help]):
+        self.section_help = [_HelpItem(single_help) for single_help in helps]
 
     def get_height(self):
-        # 计算左列高度
-        left_column_height = sum(
-            sum(single_help.get_height() for single_help in help_items)
-            for help_items in self.section_help[:_SPLIT_POINT]
-        ) + _HELP_SECTION_PADDING * (_SPLIT_POINT - 1)
-
-        # 计算右列高度
-        right_column_height = sum(
-            sum(single_help.get_height() for single_help in help_items)
-            for help_items in self.section_help[_SPLIT_POINT:]
-        ) + _HELP_SECTION_PADDING * (len(self.section_help) - _SPLIT_POINT - 1)
-
-        return max(left_column_height, right_column_height)
+        return (sum(single_help.get_height() for single_help in self.section_help) +
+                _HELP_ITEM_PADDING * max(0, len(self.section_help) - 1))
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
-        max_y = y
 
+        current_y -= _HELP_ITEM_PADDING
+        for single_help in self.section_help:
+            current_y += _HELP_ITEM_PADDING
+            current_y = single_help.render(img, current_x, current_y)
+
+        return current_y
+
+
+class _HelpSection(RenderableSection):
+
+    def __init__(self, helps: dict[str, list[Help]]):
+        self.section_help = [_HelpBundle(help_items) for _, help_items in helps.items()]
+
+    def get_columns(self):
+        return 3
+
+    def get_height(self):
+        column_split = self._split_columns(self.section_help)
+        return max(sum(help_items.get_height() for help_items in column) +
+                   _HELP_SECTION_PADDING * max(0, (len(column) - 1))
+                   for column in column_split)
+
+    def render(self, img: pixie.Image, x: int, y: int) -> int:
+        current_x, current_y = x, y
         current_y -= _HELP_SECTION_PADDING
-        for help_items in self.section_help[:_SPLIT_POINT]:
-            current_y += _HELP_SECTION_PADDING
-            for single_help in help_items:
-                current_y = single_help.render(img, current_x, current_y)
-                max_y = max(max_y, current_y)
+        start_y, max_y = current_y, current_y
 
-        current_x, current_y = x + _CONTENT_WIDTH + _COLUMN_PADDING, y
-
-        current_y -= _HELP_SECTION_PADDING
-        for help_items in self.section_help[_SPLIT_POINT:]:
-            current_y += _HELP_SECTION_PADDING
-            for single_help in help_items:
-                current_y = single_help.render(img, current_x, current_y)
+        column_split = self._split_columns(self.section_help)
+        for current_col, _column in enumerate(column_split):
+            current_y = start_y
+            for help_items in _column:
+                current_y += _HELP_SECTION_PADDING
+                current_y = help_items.render(
+                    img,
+                    current_x + (_CONTENT_WIDTH + _COLUMN_PADDING) * current_col,
+                    current_y
+                )
                 max_y = max(max_y, current_y)
 
         return max_y
