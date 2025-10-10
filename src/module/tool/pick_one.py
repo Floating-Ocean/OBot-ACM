@@ -13,6 +13,8 @@ from src.core.util.tools import read_image_with_opencv
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
 
+_MAX_COMMENT_LENGTH = 32
+
 
 def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
     """解析图片文字"""
@@ -231,15 +233,15 @@ def reply_comment_one(message: RobotMessage):
     img_key = data.match_dict[what]
     parser_key = f"{hash_id}.gif"
 
-    if len(comment) > 32:
-        message.reply("评论字数过长，请限制在 32 个字符内")
+    if len(comment) > _MAX_COMMENT_LENGTH:
+        message.reply(f"评论字数过长，请限制在 {_MAX_COMMENT_LENGTH} 个字符内")
         return
 
     if comment in img_parser[parser_key]['comments']:
         message.reply("评论重复，添加失败")
         return
 
-    img_parser[parser_key]['comments'] += [comment]
+    img_parser[parser_key]['comments'].append(comment)
     save_img_parser(img_key, img_parser)
 
     message.reply(f"评论成功，目前有 {len(img_parser[parser_key]['comments'])} 个评论")
