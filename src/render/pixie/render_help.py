@@ -158,6 +158,7 @@ class _CopyrightSection(RenderableSection):
 
 class HelpRenderer(SimpleCardRenderer):
     """帮助信息"""
+
     def __init__(self):
         super().__init__()
 

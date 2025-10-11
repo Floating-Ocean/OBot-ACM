@@ -4,16 +4,19 @@ OIerDB 数据访问模块
 直接解析 raw.txt 原始数据文件
 """
 
-import os
 import json
-from typing import List, Dict, Any
-from collections import defaultdict
-from src.core.constants import Constants
+import os
 import re
+from collections import defaultdict
+from typing import List, Dict, Any
+
+from src.core.constants import Constants
+
 
 class Record:
     """获奖记录类"""
-    def __init__(self, name: str, contest_name: str, contest_type: str, year: int, 
+
+    def __init__(self, name: str, contest_name: str, contest_type: str, year: int,
                  level: str, grade: str, school: str, score: float, province: str, gender: str):
         self.name = name
         self.contest_name = contest_name
@@ -26,15 +29,17 @@ class Record:
         self.province = province
         self.gender = gender
 
+
 class OIer:
     """OIer 选手类"""
+
     def __init__(self, name: str, records: List[Record]):
         self.name = name
         self.records = records
         self.gender = records[0].gender if records else ""
         self.schools = list(set([r.school for r in records if r.school]))
         self.provinces = list(set([r.province for r in records if r.province]))
-        
+
         # 计算CCF评级
         self.ccf_score, self.ccf_level = self._calculate_ccf_level()
 
@@ -56,7 +61,7 @@ class OIer:
                     level = max(level, 9)
                 elif "铜牌" in record.level:
                     level = max(level, 8)
-                    
+
             elif record.contest_type in ["NOIP提高", "CSP提高"]:
                 if "一等奖" in record.level:
                     level = max(level, 6)
@@ -67,7 +72,7 @@ class OIer:
                 elif "三等奖" in record.level:
                     level = max(level, 4)
                     score += 100
-                    
+
             elif record.contest_type in ["NOIP普及", "CSP入门"]:
                 if "一等奖" in record.level:
                     level = max(level, 5)
@@ -78,7 +83,7 @@ class OIer:
                 elif "三等奖" in record.level:
                     level = max(level, 3)
                     score += 50
-                    
+
             elif record.contest_type in ["WC", "CTSC", "APIO"]:
                 # 高级比赛
                 if "金牌" in record.level or "Au" == record.level:
@@ -90,7 +95,7 @@ class OIer:
                 elif "铜牌" in record.level or "Cu" == record.level:
                     level = max(level, 8)
                     score += 400
-                    
+
             elif record.contest_type == "IOI":
                 # IOI 国际信息学奥林匹克
                 if "金牌" in record.level or "Au" == record.level:
@@ -102,7 +107,7 @@ class OIer:
                 elif "铜牌" in record.level or "Cu" == record.level:
                     level = max(level, 9)
                     score += 600
-        
+
         return score, level
 
     def _calculate_ccf_level(self) -> tuple[float, int]:
@@ -113,21 +118,22 @@ class OIer:
         """计算该 OIer 在特定学校的 CCF 评分及评级"""
         # 只计算该学校的记录
         school_records = [record for record in self.records if record.school == school_name]
-        
+
         if not school_records:
             return 0.0, 0
-        
+
         # 使用统一的CCF评级计算方法
         return self._calculate_ccf_level_from_records(school_records)
 
+
 class OIerDB:
     """OIer 数据库查询系统"""
-    
+
     def __init__(self):
         self.oiers: List[OIer] = []
         self.contests: Dict[str, Dict] = {}
         self.data_loaded = False
-        
+
         # 索引映射
         self.oier_name_map: Dict[str, List[OIer]] = defaultdict(list)
 
@@ -136,7 +142,7 @@ class OIerDB:
         # 从src/data目录向上两级到项目根目录，然后进入lib/OIerDb
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))  # 向上两级到项目根目录
-        
+
         # 根据文件类型确定子目录
         # raw.txt 和 school.txt 在 data/ 文件夹
         # contests.json 等配置文件在 static/ 文件夹
@@ -150,28 +156,28 @@ class OIerDB:
         # 常见比赛类型映射
         contest_types = {
             "NOIP": "NOIP提高",
-            "CSP": "CSP提高", 
+            "CSP": "CSP提高",
             "NOI": "NOI",
             "IOI": "IOI",
             "WC": "WC",
             "CTSC": "CTSC",
             "APIO": "APIO"
         }
-        
+
         contest_type = "其他"
         year = 2024  # 默认年份
-        
+
         # 提取年份
         year_match = re.search(r'(\d{4})', contest_name)
         if year_match:
             year = int(year_match.group(1))
-        
+
         # 提取比赛类型
         for key, value in contest_types.items():
             if key in contest_name:
                 contest_type = value
                 break
-        
+
         # 特殊处理
         if "提高" in contest_name:
             if "NOIP" in contest_name:
@@ -183,7 +189,7 @@ class OIerDB:
                 contest_type = "NOIP普及"
             elif "CSP" in contest_name:
                 contest_type = "CSP入门"
-        
+
         return {
             "name": contest_name,
             "type": contest_type,
@@ -196,7 +202,7 @@ class OIerDB:
         try:
             with open(contests_file, "r", encoding="utf-8") as f:
                 contests_data = json.load(f)
-            
+
             # 新格式的 contests.json 是一个字典
             if isinstance(contests_data, dict):
                 self.contests = contests_data
@@ -220,20 +226,20 @@ class OIerDB:
         """加载原始数据文件 raw.txt"""
         raw_file = self._get_data_path("raw.txt")
         records_by_name = defaultdict(list)
-        
+
         try:
             with open(raw_file, "r", encoding="utf-8") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line or line.startswith("#"):
                         continue
-                    
+
                     # 解析每行数据
                     # 格式：比赛名称,奖项等级,姓名,年级,学校,分数,省份,性别,其他信息
                     parts = line.split(",")
                     if len(parts) < 8:
                         continue
-                    
+
                     try:
                         contest_name = parts[0].strip()
                         level = parts[1].strip()
@@ -243,15 +249,15 @@ class OIerDB:
                         score_str = parts[5].strip()
                         province = parts[6].strip()
                         gender = parts[7].strip()
-                        
+
                         # 处理分数
                         score = 0.0
                         if score_str and score_str.replace(".", "").isdigit():
                             score = float(score_str)
-                        
+
                         # 解析比赛信息
                         contest_info = self._parse_contest_info(contest_name)
-                        
+
                         # 创建记录
                         record = Record(
                             name=name,
@@ -265,20 +271,20 @@ class OIerDB:
                             province=province,
                             gender=gender
                         )
-                        
+
                         records_by_name[name].append(record)
-                        
+
                     except Exception as e:
                         Constants.log.warning(f"[OIerDb] 解析第 {line_num} 行数据失败: {line}")
                         Constants.log.exception(f"[OIerDb] {e}")
                         continue
-            
+
             # 创建 OIer 对象
             for name, records in records_by_name.items():
                 oier = OIer(name, records)
                 self.oiers.append(oier)
                 self.oier_name_map[name].append(oier)
-            
+
             # 按CCF等级和分数排序
             self.oiers.sort(key=lambda x: (x.ccf_level, x.ccf_score), reverse=True)
         except Exception as e:
@@ -292,7 +298,7 @@ class OIerDB:
             try:
                 self.load_contests()
                 self.load_raw_data()
-                
+
                 self.data_loaded = True
             except Exception as e:
                 Constants.log.warning("[OIerDb] 数据加载失败")
@@ -303,10 +309,10 @@ class OIerDB:
         """根据姓名查询选手信息"""
         if not self.data_loaded:
             self.load_data()
-        
+
         results = []
         oiers = self.oier_name_map.get(name, [])
-        
+
         for oier in oiers:
             records_out = []
             for record in oier.records:
@@ -321,7 +327,7 @@ class OIerDB:
                     "school": record.school,
                     "grade": record.grade,
                 })
-            
+
             results.append({
                 "name": oier.name,
                 "gender": oier.gender,
@@ -332,38 +338,38 @@ class OIerDB:
                 "records": records_out,
                 "oier_obj": oier,  # 添加原始OIer对象引用
             })
-        
+
         return results
 
     def search(self, query: str, limit: int = 50) -> List[Dict[str, Any]]:
         """智能搜索选手"""
         if not self.data_loaded:
             self.load_data()
-        
+
         results = []
         query = query.lower().strip()
-        
+
         for oier in self.oiers:
             found = False
-            
+
             # 按姓名搜索
             if query in oier.name.lower():
                 found = True
-            
+
             # 按学校搜索
             if not found:
                 for school in oier.schools:
                     if query in school.lower():
                         found = True
                         break
-            
+
             # 按省份搜索
             if not found:
                 for province in oier.provinces:
                     if query in province.lower():
                         found = True
                         break
-            
+
             if found:
                 records_out = []
                 for record in oier.records:
@@ -378,7 +384,7 @@ class OIerDB:
                         "school": record.school,
                         "grade": record.grade,
                     })
-                
+
                 results.append({
                     "name": oier.name,
                     "gender": oier.gender,
@@ -389,20 +395,20 @@ class OIerDB:
                     "records": records_out,
                     "oier_obj": oier,  # 添加原始OIer对象引用
                 })
-                
+
                 if len(results) >= limit:
                     break
-        
+
         return results
 
     def get_ranking(self, start: int = 1, limit: int = 50) -> List[Dict[str, Any]]:
         """获取排行榜"""
         if not self.data_loaded:
             self.load_data()
-        
+
         results = []
         end = min(start + limit - 1, len(self.oiers))
-        
+
         for i in range(start - 1, end):
             oier = self.oiers[i]
             results.append({
@@ -415,7 +421,7 @@ class OIerDB:
                 "ccf_level": oier.ccf_level,
                 "record_count": len(oier.records),
             })
-        
+
         return results
 
 
