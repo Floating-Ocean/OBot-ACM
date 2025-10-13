@@ -252,6 +252,28 @@ def get_md5(path: str) -> str:
     return md5.hexdigest()
 
 
+def md5_to_base62(md5_hash: str) -> str:
+    """将 MD5 转换为 Base62 格式"""
+    base62_charset = string.ascii_letters + string.digits
+    num = int(md5_hash, 16)
+    if num == 0:
+        return base62_charset[0]
+    base62_str = ""
+    while num > 0:
+        num, remainder = divmod(num, 62)
+        base62_str = base62_charset[remainder] + base62_str
+    return base62_str
+
+
+def base62_to_md5(base62_str: str) -> str:
+    """将 Base62 转换为 MD5"""
+    base62_charset = string.ascii_letters + string.digits
+    num = 0
+    for char in base62_str:
+        num = num * 62 + base62_charset.index(char)
+    return format(num, '032x')
+
+
 def rand_str_len32() -> str:
     return ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(32)])
 

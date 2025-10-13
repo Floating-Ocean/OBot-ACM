@@ -9,7 +9,7 @@ from src.core.bot.decorator import command, PermissionLevel, module
 from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.util.tools import read_image_with_opencv
+from src.core.util.tools import read_image_with_opencv, base62_to_md5, md5_to_base62
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
 
@@ -94,7 +94,7 @@ def reply_pick_one(message: RobotMessage):
 
     def reply_ok(query_tag: str, query_more_tip: str, picked: str):
         """回复模糊匹配的表情包"""
-        hash_id = picked.rsplit('.', 1)[0]
+        hash_id = md5_to_base62(picked.rsplit('.', 1)[0])
         parse_info = img_parser[picked]
         comments = (
             "" if not parse_info['comments'] else
@@ -180,7 +180,7 @@ def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str)
         return None
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    hash_id = base62_to_md5(message.tokens[2].strip())
     parser_key = f"{hash_id}.gif"
 
     if what not in data.match_dict:
@@ -218,7 +218,7 @@ def reply_like_one(message: RobotMessage):
         return
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    hash_id = base62_to_md5(message.tokens[2].strip())
     img_key = data.match_dict[what]
     parser_key = f"{hash_id}.gif"
 
@@ -229,7 +229,7 @@ def reply_like_one(message: RobotMessage):
     message.reply(f"点赞成功，目前有 {likes} 个赞")
 
 
-@command(tokens=["评论来只*", "评论*", "comment*", "say*"])
+@command(tokens=["评论来只*", "评论*", "回复来只*", "回复*", "comment*", "say*", "reply*"])
 def reply_comment_one(message: RobotMessage):
     data = get_pick_one_data()
 
@@ -242,7 +242,7 @@ def reply_comment_one(message: RobotMessage):
         return
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    hash_id = base62_to_md5(message.tokens[2].strip())
     comment = message.tokens[3].strip()
     img_key = data.match_dict[what]
     parser_key = f"{hash_id}.gif"
@@ -289,7 +289,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v5.0.0"
+    version="v5.1.0"
 )
 def register_module():
     pass
