@@ -35,9 +35,10 @@ logger.debug(f'[obot-init] 载入核心 Core {Constants.core_version}-{Constants
 # 加载模块
 logger.debug("[obot-init] 载入模块中")
 importlib.import_module("src.module")
-from src.core.bot.decorator import get_command_count, get_module_count
+from src.core.bot.decorator import get_command_count, get_module_count, get_command_alias_count
 from robot import open_robot_session
-logger.debug(f'[obot-init] 已载入 {get_module_count()} 个模块，{get_command_count()} 条指令')
+logger.debug(f'[obot-init] 已载入 {get_module_count()} 个模块，{get_command_count()} 条指令，'
+             f'{get_command_alias_count()} 条指令别名')
 
 logger.debug("[obot-init] 模块加载完成，正在启动 Bot")
 
