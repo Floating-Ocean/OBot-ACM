@@ -14,6 +14,7 @@ from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_p
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
 
 _MAX_COMMENT_LENGTH = 32
+_shorten_id = {}
 
 
 def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
@@ -112,7 +113,7 @@ def reply_pick_one(message: RobotMessage):
         if query_more_tip:
             query_more_tip = f"\n{query_more_tip}"
         message.reply(f"[Pick-One] 来了只{query_tag}{current_config.id}\n\n"
-                      f"ID: {hash_id}\n"
+                      f"ID: {_get_shorten_id(hash_id)}\n"
                       f"点赞: {parse_info['likes']} 次\n{comments}"
                       f"提起次数: {parse_info['pickup_times']} 次\n"
                       f"添加时间: {add_time}{query_more_tip}",
@@ -170,6 +171,14 @@ def reply_save_one(message: RobotMessage):
         message.reply(f"关键词 {what} 未被记录，请联系bot管理员添加")
 
 
+def _get_shorten_id(hash_id: str):
+    key = f'SHORTEN_{hash_id}'
+    if key in _shorten_id: return _shorten_id[key]
+    index = (len(_shorten_id) >> 1) + 1
+    _shorten_id[index] = hash_id
+    _shorten_id[key] = index
+
+
 def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str) -> dict | None:
     if len(message.tokens) < 2:
         message.reply(f"请指定想要{action}的图片的关键词")
@@ -180,8 +189,7 @@ def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str)
         return None
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
-    parser_key = f"{hash_id}.gif"
+    index = message.tokens[2].lower()
 
     if what not in data.match_dict:
         message.reply(f"关键词 {what} 未被记录，请联系bot管理员添加")
@@ -189,11 +197,12 @@ def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str)
 
     img_key = data.match_dict[what]
     img_parser = get_img_parser(img_key)
-    if parser_key not in img_parser:
+    if index not in _shorten_id:
         message.reply("ID 不存在，建议查询后直接复制粘贴")
         return None
 
     # 兼容旧版字符串结构（按需升级）
+    parser_key = f"{_shorten_id[index]}.gif"
     value = img_parser[parser_key]
     if isinstance(value, str):
         full_path = get_img_full_path(img_key, parser_key)
@@ -218,9 +227,9 @@ def reply_like_one(message: RobotMessage):
         return
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    index = message.tokens[2].lower()
     img_key = data.match_dict[what]
-    parser_key = f"{hash_id}.gif"
+    parser_key = f"{_shorten_id[index]}.gif"
 
     likes = img_parser[parser_key]['likes'] + 1
     img_parser[parser_key]['likes'] = likes
@@ -242,10 +251,10 @@ def reply_comment_one(message: RobotMessage):
         return
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    index = message.tokens[2].lower()
     comment = message.tokens[3].strip()
     img_key = data.match_dict[what]
-    parser_key = f"{hash_id}.gif"
+    parser_key = f"{_shorten_id[index]}.gif"
 
     if len(comment) > _MAX_COMMENT_LENGTH:
         message.reply(f"评论字数过长，请限制在 {_MAX_COMMENT_LENGTH} 个字符内")
