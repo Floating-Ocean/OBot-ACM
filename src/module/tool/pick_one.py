@@ -15,9 +15,13 @@ from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_p
 
 _MAX_COMMENT_LENGTH = 32
 
+_notified = False
 
-def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
+
+def _parse_img(message: RobotMessage, img_key: str):
     """解析图片文字"""
+    global _notified
+
     ocr_reader = None
     old_data = get_img_parser(img_key)
     data = {}
@@ -35,9 +39,9 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                 }
             data[name] = parser_data
         else:
-            if not notified:
+            if not _notified:
                 message.reply("图片处理中，请稍等\n若等待时间较长，可尝试重新发送消息")
-                notified = True
+                _notified = True
             try:
                 if ocr_reader is None:
                     ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True)
@@ -265,14 +269,15 @@ def reply_comment_one(message: RobotMessage):
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit"], permission_level=PermissionLevel.MOD)
 def reply_audit_accept(message: RobotMessage):
+    global _notified
+    _notified = False
+
     cnt = 0
     ok_status: dict[str, int] = {}
 
-    notified = False
     for img_key in list_auditable():
         cnt += accept_audit(img_key, ok_status)
-        _parse_img(message, img_key, notified)
-        notified = True
+        _parse_img(message, img_key)
 
     if cnt == 0:
         message.reply("没有需要审核的图片")
