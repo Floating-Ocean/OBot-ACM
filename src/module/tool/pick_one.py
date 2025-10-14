@@ -174,7 +174,7 @@ def reply_save_one(message: RobotMessage):
 def _get_shorten_id(hash_id: str):
     key = f'SHORTEN_{hash_id}'
     if key in _shorten_id: return _shorten_id[key]
-    index = (len(_shorten_id) >> 1) + 1
+    index = str((len(_shorten_id) >> 1) + 1)
     _shorten_id[index] = hash_id
     _shorten_id[key] = index
     return index
