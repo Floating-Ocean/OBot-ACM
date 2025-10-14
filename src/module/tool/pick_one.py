@@ -177,6 +177,7 @@ def _get_shorten_id(hash_id: str):
     index = (len(_shorten_id) >> 1) + 1
     _shorten_id[index] = hash_id
     _shorten_id[key] = index
+    return index
 
 
 def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str) -> dict | None:
