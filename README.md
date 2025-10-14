@@ -24,7 +24,7 @@
 
 ## 开始之前
 
-在运行机器人前，请将 **[`config_example.json`](config_example.json)** 复制为 **[`config.json`](config_example.json)**，并根据文件内提示填写相关字段。
+在运行机器人前，请将 **[`config_example.json`](config_example.json)** 复制为 **`config.json`**，并根据文件内提示填写相关字段。
 
 > [!CAUTION]
 > 1. 项目依赖包含部分修改的 **[`botpy`](https://github.com/Floating-Ocean/botpy)**；
