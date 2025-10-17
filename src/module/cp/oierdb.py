@@ -155,7 +155,7 @@ def _get_award_priority(record: dict) -> int:
 
     # 比赛类型权重
     contest_weight = {
-        'IOI': 1000, 'NOI': 900, 'WC': 800, 'CTSC': 700, 'APIO': 600,
+        'IOI': 1000, 'NOI': 900, 'WC': 800, 'CTS': 700, 'APIO': 600,
         'CSP提高': 500, 'NOIP提高': 400, 'CSP入门': 300, 'NOIP普及': 200
     }.get(contest_type, 100)
 
@@ -256,8 +256,7 @@ def _query_single_player(name: str) -> str:
                     contest_types[contest_type].append(record)
 
                 # 按重要性排序显示比赛类型
-                type_order = ['NOI', 'IOI', 'WC', 'CTSC', 'APIO', 'CSP提高', 'CSP入门', 'NOIP提高', 'NOIP普及',
-                              'NOID类']
+                type_order = ['NOI', 'IOI', 'WC', 'CTS', 'APIO', 'CSP提高', 'CSP入门', 'NOIP提高', 'NOIP普及', 'NOID类']
 
                 for contest_type in type_order:
                     if contest_type in contest_types:
