@@ -283,7 +283,7 @@ class Codeforces(CompetitivePlatform):
 
         if standings['contest']['phase'] == 'FINISHED':
             rating_changes = cls._api_with_check('contest.ratingChanges', contestId=contest_id)
-            if not rating_changes:
+            if rating_changes is None:
                 rated = False
             else:
                 rating_changes = list(rating_changes)
