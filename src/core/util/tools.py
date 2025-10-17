@@ -274,7 +274,7 @@ def base62_to_md5(base62_str: str) -> str:
     """将 Base62 转换为 MD5, 字符集[a-zA-Z0-9]"""
     base62_charset = string.ascii_letters + string.digits
     if not base62_str or len(base62_str) > 22:
-            raise ValueError("Invalid Base62 length, must be 1..22")
+        raise ValueError("Invalid Base62 length, must be 1..22")
     invalid_chars = [c for c in base62_str if c not in base62_charset]
     if invalid_chars:
         raise ValueError(f"Invalid charset: {''.join(invalid_chars)}, only [A-Za-z0-9] allowed")

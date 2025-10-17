@@ -23,7 +23,7 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
 
     def decorator(func):
         if not tokens:
-            raise ValueError(f'Function {func.__name__} requires at least one token')
+            raise ValueError(f'Function {func.__name__} requires tokens')
 
         module_name = func.__module__ or "default.unknown"  # 根据函数注册的位置分类处理
 
@@ -61,7 +61,7 @@ def module(name: str,
 
 
 def get_command_count() -> int:
-    """获取当前注册的指令总数"""
+    """获取当前注册的主指令数量 (不包括别名)"""
     return sum(len(module_commands) for module_commands in __commands_primary__.values())
 
 
@@ -77,7 +77,7 @@ def get_module_count() -> int:
 
 
 def get_all_modules_info() -> list[tuple[str, str]]:
-    """获取当前注册的模块信息 (不包括别名)"""
+    """获取当前注册的模块信息"""
     all_modules_info = []
     for name, version in __modules__.items():
         if isinstance(version, Callable):
