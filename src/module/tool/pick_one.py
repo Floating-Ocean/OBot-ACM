@@ -80,6 +80,9 @@ def _decode_img_key(data: PickOne, what: str) -> str | None:
 
 @command(tokens=["来只*"])
 def reply_pick_one(message: RobotMessage):
+    global _notified
+    _notified = False
+
     data = get_pick_one_data()
     what = message.tokens[1].lower() if len(message.tokens) >= 2 else None
 
