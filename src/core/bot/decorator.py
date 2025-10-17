@@ -76,7 +76,7 @@ def get_module_count() -> int:
 
 
 def get_all_modules_info() -> list[tuple[str, str]]:
-    """获取当前注册的模块信息"""
+    """获取当前注册的模块信息（不包括别名）"""
     all_modules_info = []
     for name, version in __modules__.items():
         if isinstance(version, Callable):
