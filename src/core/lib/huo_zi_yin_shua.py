@@ -15,7 +15,6 @@ from src.core.constants import Constants
 
 
 class HuoZiYinShua:
-
     _TARGET_SR = 44100  # 目标采样率
 
     def __init__(self, lib_path: str):

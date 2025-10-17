@@ -168,6 +168,7 @@ class RenderableSvgSection(RenderableSection, abc.ABC):
 
 class SimpleCardRenderer(Renderer, abc.ABC):
     """简单的卡片渲染"""
+
     def __init__(self):
         self._gradient_color = pick_gradient_color()
 
