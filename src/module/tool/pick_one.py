@@ -139,12 +139,14 @@ def reply_pick_one_capoo(message: RobotMessage):
 
 @command(tokens=["添加来只*", "添加*"])
 def reply_save_one(message: RobotMessage):
-    data = get_pick_one_data()
+    global _notified
+    _notified = False
 
     if len(message.tokens) < 2:
         message.reply("请指定需要添加的图片的关键词")
         return
 
+    data = get_pick_one_data()
     need_audit = not message.user_permission_level.is_mod()
     what = message.tokens[1].lower()
 
