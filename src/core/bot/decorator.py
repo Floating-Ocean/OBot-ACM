@@ -3,9 +3,9 @@ from typing import Callable
 
 from src.core.bot.perm import PermissionLevel
 
-__commands_primary__ = {}
-__commands__ = {}
-__modules__ = {}
+__commands_primary__: dict[str, dict[str, str]] = {}
+__commands__: dict[str, dict[str, tuple[Callable, PermissionLevel, bool, bool]]] = {}
+__modules__: dict[str, str | Callable[[], str]] = {}
 
 
 def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
@@ -23,13 +23,14 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
 
     def decorator(func):
         if not tokens:
-            raise RuntimeError(f'No tokens provided for {func.__name__}')
+            raise ValueError(f'No tokens provided for {func.__name__}')
 
         module_name = func.__module__ or "default.unknown"  # 根据函数注册的位置分类处理
 
         __commands__.setdefault(module_name, {})
         __commands_primary__.setdefault(module_name, {})
-        __commands_primary__[module_name][tokens[0]] = func.__name__  # 记录第一个 token 对应的方法
+        primary_token_name = (f'/{tokens[0]}' if is_command else f'{tokens[0]}').lower()
+        __commands_primary__[module_name][primary_token_name] = func.__name__  # 记录第一个 token 对应的方法
 
         for token in tokens:
             token_name = (f'/{token}' if is_command else f'{token}').lower()  # 忽略大小写直接匹配
