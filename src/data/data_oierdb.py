@@ -83,8 +83,8 @@ class OIer:
                 elif "三等奖" in record.level:
                     level = max(level, 3)
                     score += 50
-
-            elif record.contest_type in ["WC", "CTSC", "APIO"]:
+                    
+            elif record.contest_type in ["WC", "CTS", "APIO"]:
                 # 高级比赛
                 if "金牌" in record.level or "Au" == record.level:
                     level = max(level, 10)
@@ -160,8 +160,12 @@ class OIerDB:
             "NOI": "NOI",
             "IOI": "IOI",
             "WC": "WC",
-            "CTSC": "CTSC",
-            "APIO": "APIO"
+            "CTSC": "CTS",
+            "CTS": "CTS",
+            "APIO": "APIO",
+            "NGOI": "NGOI",
+            "NOIST": "NOIST",
+            "春季测试": "NOIST"
         }
 
         contest_type = "其他"
