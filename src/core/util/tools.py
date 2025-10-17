@@ -253,7 +253,7 @@ def get_md5(path: str) -> str:
 
 
 def md5_to_base62(md5_hash: str) -> str:
-    """将 MD5 转换为 Base62 格式，字符集[a-zA-Z0-9]"""
+    """将 MD5 转换为 Base62 格式, 字符集[a-zA-Z0-9]"""
     if len(md5_hash) != 32:
         raise ValueError("Invalid md5 length, must be a hex string of 32 characters long")
     try:
@@ -271,16 +271,19 @@ def md5_to_base62(md5_hash: str) -> str:
 
 
 def base62_to_md5(base62_str: str) -> str:
-    """将 Base62 转换为 MD5，字符集[a-zA-Z0-9]"""
+    """将 Base62 转换为 MD5, 字符集[a-zA-Z0-9]"""
     base62_charset = string.ascii_letters + string.digits
     if not base62_str or len(base62_str) > 22:
-        raise ValueError("Invalid length for base62 to transform into md5")
+            raise ValueError("Invalid Base62 length, must be 1..22")
     invalid_chars = [c for c in base62_str if c not in base62_charset]
     if invalid_chars:
-        raise ValueError(f"Invalid charset: {''.join(invalid_chars)}，only [A-Za-z0-9] allowed")
+        raise ValueError(f"Invalid charset: {''.join(invalid_chars)}, only [A-Za-z0-9] allowed")
+    char_to_index = {c: i for i, c in enumerate(base62_charset)}
     num = 0
     for char in base62_str:
-        num = num * 62 + base62_charset.index(char)
+        num = num * 62 + char_to_index[char]
+    if num > ((1 << 128) - 1):  # 128-bit 上界: 2^128 - 1
+        raise ValueError("Base62 value exceeds 128-bit MD5 range")
     hex_str = format(num, '032x')
     return hex_str
 
