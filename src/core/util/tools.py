@@ -253,7 +253,9 @@ def get_md5(path: str) -> str:
 
 
 def md5_to_base62(md5_hash: str) -> str:
-    """将 MD5 转换为 Base62 格式"""
+    """将 MD5 转换为 Base62 格式，字符集[a-zA-Z0-9]"""
+    if len(md5_hash) > 32:
+        raise ValueError("Invalid md5 length, must be a hex string of 32 characters long")
     base62_charset = string.ascii_letters + string.digits
     num = int(md5_hash, 16)
     if num == 0:
@@ -266,12 +268,20 @@ def md5_to_base62(md5_hash: str) -> str:
 
 
 def base62_to_md5(base62_str: str) -> str:
-    """将 Base62 转换为 MD5"""
+    """将 Base62 转换为 MD5，字符集[a-zA-Z0-9]"""
     base62_charset = string.ascii_letters + string.digits
+    if not base62_str or len(base62_str) > 22:
+        raise ValueError("Invalid length for base62 to transform into md5")
+    invalid_chars = [c for c in base62_str if c not in base62_charset]
+    if invalid_chars:
+        raise ValueError(f"Invalid charset: {''.join(invalid_chars)}，only [A-Za-z0-9] allowed")
     num = 0
     for char in base62_str:
         num = num * 62 + base62_charset.index(char)
-    return format(num, '032x')
+    hex_str = format(num, '032x')
+    if len(hex_str) > 32:
+        raise ValueError("Invalid md5 length")
+    return hex_str
 
 
 def rand_str_len32() -> str:
