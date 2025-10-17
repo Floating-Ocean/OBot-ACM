@@ -155,8 +155,16 @@ def _get_award_priority(record: dict) -> int:
 
     # 比赛类型权重
     contest_weight = {
-        'IOI': 1000, 'NOI': 900, 'WC': 800, 'CTS': 700, 'APIO': 600,
-        'CSP提高': 500, 'NOIP提高': 400, 'CSP入门': 300, 'NOIP普及': 200
+        'IOI': 1000,
+        'NOI': 900,
+        'WC': 800,
+        'CTS': 700,
+        'APIO': 600,
+        'CSP提高': 500,
+        'NOIP提高': 400,
+        'NOIST': 400, # 春季测试，权重与 NOIP 一致
+        'CSP入门': 300,
+        'NOIP普及': 200
     }.get(contest_type, 100)
 
     # 奖项等级权重
@@ -256,7 +264,7 @@ def _query_single_player(name: str) -> str:
                     contest_types[contest_type].append(record)
 
                 # 按重要性排序显示比赛类型
-                type_order = ['NOI', 'IOI', 'WC', 'CTS', 'APIO', 'CSP提高', 'CSP入门', 'NOIP提高', 'NOIP普及', 'NOID类']
+                type_order = ['NOI', 'IOI', 'WC', 'CTS', 'APIO', 'CSP提高', 'CSP入门', 'NOIP提高', 'NOIST', 'NOIP普及', 'NOID类']
 
                 for contest_type in type_order:
                     if contest_type in contest_types:
@@ -280,23 +288,13 @@ def _query_single_player(name: str) -> str:
                 # 显示其他类型
                 for contest_type in contest_types:
                     if contest_type not in type_order:
-                        response += "出现这个说明你的询问对象曾有列表以外的比赛，算是一个警告，请联系管理员\n\n"
+                        response += "出现这个说明你的询问对象曾有列表以外的比赛，算是一个警告，请联系管理员\n"
+                        
                         records_of_type = contest_types[contest_type]
 
                         for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
                             contest = record['contest_name']
-                            grade = record.get('grade', '').strip()
-                            level = record.get('level', '').strip()
-
-                            # 格式化年级显示
-                            if grade:
-                                formatted_grade = _format_grade_display(grade)
-                                grade_info = f" ({formatted_grade})"
-                            else:
-                                grade_info = ""
-
-                            level_info = f" {level}" if level else ""
-                            response += f"{contest}{level_info}{grade_info}\n"
+                            response += f"未定义比赛名称: {contest}\n"
         else:
             response += "\n\n暂无获奖记录"
 

@@ -150,29 +150,32 @@ class OIerDB:
         # 常见比赛类型映射
         contest_types = {
             "NOIP": "NOIP提高",
-            "CSP": "CSP提高", 
+            "CSP": "CSP提高",
             "NOI": "NOI",
             "IOI": "IOI",
             "WC": "WC",
             "CTSC": "CTS",
             "CTS": "CTS",
-            "APIO": "APIO"
+            "APIO": "APIO",
+            "NGOI": "NGOI",
+            "NOIST": "NOIST",
+            "春季测试": "NOIST"
         }
-        
+
         contest_type = "其他"
         year = 2024  # 默认年份
-        
+
         # 提取年份
         year_match = re.search(r'(\d{4})', contest_name)
         if year_match:
             year = int(year_match.group(1))
-        
+
         # 提取比赛类型
         for key, value in contest_types.items():
             if key in contest_name:
                 contest_type = value
                 break
-        
+
         # 特殊处理
         if "提高" in contest_name:
             if "NOIP" in contest_name:
@@ -184,7 +187,7 @@ class OIerDB:
                 contest_type = "NOIP普及"
             elif "CSP" in contest_name:
                 contest_type = "CSP入门"
-        
+
         return {
             "name": contest_name,
             "type": contest_type,
