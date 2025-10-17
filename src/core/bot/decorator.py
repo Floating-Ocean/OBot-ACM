@@ -3,8 +3,9 @@ from typing import Callable
 
 from src.core.bot.perm import PermissionLevel
 
-__commands__ = {}
-__modules__ = {}
+__commands_primary__: dict[str, dict[str, str]] = {}
+__commands__: dict[str, dict[str, tuple[Callable, PermissionLevel, bool, bool]]] = {}
+__modules__: dict[str, str | Callable[[], str]] = {}
 
 
 def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
@@ -20,13 +21,16 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
         multi_thread为真时，线程生命周期最多一小时
     """
 
-    if tokens is None:
-        tokens = []
-
     def decorator(func):
+        if not tokens:
+            raise ValueError(f'Function {func.__name__} requires tokens')
+
         module_name = func.__module__ or "default.unknown"  # 根据函数注册的位置分类处理
-        if module_name not in __commands__:
-            __commands__[module_name] = {}
+
+        __commands__.setdefault(module_name, {})
+        __commands_primary__.setdefault(module_name, {})
+        primary_token_name = (f'/{tokens[0]}' if is_command else f'{tokens[0]}').lower()
+        __commands_primary__[module_name][primary_token_name] = func.__name__  # 记录第一个 token 对应的方法
 
         for token in tokens:
             token_name = (f'/{token}' if is_command else f'{token}').lower()  # 忽略大小写直接匹配
@@ -57,8 +61,14 @@ def module(name: str,
 
 
 def get_command_count() -> int:
-    """获取当前注册的指令总数"""
-    return sum(len(module_commands) for module_commands in __commands__.values())
+    """获取当前注册的主指令数量 (不包括别名)"""
+    return sum(len(module_commands) for module_commands in __commands_primary__.values())
+
+
+def get_command_alias_count() -> int:
+    """获取当前注册的指令别名总数"""
+    return (sum(len(module_commands) for module_commands in __commands__.values()) -
+            get_command_count())
 
 
 def get_module_count() -> int:

@@ -9,15 +9,19 @@ from src.core.bot.decorator import command, PermissionLevel, module
 from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.util.tools import read_image_with_opencv
+from src.core.util.tools import read_image_with_opencv, base62_to_md5, md5_to_base62
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
 
 _MAX_COMMENT_LENGTH = 32
 
+_notified = False
 
-def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
+
+def _parse_img(message: RobotMessage, img_key: str):
     """解析图片文字"""
+    global _notified
+
     ocr_reader = None
     old_data = get_img_parser(img_key)
     data = {}
@@ -35,9 +39,9 @@ def _parse_img(message: RobotMessage, img_key: str, notified: bool = False):
                 }
             data[name] = parser_data
         else:
-            if not notified:
+            if not _notified:
                 message.reply("图片处理中，请稍等\n若等待时间较长，可尝试重新发送消息")
-                notified = True
+                _notified = True
             try:
                 if ocr_reader is None:
                     ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True)
@@ -76,6 +80,9 @@ def _decode_img_key(data: PickOne, what: str) -> str | None:
 
 @command(tokens=["来只*"])
 def reply_pick_one(message: RobotMessage):
+    global _notified
+    _notified = False
+
     data = get_pick_one_data()
     what = message.tokens[1].lower() if len(message.tokens) >= 2 else None
 
@@ -94,7 +101,7 @@ def reply_pick_one(message: RobotMessage):
 
     def reply_ok(query_tag: str, query_more_tip: str, picked: str):
         """回复模糊匹配的表情包"""
-        hash_id = picked.rsplit('.', 1)[0]
+        hash_id = md5_to_base62(picked.rsplit('.', 1)[0])
         parse_info = img_parser[picked]
         comments = (
             "" if not parse_info['comments'] else
@@ -135,12 +142,14 @@ def reply_pick_one_capoo(message: RobotMessage):
 
 @command(tokens=["添加来只*", "添加*"])
 def reply_save_one(message: RobotMessage):
-    data = get_pick_one_data()
+    global _notified
+    _notified = False
 
     if len(message.tokens) < 2:
         message.reply("请指定需要添加的图片的关键词")
         return
 
+    data = get_pick_one_data()
     need_audit = not message.user_permission_level.is_mod()
     what = message.tokens[1].lower()
 
@@ -180,7 +189,7 @@ def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str)
         return None
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    hash_id = base62_to_md5(message.tokens[2].strip())
     parser_key = f"{hash_id}.gif"
 
     if what not in data.match_dict:
@@ -218,7 +227,7 @@ def reply_like_one(message: RobotMessage):
         return
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    hash_id = base62_to_md5(message.tokens[2].strip())
     img_key = data.match_dict[what]
     parser_key = f"{hash_id}.gif"
 
@@ -229,7 +238,7 @@ def reply_like_one(message: RobotMessage):
     message.reply(f"点赞成功，目前有 {likes} 个赞")
 
 
-@command(tokens=["评论来只*", "评论*", "comment*", "say*"])
+@command(tokens=["评论来只*", "评论*", "回复来只*", "回复*", "comment*", "say*", "reply*"])
 def reply_comment_one(message: RobotMessage):
     data = get_pick_one_data()
 
@@ -242,7 +251,7 @@ def reply_comment_one(message: RobotMessage):
         return
 
     what = message.tokens[1].lower()
-    hash_id = message.tokens[2].lower()
+    hash_id = base62_to_md5(message.tokens[2].strip())
     comment = message.tokens[3].strip()
     img_key = data.match_dict[what]
     parser_key = f"{hash_id}.gif"
@@ -265,14 +274,15 @@ def reply_comment_one(message: RobotMessage):
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit"], permission_level=PermissionLevel.MOD)
 def reply_audit_accept(message: RobotMessage):
+    global _notified
+    _notified = False
+
     cnt = 0
     ok_status: dict[str, int] = {}
 
-    notified = False
     for img_key in list_auditable():
         cnt += accept_audit(img_key, ok_status)
-        _parse_img(message, img_key, notified)
-        notified = True
+        _parse_img(message, img_key)
 
     if cnt == 0:
         message.reply("没有需要审核的图片")
@@ -289,7 +299,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v5.0.0"
+    version="v5.1.0"
 )
 def register_module():
     pass
