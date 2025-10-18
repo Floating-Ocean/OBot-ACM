@@ -76,7 +76,7 @@ def _parse_img(img_key: str):
         for task in parse_tasks:
             threading.Thread(target=_parse_task,
                              args=(img_key, task[0], task[1]),
-                             name=f"OCR Work Thread ({name})").start()
+                             name=f"OCR Work Thread ({task[0]})").start()
 
 
 def _decode_img_key(data: PickOne, what: str) -> str | None:
