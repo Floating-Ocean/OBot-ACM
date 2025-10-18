@@ -16,20 +16,21 @@ from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_p
 
 _MAX_COMMENT_LENGTH = 32
 
-_ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True)
+_ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True, verbose=False)
 _parser_lock = threading.Lock()
 
 
 def _parse_task(img_key: str, name: str, full_path: str):
     try:
-        correct_img = read_image_with_opencv(full_path)  # 修复全都修改为 gif 的兼容性问题
-        Constants.log.info(f"[ocr] 正在识别 {name}")
-        ocr_text = ''.join(_ocr_reader.readtext(correct_img, detail=0))
-
         with _parser_lock:
             data = get_img_parser(img_key)
             if name not in data:
                 raise ValueError(f"Invalid ocr source: {name}")
+
+            correct_img = read_image_with_opencv(full_path)  # 修复全都修改为 gif 的兼容性问题
+            Constants.log.info(f"[ocr] 正在识别 {name}")
+            ocr_text = ''.join(_ocr_reader.readtext(correct_img, detail=0))
+
             data[name]['ocr_text'] = ocr_text
             save_img_parser(img_key, data)
             Constants.log.info(f"[ocr] 成功识别 {name}")
