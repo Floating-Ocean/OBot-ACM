@@ -2,6 +2,7 @@ import os
 import random
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import easyocr
 from thefuzz import process
@@ -18,6 +19,8 @@ _MAX_COMMENT_LENGTH = 32
 
 _ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True, verbose=False)
 _ocr_reader_lock = threading.Lock()
+_ocr_thread_pool = ThreadPoolExecutor(max_workers=os.cpu_count(),
+                                      thread_name_prefix="OCR Worker Thread Pool")
 
 _parser_locks: dict[str, threading.Lock] = {}
 _locks_dict_lock = threading.Lock()
@@ -87,9 +90,7 @@ def _parse_img(img_key: str):
     if parse_tasks:
         Constants.log.info(f"[ocr] 发起 {len(parse_tasks)} 个识别任务")
         for task in parse_tasks:
-            threading.Thread(target=_parse_task,
-                             args=(img_key, task[0], task[1]),
-                             name=f"OCR Work Thread ({task[0]})").start()
+            _ocr_thread_pool.submit(_parse_task, img_key, task[0], task[1])
 
 
 def _decode_img_key(data: PickOne, what: str) -> str | None:
@@ -221,11 +222,8 @@ def _check_edit_img_parser(data: PickOne, message: RobotMessage, action: str) ->
     return True
 
 
-def _get_specified_img_parser(data: PickOne, message: RobotMessage) -> dict | None:
+def _get_specified_img_parser(message: RobotMessage, img_key: str) -> dict | None:
     """获取指定的 parser.json，并继续检查合法性"""
-    what = message.tokens[1].lower()
-    img_key = data.match_dict[what]
-
     hash_id = base62_to_md5(message.tokens[2].strip())
     parser_key = f"{hash_id}.gif"
 
@@ -260,7 +258,7 @@ def reply_like_one(message: RobotMessage):
     img_key = data.match_dict[what]
 
     with _get_parser_lock(img_key):
-        img_parser = _get_specified_img_parser(data, message)
+        img_parser = _get_specified_img_parser(message, img_key)
         if img_parser is None:
             return
 
@@ -284,7 +282,7 @@ def reply_comment_one(message: RobotMessage):
     img_key = data.match_dict[what]
 
     with _get_parser_lock(img_key):
-        img_parser = _get_specified_img_parser(data, message)
+        img_parser = _get_specified_img_parser(message, img_key)
         if img_parser is None:
             return
 
