@@ -17,19 +17,31 @@ from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_p
 _MAX_COMMENT_LENGTH = 32
 
 _ocr_reader = easyocr.Reader(['en', 'ch_sim'], gpu=True, verbose=False)
-_parser_lock = threading.Lock()
+_ocr_reader_lock = threading.Lock()
+
+_parser_locks: dict[str, threading.Lock] = {}
+_locks_dict_lock = threading.Lock()
+
+
+def _get_parser_lock(img_key: str) -> threading.Lock:
+    with _locks_dict_lock:
+        if img_key not in _parser_locks:
+            _parser_locks[img_key] = threading.Lock()
+        return _parser_locks[img_key]
 
 
 def _parse_task(img_key: str, name: str, full_path: str):
     try:
-        with _parser_lock:
+        correct_img = read_image_with_opencv(full_path)  # 修复全都修改为 gif 的兼容性问题
+        Constants.log.info(f"[ocr] 正在识别 {name}")
+
+        with _ocr_reader_lock:
+            ocr_text = ''.join(_ocr_reader.readtext(correct_img, detail=0))
+
+        with _get_parser_lock(img_key):
             data = get_img_parser(img_key)
             if name not in data:
                 raise ValueError(f"Invalid ocr source: {name}")
-
-            correct_img = read_image_with_opencv(full_path)  # 修复全都修改为 gif 的兼容性问题
-            Constants.log.info(f"[ocr] 正在识别 {name}")
-            ocr_text = ''.join(_ocr_reader.readtext(correct_img, detail=0))
 
             data[name]['ocr_text'] = ocr_text
             save_img_parser(img_key, data)
@@ -44,7 +56,7 @@ def _parse_img(img_key: str):
     """解析图片文字"""
     parse_tasks = []
 
-    with _parser_lock:
+    with _get_parser_lock(img_key):
         old_data = get_img_parser(img_key)
         data = {}
 
@@ -112,7 +124,7 @@ def reply_pick_one(message: RobotMessage):
     # 支持文字检索
     _parse_img(img_key)
 
-    with _parser_lock:
+    with _get_parser_lock(img_key):
         img_parser = get_img_parser(img_key)
 
         def reply_ok(query_tag: str, query_more_tip: str, picked: str):
@@ -191,24 +203,32 @@ def reply_save_one(message: RobotMessage):
         message.reply(f"关键词 {what} 未被记录，请联系 Bot 管理员添加")
 
 
-def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str) -> dict | None:
+def _check_edit_img_parser(data: PickOne, message: RobotMessage, action: str) -> bool:
+    """初步检查修改 parser.json 的操作的合法性"""
     if len(message.tokens) < 2:
         message.reply(f"请指定想要{action}的图片的关键词")
-        return None
+        return False
 
     if len(message.tokens) < 3:
         message.reply(f"请指定想要{action}的图片的 ID")
-        return None
+        return False
 
     what = message.tokens[1].lower()
+    if what not in data.match_dict:
+        message.reply(f"关键词 {what} 未被记录，请联系 Bot 管理员添加")
+        return False
+
+    return True
+
+
+def _get_specified_img_parser(data: PickOne, message: RobotMessage) -> dict | None:
+    """获取指定的 parser.json，并继续检查合法性"""
+    what = message.tokens[1].lower()
+    img_key = data.match_dict[what]
+
     hash_id = base62_to_md5(message.tokens[2].strip())
     parser_key = f"{hash_id}.gif"
 
-    if what not in data.match_dict:
-        message.reply(f"关键词 {what} 未被记录，请联系 Bot 管理员添加")
-        return None
-
-    img_key = data.match_dict[what]
     img_parser = get_img_parser(img_key)
     if parser_key not in img_parser:
         message.reply("ID 不存在，建议查询后直接复制粘贴")
@@ -233,15 +253,18 @@ def _get_specified_img_parser(data: PickOne, message: RobotMessage, action: str)
 @command(tokens=["点赞来只*", "点赞*", "喜欢来只*", "喜欢*", "爱来只*", "爱*", "love*", "like*"])
 def reply_like_one(message: RobotMessage):
     data = get_pick_one_data()
+    if not _check_edit_img_parser(data, message, "点赞"):
+        return
 
-    with _parser_lock:
-        img_parser = _get_specified_img_parser(data, message, "点赞")
+    what = message.tokens[1].lower()
+    img_key = data.match_dict[what]
+
+    with _get_parser_lock(img_key):
+        img_parser = _get_specified_img_parser(data, message)
         if img_parser is None:
             return
 
-        what = message.tokens[1].lower()
         hash_id = base62_to_md5(message.tokens[2].strip())
-        img_key = data.match_dict[what]
         parser_key = f"{hash_id}.gif"
 
         likes = img_parser[parser_key]['likes'] + 1
@@ -254,9 +277,14 @@ def reply_like_one(message: RobotMessage):
 @command(tokens=["评论来只*", "评论*", "回复来只*", "回复*", "comment*", "say*", "reply*"])
 def reply_comment_one(message: RobotMessage):
     data = get_pick_one_data()
+    if not _check_edit_img_parser(data, message, "评论"):
+        return
 
-    with _parser_lock:
-        img_parser = _get_specified_img_parser(data, message, "评论")
+    what = message.tokens[1].lower()
+    img_key = data.match_dict[what]
+
+    with _get_parser_lock(img_key):
+        img_parser = _get_specified_img_parser(data, message)
         if img_parser is None:
             return
 
@@ -264,10 +292,8 @@ def reply_comment_one(message: RobotMessage):
             message.reply("请输入评论内容")
             return
 
-        what = message.tokens[1].lower()
         hash_id = base62_to_md5(message.tokens[2].strip())
         comment = message.tokens[3].strip()
-        img_key = data.match_dict[what]
         parser_key = f"{hash_id}.gif"
 
         if len(comment) > _MAX_COMMENT_LENGTH:
