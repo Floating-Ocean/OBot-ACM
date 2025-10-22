@@ -10,3 +10,6 @@
 [submodule "lib/OIerDb"]
 	path = lib/OIerDb
 	url = https://github.com/OIerDb-ng/OIerDb-data-generator.git
+[submodule "lib/Color-Rand"]
+	path = lib/Color-Rand
+	url = https://github.com/Floating-Ocean/OBot-Color-Rand.git
