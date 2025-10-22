@@ -9,11 +9,9 @@ _lib_path = Constants.modules_conf.get_lib_path("Color-Rand")
 
 @dataclass
 class Colors:
-    CMYK: list[int]
-    RGB: list[int]
-    hex: str
+    id: str
     name: str
-    pinyin: str
+    color: str
 
 
 class ColorsJson(JsonSerializer):

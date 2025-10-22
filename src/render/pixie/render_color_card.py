@@ -23,8 +23,8 @@ class ColorCardRenderer(Renderer):
         self._rgb_raw_text = rgb_raw_text
         self._hsv_raw_text = hsv_raw_text
 
-        text_color = choose_text_color(hex_to_color(self._color.hex))
-        title_raw_text = f"Color Collect - {self._color.pinyin}"
+        text_color = choose_text_color(hex_to_color(self._color.color))
+        title_raw_text = f"Color Collect - {self._color.id}"
         self.str_title = StyledString(
             title_raw_text, 'H', 48, font_color=text_color, padding_bottom=52
         )
@@ -55,7 +55,7 @@ class ColorCardRenderer(Renderer):
         draw_full(img, (0, 0, 0))
 
         paint_bg = pixie.Paint(pixie.SOLID_PAINT)
-        paint_bg.color = hex_to_color(self._color.hex)
+        paint_bg.color = hex_to_color(self._color.color)
         background_loc = Loc(_CONTAINER_PADDING, _CONTAINER_PADDING,
                              _CONTENT_WIDTH - _CONTAINER_PADDING * 2,
                              _CONTENT_HEIGHT - _CONTAINER_PADDING * 2)
