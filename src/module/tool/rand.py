@@ -160,10 +160,23 @@ def add_qrcode(target_path: str, color: Colors, paste_coord: tuple[int, int]):
 
 @command(tokens=["color", "颜色", "色", "来个颜色", "来个色卡", "色卡"])
 def reply_color_rand(message: RobotMessage):
+    chosen_type = "chinese_traditional"
+    content = message.tokens
+    if len(content) > 1:
+        if content[1] in ["chi", "chinese", "zh", "chinese-traditional",
+                          "中", "中国", "中国传统", "中国色", "中国传统颜色"]:
+            chosen_type = "chinese_traditional"
+        elif content[1] in ["jp", "japanese", "rb", "nippon", "nippon-traditional",
+                            "日", "日本", "日本传统", "日本色", "日本传统颜色"]:
+            chosen_type = "nippon_traditional"
+        else:
+            message.reply("目前仅支持 中国传统颜色 和 日本传统颜色 哦", modal_words=False)
+            return
+
     cached_prefix = get_cached_prefix('Color-Rand')
     img_path = f"{cached_prefix}.png"
 
-    colors = get_colors("chinese_traditional")
+    colors = get_colors(chosen_type)
     picked_color = random.choice(colors)
     hex_text, rgb_text, hsv_text = transform_color(picked_color)
 
