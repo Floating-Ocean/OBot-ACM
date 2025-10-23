@@ -13,3 +13,6 @@
 [submodule "lib/Color-Rand"]
 	path = lib/Color-Rand
 	url = https://github.com/Floating-Ocean/OBot-Color-Rand.git
+[submodule "lib/MC-Rand"]
+	path = lib/MC-Rand
+	url = https://github.com/Floating-Ocean/OBot-MC-Rand.git
