@@ -61,7 +61,7 @@ def reply_cpcfinder(message: RobotMessage):
 
 
 @module(
-    name="Contestant.CPCFinder",
+    name="Contestant-CPCFinder",
     version="v1.0.1"
 )
 def register_module():

@@ -352,7 +352,7 @@ def _query_batch_players(names: list) -> str:
 
 
 @module(
-    name="Contestant.OIerDb",
+    name="Contestant-OIerDb",
     version="v1.0.1"
 )
 def register_module():
