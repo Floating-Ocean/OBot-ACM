@@ -28,36 +28,53 @@ def get_rand_seq(range_max: int) -> str:
     return data
 
 
-@command(tokens=["选择", "rand", "shuffle", "打乱"])
+@command(tokens=["选择*"])
+def reply_rand_choose(message: RobotMessage):
+    try:
+        content = message.tokens
+        func = content[0][3::].strip() if len(content) == 1 else content[1]
+
+        if len(func) == 0:
+            message.reply("请指定要选择范围，用 \"还是\" 或逗号分隔")
+            return
+
+        select_from = re.split("还是|,|，", func)
+        select_len = len(select_from)
+        selected_idx = get_rand_num(1, select_len)
+        message.reply(f"[Random Choose]\n\n我觉得第{selected_idx}个更好")
+
+    except Exception as e:
+        message.report_exception('Random.Choose', e)
+
+
+@command(tokens=["shuffle", "打乱"])
+def reply_rand_shuffle(message: RobotMessage):
+    try:
+        content = message.tokens
+
+        if len(content) != 2:
+            message.reply(f"请输入正确的指令格式，比如说\"/{content[0]} 这是一句话\"")
+
+        content_len = len(content[1])
+        rnd_perm = get_rand_seq(content_len).split(", ")
+        rnd_content = "".join([content[1][int(x) - 1] for x in rnd_perm])
+        message.reply(f"[Random Shuffle]\n\n{rnd_content}", modal_words=False)
+
+    except Exception as e:
+        message.report_exception('Random.Shuffle', e)
+
+
+@command(tokens=["rand"])
 def reply_rand_request(message: RobotMessage):
     try:
         content = message.tokens
-        if len(content) < 2 and not content[0].startswith("/选择"):
+        if len(content) < 2:
             message.reply(f'[Random]\n\n{_RAND_HELP}', modal_words=False)
             return
 
-        if content[0] == "/shuffle" or content[0] == "/打乱":
-            if len(content) != 2:
-                message.reply(f"请输入正确的指令格式，比如说\"/{content[0]} 这是一句话\"")
-            content_len = len(content[1])
-            rnd_perm = get_rand_seq(content_len).split(", ")
-            rnd_content = "".join([content[1][int(x) - 1] for x in rnd_perm])
-            message.reply(f"[Random Shuffle]\n\n{rnd_content}", modal_words=False)
-            return
+        func = content[1]
 
-        func = content[0][3::].strip() if len(content) == 1 else content[1]
-
-        if content[0].startswith("/选择"):
-            if len(func) == 0:
-                message.reply("请指定要选择范围，用 \"还是\" 或逗号分隔")
-                return
-
-            select_from = re.split("还是|,|，", func)
-            select_len = len(select_from)
-            selected_idx = get_rand_num(0, select_len - 1)
-            message.reply(f"我觉得第{selected_idx}个更好")
-
-        elif func == "num" or func == "int":
+        if func == "num" or func == "int":
             if (len(content) != 4 or
                     (not check_is_int(content[2])) or (not check_is_int(content[3]))):
                 message.reply("请输入正确的指令格式，比如说\"/rand num 1 100\"")
@@ -110,7 +127,7 @@ def reply_rand_request(message: RobotMessage):
 
 @module(
     name="Random",
-    version="v3.2.0"
+    version="v3.2.1"
 )
 def register_module():
     pass
