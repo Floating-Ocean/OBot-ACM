@@ -10,7 +10,9 @@ def register_all_modules():
     from .game.guess_interval import register_module
     from .game.guess_1a2b import register_module
     from .game.tetris import register_module
+    from .stuff.color import register_module
     from .stuff.how_to_cook import register_module
+    from .stuff.misc import register_module
     from .stuff.pick_one import register_module
     from .stuff.rand import register_module
     from .stuff.uptime import register_module
