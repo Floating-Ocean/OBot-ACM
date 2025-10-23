@@ -148,10 +148,15 @@ def add_qrcode(target_path: str, color: Colors, paste_coord: tuple[int, int]):
 
     font_color = choose_text_color(hex_to_color(color.color))
     font_transparent_color = change_alpha(font_color, 0)
-    qrcode_img = qr.make_image(image_factory=StyledPilImage,
-                               module_drawer=RoundedModuleDrawer(), eye_drawer=RoundedModuleDrawer(),
-                               color_mask=SolidFillColorMask(color_to_tuple(font_transparent_color),
-                                                             color_to_tuple(font_color)))
+    qrcode_img = qr.make_image(
+        image_factory=StyledPilImage,
+        module_drawer=RoundedModuleDrawer(),
+        eye_drawer=RoundedModuleDrawer(),
+        color_mask=SolidFillColorMask(
+            back_color=color_to_tuple(font_transparent_color),
+            front_color=color_to_tuple(font_color)
+        )
+    )
 
     target_img = Image.open(target_path)
     target_img.paste(qrcode_img, paste_coord, qrcode_img)
@@ -163,11 +168,12 @@ def reply_color_rand(message: RobotMessage):
     chosen_type = "chinese_traditional"
     content = message.tokens
     if len(content) > 1:
-        if content[1] in ["chi", "chinese", "zh", "chinese-traditional",
-                          "中", "中国", "中国传统", "中国色", "中国传统颜色"]:
+        arg = content[1].strip().lower().replace("_", "-")
+        if arg in ["chi", "chinese", "zh", "chinese-traditional",
+                   "中", "中国", "中国传统", "中国色", "中国传统颜色"]:
             chosen_type = "chinese_traditional"
-        elif content[1] in ["jp", "japanese", "rb", "nippon", "nippon-traditional",
-                            "日", "日本", "日本传统", "日本色", "日本传统颜色"]:
+        elif arg in ["jp", "japanese", "rb", "nippon", "nippon-traditional",
+                     "日", "日本", "日本传统", "日本色", "日本传统颜色"]:
             chosen_type = "nippon_traditional"
         else:
             message.reply("目前仅支持 中国传统颜色 和 日本传统颜色 哦", modal_words=False)
@@ -177,6 +183,10 @@ def reply_color_rand(message: RobotMessage):
     img_path = f"{cached_prefix}.png"
 
     colors = get_colors(chosen_type)
+    if not colors:
+        message.reply("颜色数据集为空，请踢一踢管理员")
+        return
+
     picked_color = random.choice(colors)
     hex_text, rgb_text, hsv_text = transform_color(picked_color)
 
