@@ -5,9 +5,9 @@ import unittest
 from src.core.bot.decorator import get_all_modules_info
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg, fetch_url_json
-from src.data.data_color_rand import get_colors
+from src.data.data_color import get_colors
 from src.module.game.tetris import BLOCKS
-from src.module.tool.rand import transform_color, add_qrcode
+from src.module.stuff.color import transform_color, add_qrcode
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
