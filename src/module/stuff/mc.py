@@ -80,7 +80,7 @@ def reply_mc_kill(message: RobotMessage):
                 message.reply("你无法在旁观者模式执行该指令")
                 return
 
-    Constants.log.info(f"[mc] /kill <{gamemode}> {chosen}")
+    Constants.log.info(f"[mc-kill] <{gamemode}> {chosen}")
     message.reply(_fill_template(tokens), modal_words=False)
 
 
