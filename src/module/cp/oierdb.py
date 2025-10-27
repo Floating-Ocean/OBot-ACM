@@ -16,8 +16,8 @@ from src.data.data_oierdb import oierdb_instance
 def reply_oierdb(message: RobotMessage):
     """查询OI选手信息"""
     try:
-        # 移除@标签并解析命令
-        content = re.sub(r'<@!\d+>', '', message.content).strip().split()
+        # 解析命令
+        content = message.tokens
 
         # 获取姓名参数
         names = content[1:] if len(content) > 1 else []
@@ -44,7 +44,7 @@ def reply_oierdb(message: RobotMessage):
         message.reply(response, modal_words=False)
 
     except Exception as e:
-        message.report_exception('Contestant.OIerDb', e)
+        message.report_exception('Contestant-OIerDb', e)
 
 
 def _format_grade_display(grade_str: str) -> str:
@@ -125,7 +125,7 @@ def _calculate_current_status(
         if not grade_str:  # 空年级
             return "无法推算"
         else:  # 无法识别的年级格式
-            return f"年级格式不识别: {grade_str}"
+            return f"年级格式无法识别: {grade_str}"
 
     # 计算年份差
     year_diff = current_year - first_award_year

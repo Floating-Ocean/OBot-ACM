@@ -428,7 +428,7 @@ def finish_duel(message: RobotMessage):
 @command(tokens=['cf', 'codeforces'])
 def reply_cf_request(message: RobotMessage):
     try:
-        content = re.sub(r'<@!\d+>', '', message.content).strip().split()
+        content = message.tokens
         if len(content) < 2:
             message.reply(f'[Codeforces]\n\n{_CF_HELP}', modal_words=False)
             return

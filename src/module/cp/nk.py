@@ -78,7 +78,7 @@ def send_user_contest_standings(message: RobotMessage, search_name: str, contest
 @command(tokens=['nk', 'nc', 'nowcoder'])
 def reply_nk_request(message: RobotMessage):
     try:
-        content = re.sub(r'<@!\d+>', '', message.content).strip().split()
+        content = message.tokens
         if len(content) < 2:
             message.reply(f'[NowCoder]\n\n{_NK_HELP}', modal_words=False)
             return

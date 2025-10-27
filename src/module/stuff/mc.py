@@ -117,7 +117,7 @@ def reply_mc_gamemode(message: RobotMessage):
     if message.author_id in _status_gamemode:
         old_mode, end_tick = _status_gamemode[message.author_id]
         if ((end_tick >= time.time() and old_mode == gamemode) or
-                (end_tick < time.time() and gamemode == "生存")):
+                (end_tick < time.time() and gamemode == GameMode.SURVIVAL)):
             message.reply(f"[MC-Mode] 当前已在 {gamemode.value}模式")
             return
 
@@ -190,7 +190,7 @@ def reply_mc_effect(message: RobotMessage):
             message.reply(f"[MC-Effect] 你身上共有 {len(effects)} 个效果\n\n"
                           f"{effects_str}", modal_words=False)
             return
-        message.reply(f"[MC-Effect] 目前不支持指定状态效果")
+        message.reply("[MC-Effect] 目前不支持指定状态效果")
         return
 
     effect = get_mc_resource("effect_detailed")

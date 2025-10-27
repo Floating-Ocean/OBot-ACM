@@ -95,7 +95,8 @@ def reply_recent_contests(message: RobotMessage):
 @command(tokens=["qr", "qrcode", "二维码", "码"])
 def reply_qrcode(message: RobotMessage):
     content = re.sub(r'<@!\d+>', '', message.content).strip()
-    content = re.sub(rf'{message.tokens[0]}', '', content, count=1).strip()
+    token_pattern = re.escape(message.tokens[0])
+    content = re.sub(token_pattern, '', content, count=1).strip()
     if len(content) == 0:
         message.reply("请输入要转化为二维码的内容")
         return
@@ -153,7 +154,7 @@ def reply_hzys(message: RobotMessage):
 
 @command(tokens=["hitokoto", "来句", "来一句", "来句话", "来一句话"])
 def reply_hitokoto(message: RobotMessage):
-    data = fetch_url_json("https://v1.hitokoto.cn/")
+    data = fetch_url_json("https://v1.hitokoto.cn/", method='GET', accept_codes=[200])
     content = data['hitokoto']
     where = data['from']
     author = data['from_who'] if data['from_who'] else ""

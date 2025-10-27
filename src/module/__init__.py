@@ -1,22 +1,29 @@
+import importlib
+
+
 def register_all_modules():
-    """用于加载各模块，函数register_module本身无意义"""
-    from .cp.atc import register_module
-    from .cp.cf import register_module
-    from .cp.contest_manual import register_module
-    from .cp.cpcfinder import register_module
-    from .cp.oierdb import register_module
-    from .cp.nk import register_module
-    from .cp.peeper import register_module
-    from .game.guess_interval import register_module
-    from .game.guess_1a2b import register_module
-    from .game.tetris import register_module
-    from .stuff.color import register_module
-    from .stuff.how_to_cook import register_module
-    from .stuff.mc import register_module
-    from .stuff.misc import register_module
-    from .stuff.pick_one import register_module
-    from .stuff.rand import register_module
-    from .stuff.uptime import register_module
+    """注册所有模块"""
+    modules = [
+        "cp.atc",
+        "cp.cf",
+        "cp.contest_manual",
+        "cp.cpcfinder",
+        "cp.oierdb",
+        "cp.nk",
+        "cp.peeper",
+        "game.guess_interval",
+        "game.guess_1a2b",
+        "game.tetris",
+        "stuff.color",
+        "stuff.how_to_cook",
+        "stuff.mc",
+        "stuff.misc",
+        "stuff.pick_one",
+        "stuff.rand",
+        "stuff.uptime",
+    ]
+    for mod in modules:
+        importlib.import_module(f"src.module.{mod}")
 
 
 register_all_modules()

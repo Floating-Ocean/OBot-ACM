@@ -7,6 +7,7 @@ _lib_path = Constants.modules_conf.get_lib_path("MC-Rand")
 
 
 def _merge_all_lists(nested_dict: dict) -> list:
+    """将字典嵌套的列表扁平化，但不处理列表内部嵌套"""
     result = []
 
     def _extract_lists(obj):
@@ -31,4 +32,6 @@ def get_mc_resource(resource_name: str) -> list[str]:
             resource = json.load(f)
             return _merge_all_lists(resource)
     except Exception as e:
-        raise RuntimeError("Failed to load mc resource json") from e
+        raise RuntimeError(
+            f"Failed to load MC resource '{resource_name}' from '{resource_path}': {e}"
+        ) from e

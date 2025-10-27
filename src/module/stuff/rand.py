@@ -54,6 +54,7 @@ def reply_rand_shuffle(message: RobotMessage):
 
         if len(content) != 2:
             message.reply(f"请输入正确的指令格式，比如说\"/{content[0]} 这是一句话\"")
+            return
 
         content_len = len(content[1])
         rnd_perm = get_rand_seq(content_len).split(", ")
@@ -80,7 +81,7 @@ def reply_rand_request(message: RobotMessage):
                 message.reply("请输入正确的指令格式，比如说\"/rand num 1 100\"")
                 return
 
-            if max(len(content[2]), len(content[3])) <= 10:
+            if max(len(content[2]), len(content[3])) <= 11:
                 range_min, range_max = int(content[2]), int(content[3])
                 if max(abs(range_min), abs(range_max)) <= 1_000_000_000:
                     if range_min > range_max:
