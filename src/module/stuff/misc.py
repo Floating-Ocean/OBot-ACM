@@ -34,15 +34,16 @@ def reply_fixed(message: RobotMessage):
                  '今日的比赛'])
 def reply_recent_contests(message: RobotMessage):
     query_today = message.tokens[0] in ['/今天比赛', '/今天的比赛', '/今日比赛', '/今日的比赛']
-    if len(message.tokens) >= 3 and message.tokens[1] == 'today':
-        query_today = True
-        message.tokens[1] = message.tokens[2]
     queries = [AtCoder, Codeforces, NowCoder, ManualPlatform]
     if len(message.tokens) >= 2:
         if message.tokens[1] == 'today':
             query_today = True
         else:
-            closest_type = process.extract(message.tokens[1].lower(), [
+            platform_arg = message.tokens[1]
+            if len(message.tokens) >= 3 and message.tokens[1] == 'today':
+                query_today = True
+                platform_arg = message.tokens[2]
+            closest_type = process.extract(platform_arg.lower(), [
                 "cf", "codeforces", "atc", "atcoder", "牛客", "nk", "nc", "nowcoder",
                 "ccpc", "icpc", "other", "其他", "misc", "杂项", "manual", "手动"], limit=1)[0]
             if closest_type[1] >= 60:

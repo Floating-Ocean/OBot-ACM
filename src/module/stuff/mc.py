@@ -224,8 +224,8 @@ def _get_time_based_prob():
     current_time = datetime.datetime.now().time()
     total_minutes = current_time.hour * 60 + current_time.minute
     rad = (total_minutes / 1440.0) * 2 * math.pi
-    # 使用余弦函数，午夜时cos(0)=1（最高概率），正午时cos(π)=-1（最低概率）
-    prob = 0.05 + 0.2 * math.cos(rad)
+    # 使用余弦函数，午夜时概率最高，正午时概率最低
+    prob = 0.15 + 0.1 * math.cos(rad)  # 范围: [0.05, 0.25]
     return prob
 
 
