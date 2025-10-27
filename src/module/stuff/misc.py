@@ -1,7 +1,4 @@
-import asyncio
-import random
 import re
-import time
 
 from thefuzz import process
 
@@ -11,6 +8,7 @@ from src.core.constants import Constants
 from src.core.lib.huo_zi_yin_shua import HuoZiYinShua
 from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, fetch_url_json
 from src.data.data_cache import get_cached_prefix
+from src.module.stuff.mc import reply_mc_sleep
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
@@ -25,8 +23,6 @@ _FIXED_REPLY = {
     "似了吗": "？",
     "死了吗": "？？？"
 }
-
-_sleep_awake_tick = 0
 
 
 @command(tokens=list(_FIXED_REPLY.keys()))
@@ -111,63 +107,8 @@ def reply_qrcode(message: RobotMessage):
     message.reply("生成了一个二维码", png2jpg(f"{cached_prefix}.png"))
 
 
-async def _reply_wakeup_with_sleep(message: RobotMessage, duration: int):
-    """实现一个无阻塞的睡觉"""
-    Constants.log.info(f"[obot-act] 发起睡觉，时长 {duration} 秒")
-    await asyncio.sleep(duration)
-    message.reply("早上好")
-
-
 @command(tokens=["晚安", "睡觉", "睡觉去了"], is_command=False)
-def reply_mc_sleep(message: RobotMessage):
-    """
-    包含 Minecraft 主题的睡觉命令处理器
-    随机回复睡觉相关的游戏消息，并可能延时发送"早上好"
-    """
-    global _sleep_awake_tick
-    if time.time() < _sleep_awake_tick:
-        message.reply("O宝睡着了，等会儿再来吧", modal_words=False)
-        return
-
-    actions = [
-        "你的床爆炸了",
-        "你被床弹飞了",
-        "你的床已被破坏",
-        "你的床已被占用",
-        "你现在不能休息，周围有怪物在游荡",
-        "你现在不能休息，周围有玩家在游荡",
-        "你现在不能休息，周围有流浪拴绳在游荡",
-        "你现在不能休息，周围有白色僵尸在游荡",
-        "你只能在夜间或雷暴中入睡",
-        "你只能在白天或晴天中入睡",
-        f"正在等待 1/{random.randint(2, 100)} 名玩家入睡",
-        "守夜村民抢走了你的床，你被赶下来了",
-        "闪电五雷轰，你的床被烧没了",
-        "你的木板不太够，做不了床",
-        "你的羊毛不太够，做不了床",
-        "O宝刚刚喝了杯咖啡，完全睡不着",
-        "O宝正在敲代码，你先睡吧",
-        "O宝现在不困，你先睡吧",
-        "O宝正在学习，你先睡吧",
-        "晚安"
-    ]
-    chosen_action = random.choice(actions)
-    message.reply(chosen_action, modal_words=False)
-
-    if chosen_action == "晚安":
-        sleep_duration = random.randint(30, 120)
-        _sleep_awake_tick = time.time() + sleep_duration
-        asyncio.run_coroutine_threadsafe(
-            _reply_wakeup_with_sleep(message, sleep_duration),
-            message.loop
-        )
-
-
-@command(tokens=["sleep"])
-def reply_mc_sleep_as_cmd(message: RobotMessage):
-    """
-    包含 Minecraft 主题的睡觉命令处理器的指令调用版
-    """
+def reply_sleep(message: RobotMessage):
     reply_mc_sleep(message)
 
 

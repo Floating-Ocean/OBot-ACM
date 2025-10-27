@@ -1,4 +1,7 @@
+import asyncio
+import datetime
 import enum
+import math
 import random
 import re
 import time
@@ -10,6 +13,7 @@ from src.data.data_mc import get_mc_resource
 
 _status_gamemode: dict[str, tuple["GameMode", float]] = {}
 _status_effect: dict[str, dict[str, float]] = {}
+_status_sleep: dict[str, float] = {}
 
 
 class GameMode(enum.Enum):
@@ -114,7 +118,7 @@ def reply_mc_gamemode(message: RobotMessage):
         old_mode, end_tick = _status_gamemode[message.author_id]
         if ((end_tick >= time.time() and old_mode == gamemode) or
                 (end_tick < time.time() and gamemode == "生存")):
-            message.reply(f"[MC-Mode] 当前已在 {gamemode}模式")
+            message.reply(f"[MC-Mode] 当前已在 {gamemode.value}模式")
             return
 
     tips = ""
@@ -127,7 +131,7 @@ def reply_mc_gamemode(message: RobotMessage):
     duration = random.randint(30, 90)
     end_tick = time.time() + duration
     _status_gamemode[message.author_id] = (gamemode, end_tick)
-    message.reply(f"[MC-Mode] 已切换到 {gamemode}模式，持续 {duration} 秒{tips}", modal_words=False)
+    message.reply(f"[MC-Mode] 已切换到 {gamemode.value}模式，持续 {duration} 秒{tips}", modal_words=False)
 
 
 @command(tokens=["kill"])
@@ -215,9 +219,92 @@ def reply_mc_effect(message: RobotMessage):
                   f"{chosen_effect}", modal_words=False)
 
 
+def _get_time_based_prob():
+    """返回一个基于时间的概率值，晚上时概率更高"""
+    current_time = datetime.datetime.now().time()
+    total_minutes = current_time.hour * 60 + current_time.minute
+    rad = (total_minutes / 1440.0) * 2 * math.pi
+    # 使用余弦函数，午夜时cos(0)=1（最高概率），正午时cos(π)=-1（最低概率）
+    prob = 0.05 + 0.2 * math.cos(rad)
+    return prob
+
+
+async def _reply_wakeup_with_sleep(message: RobotMessage, duration: int):
+    """实现一个无阻塞的睡觉"""
+    Constants.log.info(f"[MC-Sleep] 发起睡觉，时长 {duration} 秒")
+    await asyncio.sleep(duration)
+    message.reply("[MC-Sleep] 早上好")
+
+
+@command(tokens=["sleep"])
+def reply_mc_sleep(message: RobotMessage):
+    """
+    包含 Minecraft 主题的睡觉命令处理器
+    随机回复睡觉相关的游戏消息，并可能延时发送"早上好"
+    """
+    content = message.tokens
+
+    gamemode, _ = _get_gamemode(message)
+    if gamemode == GameMode.SPECTATOR:
+        message.reply("[MC-Sleep] 你无法在旁观者模式执行该指令")
+        return
+
+    if message.uuid in _status_sleep and time.time() < _status_sleep[message.uuid]:
+        message.reply("[MC-Sleep] O宝睡着了，等会儿再来吧", modal_words=False)
+        return
+
+    joking_reasons = [
+        "这张床爆炸了",
+        "你被床弹飞了",
+        "这张床已被破坏",
+        "你现在不能休息，周围有玩家在游荡",
+        "你现在不能休息，周围有流浪拴绳在游荡",
+        "你现在不能休息，周围有白色僵尸在游荡",
+        "你只能在白天或晴天中入睡",
+        "守夜村民抢走了你的床，你被赶下来了",
+        "闪电五雷轰，你的床被烧没了",
+        "你的木板不太够，做不了床",
+        "你的羊毛不太够，做不了床",
+        "O宝刚刚喝了杯咖啡，完全睡不着",
+        "O宝正在敲代码，你先睡吧",
+        "O宝现在不困，你先睡吧",
+        "O宝正在学习，你先睡吧"
+    ]
+    mc_reasons = get_mc_resource("sleep_failed")
+    reasons = [joking_reasons, mc_reasons, ["晚安"]]
+
+    sleep_prob = _get_time_based_prob()
+    if len(content) >= 2:
+        reason_type = content[1]
+        if reason_type == "joking":
+            reasons_prob = [1 - sleep_prob, 0, sleep_prob]
+        elif reason_type == "mc":
+            reasons_prob = [0, 1 - sleep_prob, sleep_prob]
+        else:
+            message.reply("[MC-Sleep] 参数错误，只支持 joking 和 mc")
+            return
+    else:
+        reasons_prob = [(1 - sleep_prob) / 2, 1 - (1 - sleep_prob) / 2 - sleep_prob, sleep_prob]
+
+    chosen_type = random.choices(reasons, weights=reasons_prob)[0]
+    chosen = random.choice(chosen_type)
+    tokens = _decode_template(chosen)
+    Constants.log.info(f"[MC-Sleep] <sleep_prob:{sleep_prob * 100:.2f}%> {chosen}")
+    message.reply(f"[MC-Sleep] {_fill_template(tokens)}", modal_words=False)
+
+    if chosen == "晚安":
+        sleep_duration = random.randint(30, 120)
+        _sleep_awake_tick = time.time() + sleep_duration
+        _status_sleep[message.uuid] = _sleep_awake_tick
+        asyncio.run_coroutine_threadsafe(
+            _reply_wakeup_with_sleep(message, sleep_duration),
+            message.loop
+        )
+
+
 @module(
     name="Minecraft",
-    version="v1.1.0"
+    version="v1.2.0"
 )
 def register_module():
     pass
