@@ -96,7 +96,7 @@ class Constants:
     log = logging.get_logger()
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
-    core_version = "v5.0.0-beta.5"
+    core_version = "v5.0.0-beta.6"
     git_commit = _get_git_commit()
 
     key_words = [
@@ -125,7 +125,8 @@ class Constants:
         [["好"], ["好"]],
         [["掐楼", "ciallo"], ["Ciallo~", "柚子厨蒸鹅心"]],
         [["ready", "准备"], ["你是准备吗", "我准备好了"]],
-        [["在哪"], ["在亚特兰蒂斯", "在海下面", "在你背后", "在哪"]]
+        [["在哪"], ["在亚特兰蒂斯", "在海下面", "在你背后", "在哪"]],
+        [["何意味"], ["何意味", "何异味", "合味道"]]
     ]
 
     modal_words = ["喵", "呢", "捏", "qaq"]
@@ -208,10 +209,17 @@ class Constants:
             Help("/1a2b [num]", "猜测数字为 num."),
             Help("/1a2b stop", "结束本轮 1a2b 游戏.")
         ],
+        'mc': [
+            Help("/kill", "抽取 Minecraft 死亡信息."),
+            Help("/gamemode [mode]", "模拟 Minecraft 游戏模式切换."),
+            Help("/effect (func)", "抽取 Minecraft 状态效果，func 留空时进行抽取、为 clear 时清空、为 now 时显示当前状态."),
+            Help("/sleep (type)",
+                 "进行一种 Minecraft 风格的睡觉，type 为 mc 时只包含 Minecraft 原版睡觉失败信息、"
+                 "为 joking 时只包含幽默睡觉失败信息、留空时两者都包含."),
+        ],
         'misc1': [
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
             Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
-            Help("/sleep", "进行一种 Minecraft 风格的睡觉."),
             Help("/hzys [content]", "基于文本 content 合成电棍语音，活字乱刷.")
         ],
         'misc2': [
