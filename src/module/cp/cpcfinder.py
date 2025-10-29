@@ -1,5 +1,3 @@
-import re
-
 from src.core.bot.decorator import module, command
 from src.core.bot.message import RobotMessage
 from src.platform.collect.cpcfinder import CPCFinder

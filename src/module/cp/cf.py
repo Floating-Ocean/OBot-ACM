@@ -1,6 +1,5 @@
 import copy
 import random
-import re
 import string
 import threading
 import time

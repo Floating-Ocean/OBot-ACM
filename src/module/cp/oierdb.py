@@ -3,7 +3,6 @@ OIerDB查询模块
 提供OI选手数据库查询功能
 """
 
-import re
 from datetime import datetime
 from typing import Optional
 

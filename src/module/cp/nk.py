@@ -1,5 +1,3 @@
-import re
-
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
