@@ -16,7 +16,7 @@ def _format_cpc_rank(official: bool, rank: int, official_rank: int) -> str:
                  'acm', 'icpc', 'ccpc', '大学生程序设计竞赛'])
 def reply_cpcfinder(message: RobotMessage):
     try:
-        content = re.sub(r'<@!\d+>', '', message.content).strip().split()
+        content = message.tokens
         if len(content) != 3:
             message.reply('请输入两个参数，分别代表选手姓名和学校，如：\n\n'
                           f'{content[0]} 蒋凌宇 北京大学', modal_words=False)
@@ -57,11 +57,11 @@ def reply_cpcfinder(message: RobotMessage):
         message.reply(stu_info, modal_words=False)
 
     except Exception as e:
-        message.report_exception('Contestant.CPCFinder', e)
+        message.report_exception('Contestant-CPCFinder', e)
 
 
 @module(
-    name="Contestant.CPCFinder",
+    name="Contestant-CPCFinder",
     version="v1.0.1"
 )
 def register_module():

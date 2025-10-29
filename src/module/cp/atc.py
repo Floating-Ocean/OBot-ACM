@@ -89,7 +89,7 @@ def send_contest(message: RobotMessage):
 @command(tokens=['atc', 'atcoder'])
 def reply_atc_request(message: RobotMessage):
     try:
-        content = re.sub(r'<@!\d+>', '', message.content).strip().split()
+        content = message.tokens
         if len(content) < 2:
             message.reply(f'[AtCoder]\n\n{_ATC_HELP}', modal_words=False)
             return
