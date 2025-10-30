@@ -162,9 +162,29 @@ def reply_hitokoto(message: RobotMessage):
     message.reply(f"[Hitokoto]\n{content}\nBy {author}「{where}」", modal_words=False)
 
 
+@command(tokens=["arcapk"])
+def reply_arcapk(message: RobotMessage):
+    """神秘小功能"""
+    data = fetch_url_json("https://webapi.lowiro.com/webapi/serve/static/bin/arcaea/apk",
+                          method='GET', accept_codes=[200])
+    if not data['success']:
+        message.reply("[ArcAPK] 获取失败，请稍后重试")
+        return
+    url = data['value']['url']
+    url_sendable = url.replace('.', '. ').replace("https://", "")
+    version = data['value']['version']
+
+    cached_prefix = get_cached_prefix('QRCode-Generator')
+    qr_img = get_simple_qrcode(url)
+    qr_img.save(f"{cached_prefix}.png")
+
+    message.reply(f"[ArcAPK] Arcaea v{version}\n\n"
+                  f"{url_sendable}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
+
+
 @module(
     name="Misc",
-    version="v3.1.0"
+    version="v3.1.1"
 )
 def register_module():
     pass
