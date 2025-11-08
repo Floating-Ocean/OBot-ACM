@@ -1,8 +1,8 @@
 import json
 import os
-import subprocess
 from dataclasses import dataclass
 
+import git
 from botpy import logging
 
 _project_dir = os.path.abspath(
@@ -30,7 +30,7 @@ class ModulesConfig:
         return cache_path
 
 
-@dataclass()
+@dataclass
 class GitCommit:
     hash: str
     hash_short: str
@@ -71,21 +71,24 @@ def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
 
 def _get_git_commit() -> GitCommit:
     """获取当前 Git 仓库的 commit hash"""
-    if not os.path.exists(os.path.join(_project_dir, ".git")):
-        return InvalidGitCommit("raw_copy_d")
-
     try:
-        result = subprocess.run(
-            ['git', 'log', '-1', '--pretty=format:%H|||%d|||%s|||%an|||%ai'],
-            capture_output=True, text=True, check=True, timeout=5, encoding='utf-8'
-        )
-        commit_hash, ref, title, author, date = result.stdout.strip().split("|||")
-        if len(commit_hash) != 40 or not all(c in "0123456789abcdef" for c in commit_hash.lower()):
-            return InvalidGitCommit("raw_copy_i")  # hash 格式错误
-        return GitCommit(commit_hash, commit_hash[:12], ref, title, author, date)
+        repo = git.Repo(_project_dir)
+        commit = repo.head.commit
 
-    except FileNotFoundError:
-        return InvalidGitCommit("raw_copy_g")  # 未安装 git
+        ref_description = repo.git.describe("--all", "--exact-match", "HEAD").strip()
+        ref_str = f" ({ref_description})" if ref_description else ""
+
+        return GitCommit(
+            commit.hexsha,
+            commit.hexsha[:12],
+            ref_str,
+            commit.message.split('\n')[0],
+            commit.author.name,
+            commit.authored_datetime.strftime("%Y-%m-%d %H:%M:%S %z")
+        )
+
+    except git.InvalidGitRepositoryError:
+        return InvalidGitCommit("raw_copy_d")
     except Exception as e:
         Constants.log.warning("[obot-core] 获取 Git 提交信息异常")
         Constants.log.exception(f"[obot-core] {e}")

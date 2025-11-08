@@ -21,3 +21,4 @@ av==15.0.0
 pilk==0.2.4
 soundfile==0.13.1
 tqdm==4.67.1
+GitPython==3.1.45
