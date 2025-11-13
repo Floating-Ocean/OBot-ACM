@@ -16,3 +16,6 @@
 [submodule "lib/MC-Rand"]
 	path = lib/MC-Rand
 	url = https://github.com/Floating-Ocean/OBot-MC-Rand.git
+[submodule "lib/Git-Pull-Indep"]
+	path = lib/Git-Pull-Indep
+	url = https://github.com/Floating-Ocean/Git-Pull-Indep.git
