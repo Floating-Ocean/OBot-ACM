@@ -162,7 +162,7 @@ class _ContestsSection(RenderableSection):
                     current_y -= _CONTEST_PADDING
                     start_y, max_y = current_y, current_y
 
-                    column_split = self._split_columns(_contests)
+                    column_split, _ = self._split_columns(_contests, _CONTEST_PADDING)
                     for current_col, _column in enumerate(column_split):
                         current_y = start_y
                         for contest in _column:
@@ -188,11 +188,9 @@ class _ContestsSection(RenderableSection):
                                                 (self.section_upcoming, self.str_upcoming_title),
                                                 (self.section_finished, self.str_finished_title)]:
                 if len(_contests) > 0:
-                    column_split = self._split_columns(_contests)
+                    _, max_height = self._split_columns(_contests, _CONTEST_PADDING)
                     height += calculate_height(_type_title_text)
-                    height += max(sum(contest.get_height() for contest in column) +
-                                  _CONTEST_PADDING * max(0, len(column) - 1)  # 各比赛间的 padding
-                                  for column in column_split) + _TYPE_PADDING
+                    height += max_height + _TYPE_PADDING
         return height
 
 

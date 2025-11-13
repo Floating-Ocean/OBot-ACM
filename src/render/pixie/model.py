@@ -68,21 +68,39 @@ class RenderableSection(abc.ABC):
     """图片渲染分块基类"""
 
     def _split_columns(self,
-                       contests: list["RenderableSection"]) -> list[list["RenderableSection"]]:
+                       sections: list["RenderableSection"],
+                       section_padding: int) -> tuple[list[list["RenderableSection"]], int]:
         """适用于嵌套且需分栏的场景，根据高度进行分栏，基于贪心策略，放不下时全部放在最后一栏"""
-        total_height = sum(contest.get_height() for contest in contests)
         columns = self.get_columns()
-        column_height = 0
+        total_height = (sum(section.get_height() for section in sections) +
+                        section_padding * (len(sections) - columns))
+        column_height = -section_padding
+        max_height = 0
 
-        split_contests = [[]]
-        for contest in contests:
-            column_height += contest.get_height()
-            split_contests[-1].append(contest)
-            if len(split_contests) < columns and column_height > total_height / columns:
-                split_contests.append([])
-                column_height = 0
+        height_limit = total_height / columns
+        first_column_exceeds = False
+        split_sections = [[]]
 
-        return split_contests
+        for section in sections:
+            section_height = section.get_height()
+            if len(split_sections) < columns and (
+                    column_height + section_height + section_padding > height_limit):
+                if len(split_sections) == 1:
+                    # 额外允许第一列超出一项，并将第一列作为最大高度
+                    if not first_column_exceeds:
+                        first_column_exceeds = True
+                        split_sections[-1].append(section)
+                        column_height += section_height + section_padding
+                        max_height = max(max_height, column_height)
+                        continue
+                    height_limit = column_height
+                split_sections.append([])
+                column_height = -section_padding
+            split_sections[-1].append(section)
+            column_height += section_height + section_padding
+            max_height = max(max_height, column_height)
+
+        return split_sections, max_height
 
     def get_columns(self):
         """占几列，重写本方法以实现多列"""
