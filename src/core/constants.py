@@ -75,8 +75,12 @@ def _get_git_commit() -> GitCommit:
         repo = git.Repo(_project_dir)
         commit = repo.head.commit
 
-        ref_description = repo.git.describe("--all", "--exact-match", "HEAD").strip()
-        ref_str = f" ({ref_description})" if ref_description else ""
+        try:
+            ref_description = repo.git.describe("--all", "--exact-match", "HEAD").strip()
+            ref_str = f" ({ref_description})" if ref_description else ""
+        except git.GitCommandError:
+            # HEAD 可能处于分离状态或不在精确匹配的引用上
+            ref_str = ""
 
         return GitCommit(
             commit.hexsha,

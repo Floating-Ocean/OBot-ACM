@@ -90,7 +90,7 @@ def reply_git_pull(message: RobotMessage):
         script_args.extend(["--checkout", checkout])
     payload = ' '.join(script_args)
 
-    Constants.log.info(f"[git] 切换到更新脚本")
+    Constants.log.info("[git] 切换到更新脚本")
     Constants.log.info(f'[git] os.execl -> python -X utf8 {payload}')
     os.execl(sys.executable, sys.executable, '-X', 'utf8', *script_args)
 
@@ -110,7 +110,7 @@ def reply_git_plog(message: RobotMessage):
 def reply_git_submodule(message: RobotMessage):
     repo = git.Repo(_project_dir)
     status = repo.git.submodule('status')
-    message.reply(f"[Git-Commands] 本项目的所有子模块信息\n\n"
+    message.reply("[Git-Commands] 本项目的所有子模块信息\n\n"
                   f"{status}", modal_words=False)
 
 
@@ -122,7 +122,7 @@ def reply_git_stash(message: RobotMessage):
 
     repo = git.Repo(_project_dir)
     if action == 'push':
-        if not repo.is_dirty():
+        if not repo.is_dirty(untracked_files=True):
             message.reply("[Git-Commands] 暂无更改需要搁置")
             return
         repo.git.stash('push', '-u', '-m', 'obot_module_git_cmd stash')
