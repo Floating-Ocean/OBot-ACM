@@ -176,6 +176,7 @@ def _check_permission(execute_level, func, message, message_id):
 
 
 def clear_message_queue():
+    Constants.log.info("[obot-core] 正在清空消息队列")
     global _terminate_signal
     with _terminate_lock:
         _terminate_signal = True

@@ -27,7 +27,6 @@ def daily_sched_thread():
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
 def reply_restart_bot(message: RobotMessage):
     message.reply("好的捏，捏？欸我怎么似了" if message.tokens[0] == '/去死' else "好的捏，正在重启bot")
-    Constants.log.info("[obot-core] 正在清空消息队列")
     clear_message_queue()
     time.sleep(2)  # 等待 message 通知消息线程发送回复
     Constants.log.info("[obot-core] 正在重启")
