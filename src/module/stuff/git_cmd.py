@@ -87,7 +87,7 @@ def reply_git_pull(message: RobotMessage):
         "--initiator", entry_path
     ]
     if checkout:
-        script_args.extend(["--checkout_branch", checkout])
+        script_args.extend(["--checkout", checkout])
     payload = ' '.join(script_args)
 
     Constants.log.info(f"[git] 切换到更新脚本")
@@ -96,8 +96,7 @@ def reply_git_pull(message: RobotMessage):
 
 
 def reply_git_plog(message: RobotMessage):
-    lib_path = Constants.modules_conf.get_lib_path("Git-Pull-Indep")
-    plog_path = os.path.join(lib_path, ".git_pull_indep_status")
+    plog_path = os.path.join(_project_dir, ".git_pull_indep_status")
     if not os.path.exists(plog_path):
         message.reply("[Git-Commands] 更新日志不存在")
         return
@@ -110,8 +109,8 @@ def reply_git_plog(message: RobotMessage):
 
 def reply_git_submodule(message: RobotMessage):
     repo = git.Repo(_project_dir)
-    status = repo.submodule('status')
-    message.reply(f"[Git-Commands] \n\n"
+    status = repo.git.submodule('status')
+    message.reply(f"[Git-Commands] 本项目的所有子模块信息\n\n"
                   f"{status}", modal_words=False)
 
 
@@ -187,7 +186,7 @@ def reply_git(message: RobotMessage):
 
 @module(
     name="Git-Commands",
-    version="v1.2.0"
+    version="v1.2.1"
 )
 def register_module():
     pass
