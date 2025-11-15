@@ -102,6 +102,10 @@ def reply_git_pull(message: RobotMessage):
         "--initiator", entry_path
     ]
     if checkout:
+        # 验证分支名仅包含字母、数字、下划线、横杠和斜杠
+        if not all(c.isalnum() or c in '_-/' for c in checkout):
+            message.reply("[Git-Commands] 无效的分支名")
+            return
         script_args.extend(["--checkout", checkout])
     payload = ' '.join(script_args)
 
