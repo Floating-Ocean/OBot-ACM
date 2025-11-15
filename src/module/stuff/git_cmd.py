@@ -45,8 +45,17 @@ def reply_git_fetch(message: RobotMessage):
         message.reply(f"[Git-Commands] 分支 {branch_name} 没有设置远程跟踪分支")
         return
 
-    origin = repo.remote('origin')
-    origin.fetch()
+    try:
+        origin = repo.remote('origin')
+    except ValueError:
+        message.reply("[Git-Commands] 未找到 origin 远程仓库")
+        return
+
+    try:
+        origin.fetch()
+    except git.GitCommandError as e:
+        message.reply(f"[Git-Commands] 拉取远程更新失败: {str(e)}")
+        return
 
     local_commit = repo.commit(branch_name)
     remote_commit = tracking_branch.commit
