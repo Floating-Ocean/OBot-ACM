@@ -121,14 +121,14 @@ def reply_git_plog(message: RobotMessage):
         return
 
     with open(plog_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+        content = f.read().strip('\n')
         message.reply("[Git-Commands] 上次更新的简略日志\n\n"
                       f"{content}", modal_words=False)
 
 
 def reply_git_submodule(message: RobotMessage):
     repo = git.Repo(_project_dir)
-    status = repo.git.submodule('status')
+    status = repo.git.submodule('status').strip('\n')
     message.reply("[Git-Commands] 本项目的所有子模块信息\n\n"
                   f"{status}", modal_words=False)
 
