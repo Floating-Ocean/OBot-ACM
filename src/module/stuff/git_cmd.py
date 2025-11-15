@@ -32,32 +32,38 @@ def reply_git_status(message: RobotMessage):
 def reply_git_fetch(message: RobotMessage):
     repo = git.Repo(_project_dir)
 
-    current_branch = repo.active_branch
-    branch_name = str(current_branch)
-    remote_ref = f'origin/{branch_name}'
+    try:
+        current_branch = repo.active_branch
+        branch_name = str(current_branch)
+    except TypeError:
+        # 当前处于 detached HEAD 状态
+        message.reply("[Git-Commands] 当前 HEAD 不在任何分支上，无法对比远程分支")
+        return
 
-    if remote_ref in repo.references:
-        origin = repo.remote('origin')
-        origin.fetch()
+    tracking_branch = current_branch.tracking_branch()
+    if tracking_branch is None:
+        message.reply(f"[Git-Commands] 分支 {branch_name} 没有设置远程跟踪分支")
+        return
 
-        local_commit = repo.commit(branch_name)
-        remote_commit = repo.commit(remote_ref)
+    origin = repo.remote('origin')
+    origin.fetch()
 
-        if local_commit.hexsha == remote_commit.hexsha:
-            msg = "本地分支已是最新"
-        else:
-            # 检查是领先、落后还是有分歧
-            base = repo.merge_base(local_commit, remote_commit)
-            if local_commit in base:
-                behind_count = sum(1 for c in repo.iter_commits(f'{local_commit}..{remote_commit}'))
-                msg = f"本地分支落后远程分支 {behind_count} 个提交"
-            elif remote_commit in base:
-                ahead_count = sum(1 for c in repo.iter_commits(f'{remote_commit}..{local_commit}'))
-                msg = f"本地分支领先远程分支 {ahead_count} 个提交"
-            else:
-                msg = "本地分支与远程分支存在冲突"
+    local_commit = repo.commit(branch_name)
+    remote_commit = tracking_branch.commit
+
+    if local_commit.hexsha == remote_commit.hexsha:
+        msg = "本地分支已是最新"
     else:
-        msg = f"未找到对应的远程跟踪分支 {remote_ref}"
+        # 检查是领先、落后还是有分歧
+        base = repo.merge_base(local_commit, remote_commit)
+        if local_commit in base:
+            behind_count = sum(1 for c in repo.iter_commits(f'{local_commit}..{remote_commit}'))
+            msg = f"本地分支落后远程分支 {behind_count} 个提交"
+        elif remote_commit in base:
+            ahead_count = sum(1 for c in repo.iter_commits(f'{remote_commit}..{local_commit}'))
+            msg = f"本地分支领先远程分支 {ahead_count} 个提交"
+        else:
+            msg = "本地分支与远程分支存在冲突"
 
     message.reply(f"[Git-Commands] {msg}")
 
