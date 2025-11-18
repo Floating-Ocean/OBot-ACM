@@ -15,6 +15,7 @@ def register_all_modules():
         "game.guess_1a2b",
         "game.tetris",
         "stuff.color",
+        "stuff.git_cmd",
         "stuff.how_to_cook",
         "stuff.mc",
         "stuff.misc",

@@ -13,7 +13,7 @@ from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, dispatch_message
-from src.core.constants import Constants, InvalidGitCommit
+from src.core.constants import Constants
 from src.module.cp.peeper import peeper_daily_update_job
 
 daily_sched = BlockingScheduler()
@@ -27,7 +27,6 @@ def daily_sched_thread():
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
 def reply_restart_bot(message: RobotMessage):
     message.reply("好的捏，捏？欸我怎么似了" if message.tokens[0] == '/去死' else "好的捏，正在重启bot")
-    Constants.log.info("[obot-core] 正在清空消息队列")
     clear_message_queue()
     time.sleep(2)  # 等待 message 通知消息线程发送回复
     Constants.log.info("[obot-core] 正在重启")
@@ -49,20 +48,6 @@ def reply_chat_scene_id(message: RobotMessage):
 @command(tokens=["我的ID", "my_id"])
 def reply_my_id(message: RobotMessage):
     message.reply(f'你的ID（不同对话场景下你的ID是不同的）\n\n{message.author_id}', modal_words=False)
-
-
-@command(tokens=["git"])
-def reply_git_commit(message: RobotMessage):
-    commit = Constants.git_commit
-    if isinstance(commit, InvalidGitCommit):
-        message.reply("此 OBot 大概率不是通过 Git Clone 得到的")
-    else:
-        commit_info = ("[Git] 当前提交信息\n\n"
-                       f"commit {commit.hash}{commit.ref}\n"
-                       f"Author: {commit.author}\n"
-                       f"Date: {commit.date}\n\n"
-                       f"{commit.message_title}")
-        message.reply(commit_info, modal_words=False)
 
 
 class MyClient(Client):

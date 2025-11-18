@@ -65,17 +65,15 @@ class _HelpSection(RenderableSection):
         return 3
 
     def get_height(self):
-        column_split = self._split_columns(self.section_help)
-        return max(sum(help_items.get_height() for help_items in column) +
-                   _HELP_SECTION_PADDING * max(0, (len(column) - 1))
-                   for column in column_split)
+        _, max_height = self._split_columns(self.section_help, _HELP_SECTION_PADDING)
+        return max_height
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
         current_y -= _HELP_SECTION_PADDING
         start_y, max_y = current_y, current_y
 
-        column_split = self._split_columns(self.section_help)
+        column_split, _ = self._split_columns(self.section_help, _HELP_SECTION_PADDING)
         for current_col, _column in enumerate(column_split):
             current_y = start_y
             for help_items in _column:

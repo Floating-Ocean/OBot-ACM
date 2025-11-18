@@ -1,4 +1,5 @@
 import os
+import shutil
 from datetime import datetime, timedelta
 
 from src.core.constants import Constants
@@ -18,7 +19,15 @@ def clean_cache_hours_ago(category: str):
         if check_is_float(prefix):
             file_mtime = datetime.fromtimestamp(float(prefix))
             if file_mtime < one_hour_ago:  # 清理一小时前的缓存
-                os.remove(os.path.join(category_path, filename))
+                file_path = os.path.join(category_path, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)  # 支持子文件夹的清除
+                except Exception as e:
+                    Constants.log.warning(f"[caching] 清除缓存 {file_path} 失败")
+                    Constants.log.exception(f"[caching] {e}")
 
 
 def get_cached_prefix(category: str):

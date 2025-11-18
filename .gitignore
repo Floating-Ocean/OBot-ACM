@@ -20,3 +20,5 @@ unittest/**
 
 config.json
 robot.py.lock
+
+.git_pull_indep_status

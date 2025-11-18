@@ -1,8 +1,8 @@
 import json
 import os
-import subprocess
 from dataclasses import dataclass
 
+import git
 from botpy import logging
 
 _project_dir = os.path.abspath(
@@ -30,7 +30,7 @@ class ModulesConfig:
         return cache_path
 
 
-@dataclass()
+@dataclass
 class GitCommit:
     hash: str
     hash_short: str
@@ -71,21 +71,28 @@ def _load_conf(path: str) -> tuple[dict, dict, ModulesConfig]:
 
 def _get_git_commit() -> GitCommit:
     """获取当前 Git 仓库的 commit hash"""
-    if not os.path.exists(os.path.join(_project_dir, ".git")):
-        return InvalidGitCommit("raw_copy_d")
-
     try:
-        result = subprocess.run(
-            ['git', 'log', '-1', '--pretty=format:%H|||%d|||%s|||%an|||%ai'],
-            capture_output=True, text=True, check=True, timeout=5, encoding='utf-8'
-        )
-        commit_hash, ref, title, author, date = result.stdout.strip().split("|||")
-        if len(commit_hash) != 40 or not all(c in "0123456789abcdef" for c in commit_hash.lower()):
-            return InvalidGitCommit("raw_copy_i")  # hash 格式错误
-        return GitCommit(commit_hash, commit_hash[:12], ref, title, author, date)
+        repo = git.Repo(_project_dir)
+        commit = repo.head.commit
 
-    except FileNotFoundError:
-        return InvalidGitCommit("raw_copy_g")  # 未安装 git
+        try:
+            ref_description = repo.git.describe("--all", "--exact-match", "HEAD").strip()
+            ref_str = f" ({ref_description})" if ref_description else ""
+        except git.GitCommandError:
+            # HEAD 可能处于分离状态或不在精确匹配的引用上
+            ref_str = ""
+
+        return GitCommit(
+            commit.hexsha,
+            commit.hexsha[:12],
+            ref_str,
+            commit.message.split('\n')[0],
+            commit.author.name,
+            commit.authored_datetime.strftime("%Y-%m-%d %H:%M:%S %z")
+        )
+
+    except git.InvalidGitRepositoryError:
+        return InvalidGitCommit("raw_copy_d")
     except Exception as e:
         Constants.log.warning("[obot-core] 获取 Git 提交信息异常")
         Constants.log.exception(f"[obot-core] {e}")
@@ -146,8 +153,7 @@ class Constants:
             Help("/user id [uid]", "查询 uid 对应用户的信息."),
             Help("/user name [name]", "查询名为 name 对应用户的信息，支持模糊匹配."),
             Help("/alive", "检查各算竟平台的可连通性."),
-            Help("/about", "获取当前各模块的构建信息."),
-            Help("/git", "获取当前本项目指向的提交信息.")
+            Help("/about", "获取当前各模块的构建信息.")
         ],
         'contestant': [
             Help("/cpcfinder [name] [school]", "获取名为 name 且学校为 school 的 XCPC 大学生程序设计竞赛选手获奖信息."),
@@ -191,6 +197,14 @@ class Constants:
             Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500]."),
             Help("/rand color", "获取一个色卡.")
         ],
+        'mc': [
+            Help("/kill", "抽取 Minecraft 死亡信息."),
+            Help("/gamemode [mode]", "模拟 Minecraft 游戏模式切换."),
+            Help("/effect (func)", "抽取 Minecraft 状态效果，func 留空时进行抽取、为 clear 时清空、为 now 时显示当前状态."),
+            Help("/sleep (type)",
+                 "进行一种 Minecraft 风格的睡觉，type 为 mc 时只包含 Minecraft 原版睡觉失败信息、"
+                 "为 joking 时只包含幽默睡觉失败信息、留空时两者都包含."),
+        ],
         'tetris': [
             Help("/tetris (col)", "开始 24 * col 大小的俄罗斯方块游戏，col 为列数，留空时默认为 24."),
             Help("/tetris [rotate_cnt] [left_col]",
@@ -209,13 +223,14 @@ class Constants:
             Help("/1a2b [num]", "猜测数字为 num."),
             Help("/1a2b stop", "结束本轮 1a2b 游戏.")
         ],
-        'mc': [
-            Help("/kill", "抽取 Minecraft 死亡信息."),
-            Help("/gamemode [mode]", "模拟 Minecraft 游戏模式切换."),
-            Help("/effect (func)", "抽取 Minecraft 状态效果，func 留空时进行抽取、为 clear 时清空、为 now 时显示当前状态."),
-            Help("/sleep (type)",
-                 "进行一种 Minecraft 风格的睡觉，type 为 mc 时只包含 Minecraft 原版睡觉失败信息、"
-                 "为 joking 时只包含幽默睡觉失败信息、留空时两者都包含."),
+        'git-cmd': [
+            Help("/git status", "获取当前本项目指向的提交信息，需要管理员权限."),
+            Help("/git fetch", "检查本项目对应的远程分支是否有更新，需要管理员权限."),
+            Help("/git pull (branch_name)", "拉取更新，指定 branch_name 时会自动 checkout，需要管理员权限."),
+            Help("/git plog", "获取上一次更新的简短日志，需要管理员权限."),
+            Help("/git submodule", "列出所有子模块的信息，需要管理员权限."),
+            Help("/git stash (action)",
+                 "搁置本项目本地更改，可指定 action 为 pop 来弹出被搁置的更改，可指定 action 为 list 来列出被搁置的更改，需要管理员权限.")
         ],
         'misc1': [
             Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
@@ -223,7 +238,7 @@ class Constants:
             Help("/hzys [content]", "基于文本 content 合成电棍语音，活字乱刷.")
         ],
         'misc2': [
-            Help("/来道菜", "获取一道 How-to-Cook 开源项目里的菜谱."),
+            Help("/来道菜 (dish)", "获取一道 How-to-Cook 开源项目里的菜谱，可指定菜谱名进行查询."),
             Help("/导入比赛", "导入手动配置的比赛，需要管理员权限."),
             Help("/配置重载", "重载配置文件，需要管理员权限."),
             Help("/重启", "重新启动 Bot，需要管理员权限.")
