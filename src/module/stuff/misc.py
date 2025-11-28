@@ -29,6 +29,7 @@ _project_dir = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..')
 )
 
+
 @command(tokens=list(_FIXED_REPLY.keys()))
 def reply_fixed(message: RobotMessage):
     message.reply(_FIXED_REPLY.get(message.tokens[0][1:], ""), modal_words=False)
@@ -126,6 +127,7 @@ def reply_help(message: RobotMessage):
         message.reply("O宝正在画画，稍等一下")
         contest_list_img = HelpRenderer().render()
         contest_list_img.write_file(f"{cached_prefix}.png")
+
     else:
         file_name = os.path.join(_project_dir, "img", "command_instructions.png")
         if not os.path.exists(file_name):
