@@ -310,7 +310,7 @@ def reply_comment_one(message: RobotMessage):
     message.reply(f"[Pick-One] 评论成功，目前有 {len(comments)} 个评论")
 
 
-@command(tokens=["数数来只*", "多少来只*", "有多少来只*", "count*", "cnt*"])
+@command(tokens=["数数来只*", "多少只*", "有多少只*", "count*", "cnt*"])
 def reply_pick_one(message: RobotMessage):
     data = get_pick_one_data()
     what = message.tokens[1].lower() if len(message.tokens) >= 2 else None

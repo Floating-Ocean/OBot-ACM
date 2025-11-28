@@ -39,7 +39,9 @@ def get_pick_one_data() -> PickOne:
     for key, value in pick_one_conf.items():  # 方便匹配
         key_path = str(os.path.join(_lib_path, key))
         if os.path.exists(key_path):
-            ids.append([value.id, len(os.listdir(key_path))])
+            ids.append([value.id,
+                        len([item for item in os.listdir(key_path)
+                             if item.endswith(".gif")])])  # 不计入 parser.json
         else:
             ids.append([value.id, 0])
         for keys in value.key:
