@@ -1,4 +1,6 @@
+import os
 import re
+import shutil
 
 from thefuzz import process
 
@@ -23,7 +25,9 @@ _FIXED_REPLY = {
     "似了吗": "？",
     "死了吗": "？？？"
 }
-
+_project_dir = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..')
+)
 
 @command(tokens=list(_FIXED_REPLY.keys()))
 def reply_fixed(message: RobotMessage):
@@ -116,11 +120,18 @@ def reply_sleep(message: RobotMessage):
 
 @command(tokens=['help', 'helps', 'instruction', 'instructions', '帮助'])
 def reply_help(message: RobotMessage):
-    message.reply("O宝正在画画，稍等一下")
-
     cached_prefix = get_cached_prefix('Help-Renderer')
-    contest_list_img = HelpRenderer().render()
-    contest_list_img.write_file(f"{cached_prefix}.png")
+
+    if len(message.tokens) > 1 and message.tokens[1] in ['r', 'render', 'd', 'draw']:
+        message.reply("O宝正在画画，稍等一下")
+        contest_list_img = HelpRenderer().render()
+        contest_list_img.write_file(f"{cached_prefix}.png")
+    else:
+        file_name = os.path.join(_project_dir, "img", "command_instructions.png")
+        if not os.path.exists(file_name):
+            message.reply("未找到预设的帮助手册图片，可追加 render 参数重新绘制")
+            return
+        shutil.copy(file_name, f"{cached_prefix}.png")
 
     message.reply("帮助手册", png2jpg(f"{cached_prefix}.png"))
 
