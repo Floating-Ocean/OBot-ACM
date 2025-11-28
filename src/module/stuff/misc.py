@@ -25,6 +25,7 @@ _FIXED_REPLY = {
     "似了吗": "？",
     "死了吗": "？？？"
 }
+
 _project_dir = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..')
 )
@@ -192,12 +193,13 @@ def reply_arcapk(message: RobotMessage):
     qr_img.save(f"{cached_prefix}.png")
 
     message.reply(f"[ArcAPK] Arcaea v{version}\n\n"
+                  f"可使用双设备配合进行扫码，或者使用下面的链接（需要去掉多余的空格）\n\n"
                   f"{url_sendable}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
 @module(
     name="Misc",
-    version="v3.1.1"
+    version="v3.1.2"
 )
 def register_module():
     pass

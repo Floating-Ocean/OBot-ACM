@@ -115,7 +115,7 @@ def reply_pick_one(message: RobotMessage):
 
     img_key = _decode_img_key(data, what)
     if img_key is None:
-        img_help = "目前可以来只:\n\n"
+        img_help = "[Pick-One] 目前可以来只:\n\n"
         img_help += ", ".join([_id for _id, _len in data.ids])
         message.reply(img_help, modal_words=False)
         return
@@ -172,7 +172,7 @@ def reply_pick_one_capoo(message: RobotMessage):
 @command(tokens=["添加来只*", "添加*"])
 def reply_save_one(message: RobotMessage):
     if len(message.tokens) < 2:
-        message.reply("请指定需要添加的图片的关键词")
+        message.reply("[Pick-One] 请指定需要添加的图片的关键词")
         return
 
     data = get_pick_one_data()
@@ -184,7 +184,7 @@ def reply_save_one(message: RobotMessage):
         cnt, ok, duplicate = accept_attachment(img_key, need_audit, message.attachments)
 
         if cnt == 0:
-            message.reply("未识别到图片，请将图片和指令发送在同一条消息中")
+            message.reply("[Pick-One] 未识别到图片，请将图片和指令发送在同一条消息中")
         else:
             _parse_img(img_key)
             failed_info = ""
@@ -195,28 +195,28 @@ def reply_save_one(message: RobotMessage):
 
             suffix = "审核队列中，等待 Bot 管理员审核" if need_audit else "中"
             main_info = f"已添加 {ok} 张图片至 {img_key} {suffix}" if ok > 0 else "没有图片被添加"
-            message.reply(f"{main_info}{failed_info}")
+            message.reply(f"[Pick-One] {main_info}{failed_info}")
 
     elif what == '比赛':  # 人文关怀一下
         message.reply("猜你想找：/导入比赛", modal_words=False)
 
     else:
-        message.reply(f"关键词 {what} 未被记录，请联系 Bot 管理员添加")
+        message.reply(f"[Pick-One] 关键词 {what} 未被记录，请联系 Bot 管理员添加")
 
 
 def _check_edit_img_parser(data: PickOne, message: RobotMessage, action: str) -> bool:
     """初步检查修改 parser.json 的操作的合法性"""
     if len(message.tokens) < 2:
-        message.reply(f"请指定想要{action}的图片的关键词")
+        message.reply(f"[Pick-One] 请指定想要{action}的图片的关键词")
         return False
 
     if len(message.tokens) < 3:
-        message.reply(f"请指定想要{action}的图片的 ID")
+        message.reply(f"[Pick-One] 请指定想要{action}的图片的 ID")
         return False
 
     what = message.tokens[1].lower()
     if what not in data.match_dict:
-        message.reply(f"关键词 {what} 未被记录，请联系 Bot 管理员添加")
+        message.reply(f"[Pick-One] 关键词 {what} 未被记录，请联系 Bot 管理员添加")
         return False
 
     return True
@@ -229,7 +229,7 @@ def _get_specified_img_parser(message: RobotMessage, img_key: str) -> dict | Non
 
     img_parser = get_img_parser(img_key)
     if parser_key not in img_parser:
-        message.reply("ID 不存在，建议查询后直接复制粘贴")
+        message.reply("[Pick-One] ID 不存在，建议查询后直接复制粘贴")
         return None
 
     # 兼容旧版字符串结构（按需升级）
@@ -269,7 +269,7 @@ def reply_like_one(message: RobotMessage):
         img_parser[parser_key]['likes'] = likes
         save_img_parser(img_key, img_parser)
 
-    message.reply(f"点赞成功，目前有 {likes} 个赞")
+    message.reply(f"[Pick-One] 点赞成功，目前有 {likes} 个赞")
 
 
 @command(tokens=["评论来只*", "评论*", "回复来只*", "回复*", "comment*", "say*", "reply*"])
@@ -287,7 +287,7 @@ def reply_comment_one(message: RobotMessage):
             return
 
         if len(message.tokens) < 4:
-            message.reply("请输入评论内容")
+            message.reply("[Pick-One] 请输入评论内容")
             return
 
         hash_id = base62_to_md5(message.tokens[2].strip())
@@ -295,11 +295,11 @@ def reply_comment_one(message: RobotMessage):
         parser_key = f"{hash_id}.gif"
 
         if len(comment) > _MAX_COMMENT_LENGTH:
-            message.reply(f"评论字数过长，请限制在 {_MAX_COMMENT_LENGTH} 个字符内")
+            message.reply(f"[Pick-One] 评论字数过长，请限制在 {_MAX_COMMENT_LENGTH} 个字符内")
             return
 
         if comment in img_parser[parser_key]['comments']:
-            message.reply("评论重复，添加失败")
+            message.reply("[Pick-One] 评论重复，添加失败")
             return
 
         comments = img_parser[parser_key]['comments']
@@ -307,7 +307,28 @@ def reply_comment_one(message: RobotMessage):
         img_parser[parser_key]['comments'] = comments
         save_img_parser(img_key, img_parser)
 
-    message.reply(f"评论成功，目前有 {len(comments)} 个评论")
+    message.reply(f"[Pick-One] 评论成功，目前有 {len(comments)} 个评论")
+
+
+@command(tokens=["数数来只*", "多少来只*", "有多少来只*", "count*", "cnt*"])
+def reply_pick_one(message: RobotMessage):
+    data = get_pick_one_data()
+    what = message.tokens[1].lower() if len(message.tokens) >= 2 else None
+
+    img_key = _decode_img_key(data, what)
+    if img_key is None:
+        img_cnt = "[Pick-One] 目前所有图片的数量:\n\n"
+        img_cnt += ", ".join([f"{_id} ({_len})" for _id, _len in data.ids])
+        message.reply(img_cnt, modal_words=False)
+        return
+
+    img_cnt = 0
+    for _id, _len in data.ids:
+        if _id == data.conf[img_key].id:
+            img_cnt = _len
+            break
+
+    message.reply(f"[Pick-One] 目前共有 {img_cnt} 只 {data.conf[img_key].id}", modal_words=False)
 
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit", "ac"], permission_level=PermissionLevel.MOD)
@@ -320,7 +341,7 @@ def reply_audit_accept(message: RobotMessage):
         _parse_img(img_key)
 
     if cnt == 0:
-        message.reply("没有需要审核的图片")
+        message.reply("[Pick-One] 没有需要审核的图片")
     else:
         failed_info = ""
         ok = sum(ok_status.values())
@@ -328,13 +349,14 @@ def reply_audit_accept(message: RobotMessage):
             failed_info += f"，失败 {cnt - ok} 张"
 
         audit_detail = '\n'.join([f"[{tag}] {ok_count} 张" for tag, ok_count in ok_status.items()])
-        info = f"已审核 {ok} 张图片{failed_info}\n\n{audit_detail}" if ok > 0 else f"没有图片被添加{failed_info}"
+        info = (f"[Pick-One] 已审核 {ok} 张图片{failed_info}\n\n{audit_detail}" if ok > 0 else
+                f"没有图片被添加{failed_info}")
         message.reply(info, modal_words=False)
 
 
 @module(
     name="Pick-One",
-    version="v5.2.0"
+    version="v5.3.0"
 )
 def register_module():
     pass
