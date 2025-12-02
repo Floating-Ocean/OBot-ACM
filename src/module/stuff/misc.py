@@ -176,7 +176,7 @@ def reply_hitokoto(message: RobotMessage):
     message.reply(f"[Hitokoto]\n{content}\nBy {author}「{where}」", modal_words=False)
 
 
-@command(tokens=["arcapk"])
+@command(tokens=["arcapk", "616sb", "guymygo"])
 def reply_arcapk(message: RobotMessage):
     """神秘小功能"""
     data = fetch_url_json("https://webapi.lowiro.com/webapi/serve/static/bin/arcaea/apk",
@@ -193,7 +193,7 @@ def reply_arcapk(message: RobotMessage):
     qr_img.save(f"{cached_prefix}.png")
 
     message.reply(f"[ArcAPK] Arcaea v{version}\n\n"
-                  f"可使用双设备配合进行扫码，或者使用下面的链接（需要去掉多余的空格）\n\n"
+                  f"可以双设备配合进行扫码，或者使用下面的链接（需要去掉多余的空格）\n\n"
                   f"{url_sendable}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
