@@ -25,6 +25,8 @@ _ocr_thread_pool = ThreadPoolExecutor(max_workers=os.cpu_count(),
 _parser_locks: dict[str, threading.Lock] = {}
 _locks_dict_lock = threading.Lock()
 
+_last_pick_img: dict[str, tuple[float, str, str]] = {}  # 指定对话场景上一次提起的图片
+
 
 def _get_parser_lock(img_key: str) -> threading.Lock:
     with _locks_dict_lock:
@@ -154,6 +156,8 @@ def reply_pick_one(message: RobotMessage):
                           f"添加时间: {add_time}{query_more_tip}",
                           img_path=get_img_full_path(img_key, picked), modal_words=False)
 
+            _last_pick_img[message.uuid] = time.time(), img_key, hash_id
+
         reply_fuzzy_matching(message, img_parser, f"{current_config.id} 的图片", 2, reply_ok)
 
 
@@ -222,9 +226,9 @@ def _check_edit_img_parser(data: PickOne, message: RobotMessage, action: str) ->
     return True
 
 
-def _get_specified_img_parser(message: RobotMessage, img_key: str) -> dict | None:
+def _get_specified_img_parser(message: RobotMessage, img_key: str, hash_id_b62: str) -> dict | None:
     """获取指定的 parser.json，并继续检查合法性"""
-    hash_id = base62_to_md5(message.tokens[2].strip())
+    hash_id = base62_to_md5(hash_id_b62)
     parser_key = f"{hash_id}.gif"
 
     img_parser = get_img_parser(img_key)
@@ -248,21 +252,24 @@ def _get_specified_img_parser(message: RobotMessage, img_key: str) -> dict | Non
     return img_parser
 
 
-@command(tokens=["点赞来只*", "点赞*", "喜欢来只*", "喜欢*", "爱来只*", "爱*", "love*", "like*"])
-def reply_like_one(message: RobotMessage):
-    data = get_pick_one_data()
-    if not _check_edit_img_parser(data, message, "点赞"):
-        return
+def _check_last_picked(message: RobotMessage, command_help: str) -> bool:
+    _last_pick_img.setdefault(message.uuid, (0, "", ""))
+    last_pick_time, _, _ = _last_pick_img[message.uuid]
 
-    what = message.tokens[1].lower()
-    img_key = data.match_dict[what]
+    if time.time() - last_pick_time > 24 * 60 * 60:  # 一天内即可
+        message.reply("[Pick-One] 找不到一天内上一次提起的图片，请使用下面的指令格式进行指定\n\n"
+                      f"{command_help}", modal_words=False)
+        return False
+    return True
 
+
+def _reply_like_one(message: RobotMessage, img_key: str, hash_id_b62: str):
     with _get_parser_lock(img_key):
-        img_parser = _get_specified_img_parser(message, img_key)
+        img_parser = _get_specified_img_parser(message, img_key, hash_id_b62)
         if img_parser is None:
             return
 
-        hash_id = base62_to_md5(message.tokens[2].strip())
+        hash_id = base62_to_md5(hash_id_b62)
         parser_key = f"{hash_id}.gif"
 
         likes = img_parser[parser_key]['likes'] + 1
@@ -272,26 +279,34 @@ def reply_like_one(message: RobotMessage):
     message.reply(f"[Pick-One] 点赞成功，目前有 {likes} 个赞")
 
 
-@command(tokens=["评论来只*", "评论*", "回复来只*", "回复*", "comment*", "say*", "reply*"])
-def reply_comment_one(message: RobotMessage):
+@command(tokens=["点赞", "喜欢", "爱", "love", "like"])
+def reply_like_one_last(message: RobotMessage):
+    if not _check_last_picked(message, command_help="/点赞来只 [what] [id]"):
+        return
+
+    _, img_key, hash_id_b62 = _last_pick_img[message.uuid]
+    _reply_like_one(message, img_key, hash_id_b62)
+
+
+@command(tokens=["点赞来只*", "喜欢来只*", "爱来只*"])
+def reply_like_one_specific(message: RobotMessage):
     data = get_pick_one_data()
-    if not _check_edit_img_parser(data, message, "评论"):
+    if not _check_edit_img_parser(data, message, "点赞"):
         return
 
     what = message.tokens[1].lower()
     img_key = data.match_dict[what]
 
+    _reply_like_one(message, img_key, message.tokens[2].strip())
+
+
+def _reply_comment_one(message: RobotMessage, img_key: str, hash_id_b62: str, comment: str):
     with _get_parser_lock(img_key):
-        img_parser = _get_specified_img_parser(message, img_key)
+        img_parser = _get_specified_img_parser(message, img_key, hash_id_b62)
         if img_parser is None:
             return
 
-        if len(message.tokens) < 4:
-            message.reply("[Pick-One] 请输入评论内容")
-            return
-
-        hash_id = base62_to_md5(message.tokens[2].strip())
-        comment = message.tokens[3].strip()
+        hash_id = base62_to_md5(hash_id_b62)
         parser_key = f"{hash_id}.gif"
 
         if len(comment) > _MAX_COMMENT_LENGTH:
@@ -310,8 +325,37 @@ def reply_comment_one(message: RobotMessage):
     message.reply(f"[Pick-One] 评论成功，目前有 {len(comments)} 个评论")
 
 
+@command(tokens=["评论", "回复", "comment", "say", "reply"])
+def reply_comment_one_last(message: RobotMessage):
+    if not _check_last_picked(message, command_help="/评论来只 [what] [id] [comment]"):
+        return
+
+    if len(message.tokens) < 2:
+        message.reply("[Pick-One] 请输入评论内容")
+        return
+
+    _, img_key, hash_id_b62 = _last_pick_img[message.uuid]
+    _reply_comment_one(message, img_key, hash_id_b62, message.tokens[1].strip())
+
+
+@command(tokens=["评论来只*", "回复来只*"])
+def reply_comment_one_specific(message: RobotMessage):
+    data = get_pick_one_data()
+    if not _check_edit_img_parser(data, message, "评论"):
+        return
+
+    what = message.tokens[1].lower()
+    img_key = data.match_dict[what]
+
+    if len(message.tokens) < 4:
+        message.reply("[Pick-One] 请输入评论内容")
+        return
+
+    _reply_comment_one(message, img_key, message.tokens[2].strip(), message.tokens[3].strip())
+
+
 @command(tokens=["数数来只*", "多少只*", "有多少只*", "count*", "cnt*"])
-def reply_pick_one(message: RobotMessage):
+def reply_count_one(message: RobotMessage):
     data = get_pick_one_data()
     what = message.tokens[1].lower() if len(message.tokens) >= 2 else None
 
@@ -356,7 +400,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v5.3.0"
+    version="v5.4.0"
 )
 def register_module():
     pass
