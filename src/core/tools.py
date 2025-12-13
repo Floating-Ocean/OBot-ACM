@@ -22,6 +22,7 @@ from qrcode.main import QRCode
 from requests.adapters import HTTPAdapter
 
 from src.core.constants import Constants
+from src.core.help_registry import HelpRegistry
 
 from nonebot_plugin_saa import MessageFactory,AggregatedMessageFactory
 
@@ -301,8 +302,10 @@ async def reply_help(module,content="",isAdmin=False):
         messages.append(MessageFactory(content))
     if isAdmin:
         messages.append(MessageFactory(f"[{module} (admin)]"))
-        messages.append(MessageFactory(Constants.help_contents[f'{module} (admin)']))
+        help_text = HelpRegistry.get_help(module, is_admin=True) or ''
+        messages.append(MessageFactory(help_text))
     else:
         messages.append(MessageFactory(f"[{module}]"))
-        messages.append(MessageFactory(Constants.help_contents[f'{module}']))
+        help_text = HelpRegistry.get_help(module, is_admin=False) or ''
+        messages.append(MessageFactory(help_text))
     await AggregatedMessageFactory(messages).finish()

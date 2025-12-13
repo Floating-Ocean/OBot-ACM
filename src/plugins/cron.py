@@ -20,6 +20,7 @@ from nonebot_plugin_saa import TargetQQGroup,TargetQQPrivate,MessageFactory,Aggr
 
 from src.core.tools import format_timestamp_diff
 from src.core.constants import Constants
+from src.core.help_registry import with_help
 from src.platform.cp.codeforces import Codeforces
 from src.platform.cp.atcoder import AtCoder
 from src.platform.cp.nowcoder import NowCoder
@@ -97,7 +98,11 @@ async def handle_help():
     await reply_help("cron / 定时模块")
 
 @regular_handler.handle()
+@with_help("cron / 定时模块")
 async def handle_regular(event:MessageEvent,command:tuple[str,str]=Command(),message:Message = CommandArg()):
+    """
+    /schedule add [platform] [contestId]: 将比赛 [contestId] 加入调用指令的私聊/群聊提醒列表中。
+    """
     try:
         func = command[1]
         args = message.extract_plain_text().split()
@@ -116,7 +121,13 @@ async def handle_regular(event:MessageEvent,command:tuple[str,str]=Command(),mes
         
     
 @admin_handler.handle()
+@with_help("cron / 定时模块", is_admin=True)
 async def handle_admin(command:tuple[str,str]=Command(),message:Message = CommandArg()):
+    """
+    /schedule addto [platform] [contestId] [boardcastTo]: 将比赛 [contestId] 加入[boardcastTo]群聊提醒列表中。
+    /schedule all: 返回当前所有的 shedule 任务
+    /schedule removeall 删除当前所有的固定时间提醒任务。
+    """
     try:
         func = command[1]
         args = message.extract_plain_text().split()
