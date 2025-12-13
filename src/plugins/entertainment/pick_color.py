@@ -12,11 +12,10 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from qrcode.main import QRCode
 
-from nonebot import require, on_command
+from nonebot import on_command
 from nonebot.rule import to_me
 from nonebot.adapters.onebot.v11.event import MessageEvent
 
-require("nonebot_plugin_localstore")
 import nonebot_plugin_localstore as store
 
 from src.core.constants import Constants

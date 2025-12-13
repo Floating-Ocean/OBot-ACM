@@ -10,8 +10,6 @@ from nonebot.log import logger
 from nonebot.permission import SUPERUSER
 from nonebot.exception import MatcherException
 
-require("nonebot_plugin_apscheduler")
-require("nonebot_plugin_localstore")
 from nonebot_plugin_apscheduler import scheduler
 from apscheduler.triggers.date import DateTrigger
 import nonebot_plugin_localstore as store
