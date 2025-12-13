@@ -1,0 +1,57 @@
+{
+  "_comment_1": "1. 注意，配置文件中的所有ID都不是真实的ID，请不要直接填写QQ号和群号",
+  "_comment_2": "2. 可通过指令 /chat_scene_id 获取当前对话场景ID (Chat-Scene-ID)",
+  "_comment_3": "3. 可通过指令 /my_id 主动获取用户自己的ID，或者通过一些越权指令 (如 /accept) 在Bot的运行日志中留下执行者的ID",
+  "role": {
+    "admin_id": ["<Admin-ID-1>", "<Admin-ID-2>", "<And-More>"],
+    "mod_id": ["<Mod-ID-1>", "<Mod-ID-2>", "<And-More>"]
+  },
+  "modules": {
+    "general": {
+      "_comment": "若不需要代理，请留空",
+      "http_proxy": "(Http-Proxy)",
+      "https_proxy": "(Https-Proxy)"
+    },
+    "clist": {
+      "_comment": "请填写完整，示例：Apikey FloatingOcean: 1a2b3c4d5e...",
+      "apikey": "<Full-Clist-Api-Key-Starts-With-ApiKey-And-UserName>"
+    },
+    "uptime": {
+      "_comment": "填写StatusPage网址上的标识符，而非ApiKey",
+      "page_id": "<UptimeRobot-Status-Page-ID-In-URL>"
+    },
+    "game": {
+      "exclude": {
+        "<Chat-Scene-ID-To-Turn-Off-Game-Feature>": "<Reply-Content-Of-Reasons-For-Turning-Off>"
+      }
+    },
+    "peeper": {
+      "exclude_id": ["<Chat-Scene-ID-To-Turn-Off-PBG-Feature>"],
+      "configs": [
+        {
+          "_comment_1": "1. 可参考Peeper-Board-Generator中的config_example.json进行配置。",
+          "_comment_2": "2. 相较于PBG配置，额外添加三个字段，相关用法如下：",
+          "_comment_3": "3. obot_conf_id 用于唯一标识本配置文件，影响数据存储；",
+          "_comment_4": "4. obot_apply_to 用于指定哪些对话场景使用此配置文件，一个对话场景有且只能有一个配置文件；",
+          "_comment_5": "5. obot_is_private 用于标记榜单是否只能被 obot_apply_to 指定的对话场景调用。",
+          "obot_conf_id": "<Config-Identifier-With-No-Space>",
+          "obot_apply_to": ["<Chat-Scene-ID-1>", "<Chat-Scene-ID-2>"],
+          "obot_is_private": false,
+          "handler": "Hydro",
+          "credentials": {
+            "uname": "<Your-Hydro-Admin-UserName>",
+            "password": "<Your-Password>"
+          },
+          "exclude_uid": [],
+          "exclude_reg_date": "YYYY-MM-DD",
+          "show_unrated": true,
+          "data": "data",
+          "url": "<Your-OJ-Base-URL>",
+          "id": "<Identifier-With-No-Space>",
+          "board_name": "<Your-Board-Name>"
+        }
+      ]
+    }
+  }
+}
+

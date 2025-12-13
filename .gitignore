@@ -1,5 +1,17 @@
 /config.yaml
 /lib/
 /.venv/
-.env*
 *.log
+config.json
+.env
+
+# Runtime cache
+/cache/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
