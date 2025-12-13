@@ -4,14 +4,6 @@ import os
 import random
 from colorsys import rgb_to_hsv
 
-from nonebot import require,on_command
-from nonebot.rule import to_me
-
-require("nonebot_plugin_localstore")
-import nonebot_plugin_localstore as store
-from nonebot_plugin_saa import AggregatedMessageFactory,MessageFactory
-from nonebot_plugin_saa import Image as SAAImage
-
 import pixie
 import qrcode
 from PIL import Image
@@ -20,7 +12,17 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from qrcode.main import QRCode
 
+from nonebot import require, on_command
+from nonebot.rule import to_me
+from nonebot.adapters.onebot.v11.event import MessageEvent
+
+require("nonebot_plugin_localstore")
+import nonebot_plugin_localstore as store
+
 from src.core.constants import Constants
+from src.core.help_registry import with_help
+from src.core.bot.message import reply, report_exception
+from nonebot.exception import MatcherException
 
 __color_rand_version__ = "v1.1.1"
 
@@ -103,15 +105,25 @@ def add_qrcode(color_card: pixie.Image, color: dict):
     return target_img
 
 @color_handler.handle()
-async def color_handle():
-    load_colors()
-    picked_color = random.choice(_colors)
+@with_help("颜色卡片")
+async def color_handle(event: MessageEvent):
+    """
+    随机生成一个颜色卡片，包含颜色的中文名称、拼音、HEX、RGB、HSV值等信息
+    指令: /color, /颜色, /色, /来个颜色, /来个色卡, /色卡
+    """
+    try:
+        load_colors()
+        picked_color = random.choice(_colors)
 
-    color_card = add_qrcode(generate_color_card(picked_color), picked_color)
+        color_card = add_qrcode(generate_color_card(picked_color), picked_color)
 
-    name = picked_color["name"]
-    pinyin = picked_color["pinyin"]
-    hex_text, rgb_text, hsv_text = transform_color(picked_color)
-    img_byte = BytesIO()
-    color_card.save(img_byte,format='PNG')
-    await AggregatedMessageFactory([MessageFactory(f"[Color] {name} {pinyin}\nHEX: {hex_text}\nRGB: {rgb_text}\nHSV: {hsv_text}"),MessageFactory(SAAImage(img_byte))]).finish()
+        name = picked_color["name"]
+        pinyin = picked_color["pinyin"]
+        hex_text, rgb_text, hsv_text = transform_color(picked_color)
+        img_byte = BytesIO()
+        color_card.save(img_byte,format='PNG')
+        await reply([f"[Color] {name} {pinyin}\nHEX: {hex_text}\nRGB: {rgb_text}\nHSV: {hsv_text}", img_byte.getvalue()], event, finish=True)
+    except MatcherException:
+        raise
+    except Exception as e:
+        await report_exception(event, "颜色卡片", e)

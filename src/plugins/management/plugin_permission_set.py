@@ -5,12 +5,14 @@ from nonebot.rule import to_me
 from nonebot.permission import SUPERUSER
 from nonebot.params import CommandArg,Command
 
-from nonebot_plugin_saa import MessageFactory
-
 from pathlib import Path
 import json
 from nonebot.log import logger
 import nonebot_plugin_localstore as store
+from nonebot.adapters.onebot.v11.event import MessageEvent
+from nonebot.exception import MatcherException
+from src.core.help_registry import with_help
+from src.core.bot.message import reply, report_exception
 data_dir = store.get_data_dir("cubplugins")
 
 def initdata(conf_name,bashdata:dict | list={"status":1}):
@@ -124,24 +126,47 @@ ban_plug_handler = on_command(
     aliases={('manage','unban-plug')},block=True,priority=1,
     permission=SUPERUSER)
 @ban_plug_handler.handle()
-async def _(command = Command(),message : Message = CommandArg()):
-    args = message.extract_plain_text().split()
-    logger.debug(args)
-    moduleName,id=args
-    isGroup = True if id[0] == 'g' else False
-    id=id[1:]
-    if moduleName.startswith("nonebot_plugin_"):
-        moduleName = moduleName.replace("nonebot_plugin_", "")
-    pluginslist = [plugin.name.replace("nonebot_plugin_", "") 
-                    if plugin.name.startswith("nonebot_plugin_") else plugin.name for plugin in get_loaded_plugins()]
+@with_help("插件权限管理", is_admin=True)
+async def _(event: MessageEvent, command = Command(),message : Message = CommandArg()):
+    """
+    管理插件的用户/群组权限（仅管理员可用）
     
-    if moduleName in ["全局","all"] :
-        moduleName = "global"
-    elif moduleName not in pluginslist:
-        await MessageFactory(f"[Management - Plug-Permission]不存在模块 {moduleName} 。").finish()
-    response = f'[Management - Plug-Permission] {moduleName} 对 {"群" if isGroup else "用户"} {id} {"解禁" if command[1] == "unban-plug" else "封禁"}'
-    if isGroup:
-        moduleName = "group-"+moduleName
-    ret = cubp.setperm(moduleName,id,command[1] == 'unban-plug')
-    response += "操作成功" if ret else "操作失败，请检查是否已经进行过该操作。"
-    await MessageFactory(response).finish()
+    指令:
+    /manage ban-plug [模块名] [用户ID/群ID]: 封禁用户或群组对指定模块的使用权限
+    /manage unban-plug [模块名] [用户ID/群ID]: 解封用户或群组对指定模块的使用权限
+    
+    参数说明:
+    - 模块名: 插件名称，可使用"全局"或"all"表示全局封禁
+    - 用户ID: 直接输入QQ号，如 123456789
+    - 群ID: 以g开头的群号，如 g123456789
+    
+    示例:
+    /manage ban-plug entertainment 123456789
+    /manage ban-plug global g123456789
+    /manage unban-plug entertainment 123456789
+    """
+    try:
+        args = message.extract_plain_text().split()
+        logger.debug(args)
+        moduleName,id=args
+        isGroup = True if id[0] == 'g' else False
+        id=id[1:]
+        if moduleName.startswith("nonebot_plugin_"):
+            moduleName = moduleName.replace("nonebot_plugin_", "")
+        pluginslist = [plugin.name.replace("nonebot_plugin_", "") 
+                        if plugin.name.startswith("nonebot_plugin_") else plugin.name for plugin in get_loaded_plugins()]
+        
+        if moduleName in ["全局","all"] :
+            moduleName = "global"
+        elif moduleName not in pluginslist:
+            await reply([f"[Management - Plug-Permission]不存在模块 {moduleName} 。"], event, finish=True)
+        response = f'[Management - Plug-Permission] {moduleName} 对 {"群" if isGroup else "用户"} {id} {"解禁" if command[1] == "unban-plug" else "封禁"}'
+        if isGroup:
+            moduleName = "group-"+moduleName
+        ret = cubp.setperm(moduleName,id,command[1] == 'unban-plug')
+        response += "操作成功" if ret else "操作失败，请检查是否已经进行过该操作。"
+        await reply([response], event, finish=True)
+    except MatcherException:
+        raise
+    except Exception as e:
+        await report_exception(event, "插件权限管理", e)

@@ -1,11 +1,11 @@
 from datetime import datetime
 import os
 
-from nonebot import on_command,get_bot,require
+from nonebot import on_command, get_bot, require
 from nonebot.rule import to_me
 from nonebot.adapters import Message
-from nonebot.adapters.onebot.v11.event import MessageEvent,GroupMessageEvent
-from nonebot.params import Command,CommandArg
+from nonebot.adapters.onebot.v11.event import MessageEvent, GroupMessageEvent
+from nonebot.params import Command, CommandArg
 from nonebot.log import logger
 from nonebot.permission import SUPERUSER
 from nonebot.exception import MatcherException
@@ -15,17 +15,16 @@ require("nonebot_plugin_localstore")
 from nonebot_plugin_apscheduler import scheduler
 from apscheduler.triggers.date import DateTrigger
 import nonebot_plugin_localstore as store
-from nonebot_plugin_saa import TargetQQGroup,TargetQQPrivate,MessageFactory,AggregatedMessageFactory
+from nonebot_plugin_saa import TargetQQGroup, TargetQQPrivate, MessageFactory
 
-
-from src.core.tools import format_timestamp_diff
+from src.core.tools import format_timestamp_diff, reply_help
 from src.core.constants import Constants
 from src.core.help_registry import with_help
+from src.core.bot.message import reply, report_exception
 from src.platform.cp.codeforces import Codeforces
 from src.platform.cp.atcoder import AtCoder
 from src.platform.cp.nowcoder import NowCoder
-from src.platform.model import CompetitivePlatform,Contest
-from src.core.tools import reply_help
+from src.platform.model import CompetitivePlatform, Contest
 
 __cron_version__ = "v1.0.0"
 
@@ -62,20 +61,25 @@ async def heart_beat(content,id):
     await MessageFactory(content).send_to(target=TargetQQPrivate(user_id=id),bot=get_bot())
 
 
-async def add_contest_schedule(platform:str,contestId:str,id:int,isGroup:bool):
-    await MessageFactory("[cron] 开始添加定时任务").send()
+async def add_contest_schedule(platform:str,contestId:str,id:int,isGroup:bool,event=None):
+    if event:
+        await reply(["[cron] 开始添加定时任务"], event, finish=False)
     platforms = {
         'codeforces':Codeforces,
         'atcoder':AtCoder,
         'nowcoder':NowCoder
     }
     if platform not in platforms.keys():
-        await MessageFactory(f"平台有误，目前支持的平台为 Codeforces,Atcoder,Nowcoder").finish()
+        if event:
+            await reply([f"平台有误，目前支持的平台为 Codeforces,Atcoder,Nowcoder"], event, finish=True)
+        return
     platform : CompetitivePlatform = platforms[platform]
     contest : Contest = platform.get_contest(contestId)
     for job in scheduler.get_jobs():
         if job.kwargs['id'] == id and job.kwargs['content'] == f'比赛 {contest.name} 将于 1 天后开始，请注意安排时间~':
-            await MessageFactory(f"本场比赛 {contest.name} 对于 {id} 的提醒已经在机器人 schedule 中。").finish()
+            if event:
+                await reply([f"本场比赛 {contest.name} 对于 {id} 的提醒已经在机器人 schedule 中。"], event, finish=True)
+            return
     scheduler.add_job(notice_contest,"date",run_date=datetime.now(),kwargs={'content':f'比赛 {contest.name} 的定时器已添加。','id':id,'isGroup':isGroup})
     scheduler.add_job(notice_contest,"date",run_date=datetime.fromtimestamp(contest.start_time-86400),kwargs={'content':f'比赛 {contest.name} 将于 1 天后开始，请注意安排时间~','id':id,'isGroup':isGroup})
     scheduler.add_job(notice_contest,"date",run_date=datetime.fromtimestamp(contest.start_time-7200),kwargs={'content':f'比赛 {contest.name} 将于 2 小时后开始，请注意安排时间~','id':id,'isGroup':isGroup})
@@ -111,18 +115,18 @@ async def handle_regular(event:MessageEvent,command:tuple[str,str]=Command(),mes
                 await reply_help("cron / 定时模块","输入参数数量不正确，请参照说明重新输入",False)
             platform,contestId = args
             if isinstance(event,GroupMessageEvent):
-                await add_contest_schedule(platform,contestId,event.group_id,True)
+                await add_contest_schedule(platform,contestId,event.group_id,True,event)
             else:
-                await add_contest_schedule(platform,contestId,event.user_id,True)
+                await add_contest_schedule(platform,contestId,event.user_id,False,event)
     except MatcherException:
         raise
     except Exception as e:
-        await reply_help("cron / 定时模块","出现未知异常。请联系管理员。",False)
+        await report_exception(event, "cron / 定时模块", e)
         
     
 @admin_handler.handle()
 @with_help("cron / 定时模块", is_admin=True)
-async def handle_admin(command:tuple[str,str]=Command(),message:Message = CommandArg()):
+async def handle_admin(event:MessageEvent,command:tuple[str,str]=Command(),message:Message = CommandArg()):
     """
     /schedule addto [platform] [contestId] [boardcastTo]: 将比赛 [contestId] 加入[boardcastTo]群聊提醒列表中。
     /schedule all: 返回当前所有的 shedule 任务
@@ -132,22 +136,22 @@ async def handle_admin(command:tuple[str,str]=Command(),message:Message = Comman
         func = command[1]
         args = message.extract_plain_text().split()
         if func == 'all':
-            await AggregatedMessageFactory(MessageFactory("\n".join([f"计划在 {format_timestamp_diff(datetime.now().timestamp()-job.next_run_time.timestamp())} - 发给 {job.kwargs['id']} - {job.kwargs['content']}" for job in scheduler.get_jobs()]))).finish()
+            await reply(["\n".join([f"计划在 {format_timestamp_diff(datetime.now().timestamp()-job.next_run_time.timestamp())} - 发给 {job.kwargs['id']} - {job.kwargs['content']}" for job in scheduler.get_jobs()])], event, finish=True)
         elif func == 'removeall':
             for job in scheduler.get_jobs():
                 if isinstance(job.trigger,DateTrigger):
                     job.remove()
-            await MessageFactory("全部 schedule 已被清除。").finish()
+            await reply(["全部 schedule 已被清除。"], event, finish=True)
         elif func == 'addto':
             if len(args) != 3:
                 await reply_help("cron / 定时模块","输入参数数量不正确，请参照说明重新输入",True)
             platform,contestId,groupId = args
-            await add_contest_schedule(platform,contestId,int(groupId),True)
-            await MessageFactory("已成功执行指令").finish()
+            await add_contest_schedule(platform,contestId,int(groupId),True,event)
+            await reply(["已成功执行指令"], event, finish=True)
         else:
             await reply_help("cron / 定时模块","",True)
     except MatcherException:
         raise
     except Exception as e:
-        await reply_help("cron / 定时模块","出现未知异常。请联系管理员。",True)
+        await report_exception(event, "cron / 定时模块", e)
 
