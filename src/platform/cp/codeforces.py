@@ -2,11 +2,19 @@ import difflib
 import random
 import re
 import time
+from dataclasses import dataclass
 
 from src.core.tools import fetch_json, format_timestamp, get_week_start_timestamp, get_today_start_timestamp, \
     format_timestamp_diff, format_seconds, format_int_delta, decode_range
 from src.lib.cf_rating_calc import PredictResult, Contestant, predict
 from src.platform.model import CompetitivePlatform, Contest
+
+
+@dataclass
+class ProbInfo:
+    tag: str
+    limit: str | None
+    newer: bool
 
 
 class Codeforces(CompetitivePlatform):
@@ -23,7 +31,8 @@ class Codeforces(CompetitivePlatform):
         (2400, 2600): 'GM',  # Grandmaster
         (2600, 3000): 'IGM',  # International Grandmaster
         (3000, 4000): 'LGM',  # Legendary Grandmaster
-        (4000, float('inf')): 'T'  # The Ones Who Reach 4000, Like Tourist and Jiangly
+        # The Ones Who Reach 4000, Like Tourist and Jiangly
+        (4000, float('inf')): 'T'
     }
 
     @classmethod
@@ -31,7 +40,8 @@ class Codeforces(CompetitivePlatform):
         """传递参数构造payload，添加首尾下划线可避免与关键词冲突"""
         url = f"https://codeforces.com/api/{api}"
         if len(kwargs) > 0:
-            payload = '&'.join([f'{key.strip("_")}={val}' for key, val in kwargs.items()])
+            payload = '&'.join(
+                [f'{key.strip("_")}={val}' for key, val in kwargs.items()])
             url += f"?{payload}"
         json_data = fetch_json(url, throw=False)
 
@@ -63,8 +73,10 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def _format_rank_delta(cls, old_rating: int, delta: int) -> str:
-        old_rk = next((rk for (l, r), rk in Codeforces.rated_rks.items() if l <= old_rating < r), 'N')
-        new_rk = next((rk for (l, r), rk in Codeforces.rated_rks.items() if l <= old_rating + delta < r), 'N')
+        old_rk = next(
+            (rk for (l, r), rk in Codeforces.rated_rks.items() if l <= old_rating < r), 'N')
+        new_rk = next((rk for (l, r), rk in Codeforces.rated_rks.items()
+                      if l <= old_rating + delta < r), 'N')
         if old_rk == new_rk:
             return "段位无变化"
         else:
@@ -86,8 +98,10 @@ class Codeforces(CompetitivePlatform):
         if standing['party']['ghost']:
             member_info += " (Ghost)"
 
-        accepted_prob_count = len([prob for prob in standing['problemResults'] if 'bestSubmissionTimeSeconds' in prob])
-        rejected_attempt_count = sum(prob['rejectedAttemptCount'] for prob in standing['problemResults'])
+        accepted_prob_count = len(
+            [prob for prob in standing['problemResults'] if 'bestSubmissionTimeSeconds' in prob])
+        rejected_attempt_count = sum(
+            prob['rejectedAttemptCount'] for prob in standing['problemResults'])
         submission_info = f"通过 {accepted_prob_count} 题" if accepted_prob_count > 0 else "暂无题目通过"
         submission_info += f"，包含 {rejected_attempt_count} 次失败尝试" if rejected_attempt_count > 0 else "，无失败尝试"
 
@@ -96,7 +110,8 @@ class Codeforces(CompetitivePlatform):
         if standing['party']['participantType'] == 'CONTESTANT':
             all_predictions = Codeforces._fetch_contest_predict(contest_id)
             if not isinstance(all_predictions, int) and (standing['party']['members'][0]['handle'] in all_predictions):
-                prediction = all_predictions[standing['party']['members'][0]['handle']]
+                prediction = all_predictions[standing['party']
+                                             ['members'][0]['handle']]
                 real_rank = prediction.rank
                 contestant_predictions = (f'\n表现分 {prediction.performance}，'
                                           f'预测变化 {format_int_delta(prediction.delta)}，'
@@ -109,7 +124,8 @@ class Codeforces(CompetitivePlatform):
         if standing['successfulHackCount'] > 0:
             hack_prop.append(format_int_delta(standing['successfulHackCount']))
         if standing['unsuccessfulHackCount'] > 0:
-            hack_prop.append(format_int_delta(standing['unsuccessfulHackCount']))
+            hack_prop.append(format_int_delta(
+                standing['unsuccessfulHackCount']))
         if len(hack_prop) > 0:
             hack_info += ':'.join(hack_prop)
             contestant_info += f"，{hack_info}"
@@ -175,7 +191,8 @@ class Codeforces(CompetitivePlatform):
         Adapted from carrot at
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/cache/contests-complete.js
         """
-        ratings = Codeforces._api('user.ratedList', activeOnly=False, contestId=standings['contest']['id'])
+        ratings = Codeforces._api(
+            'user.ratedList', activeOnly=False, contestId=standings['contest']['id'])
         if isinstance(ratings, int):
             return None
         ratings = {user['handle']: user['rating'] for user in ratings}
@@ -186,7 +203,8 @@ class Codeforces(CompetitivePlatform):
             # For educational rounds, standings include contestants for whom the contest is not rated.
             rows = [row for row in standings['rows'] if
                     row['party']['members'][0]['handle'] in ratings and
-                    row['party']['members'][0]['handle'] < 2100]  # EDU_ROUND_RATED_THRESHOLD
+                    # EDU_ROUND_RATED_THRESHOLD
+                    row['party']['members'][0]['handle'] < 2100]
 
         contestants = [Contestant(
             handle=row['party']['members'][0]['handle'],
@@ -211,8 +229,10 @@ class Codeforces(CompetitivePlatform):
             handle=row['party']['members'][0]['handle'],
             points=row['points'],
             penalty=row['penalty'],
-            rating=old_ratings[row['party']['members'][0]['handle']]['oldRating'],
-            real_change=old_ratings[row['party']['members'][0]['handle']]['realChange']
+            rating=old_ratings[row['party']['members']
+                               [0]['handle']]['oldRating'],
+            real_change=old_ratings[row['party']
+                                    ['members'][0]['handle']]['realChange']
         ) for row in rows]
 
         return predict(contestants, True)
@@ -238,7 +258,8 @@ class Codeforces(CompetitivePlatform):
         and
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/background.js
         """
-        standings = Codeforces._api('contest.standings', contestId=contest_id, showUnofficial=False)
+        standings = Codeforces._api(
+            'contest.standings', contestId=contest_id, showUnofficial=False)
 
         if standings == -1:
             return -1
@@ -248,7 +269,8 @@ class Codeforces(CompetitivePlatform):
         rated, old_ratings = None, None
 
         if standings['contest']['phase'] == 'FINISHED':
-            rating_changes = Codeforces._api('contest.ratingChanges', contestId=contest_id)
+            rating_changes = Codeforces._api(
+                'contest.ratingChanges', contestId=contest_id)
             if rating_changes == -1:
                 return -2
             if rating_changes == 0:
@@ -258,7 +280,8 @@ class Codeforces(CompetitivePlatform):
                 if len(rating_changes) == 0:
                     return -2
                 rated = True
-                old_ratings = Codeforces._adjust_old_ratings(int(contest_id), rating_changes)
+                old_ratings = Codeforces._adjust_old_ratings(
+                    int(contest_id), rating_changes)
 
         if rated is None and Codeforces._is_old_contest(standings['contest']):
             rated = False
@@ -302,7 +325,8 @@ class Codeforces(CompetitivePlatform):
             supplement=f"{contest['type']} 赛制"
         ) for contest in contest_list if contest['phase'] == 'BEFORE']
 
-        finished_contest_dict = next(contest for contest in contest_list if contest['phase'] == 'FINISHED')
+        finished_contest_dict = next(
+            contest for contest in contest_list if contest['phase'] == 'FINISHED')
         finished_contest = Contest(
             start_time=finished_contest_dict['startTimeSeconds'],
             duration=finished_contest_dict['durationSeconds'],
@@ -328,19 +352,13 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     async def get_prob_filtered(cls, tag_needed: str, limit: str = None, newer: bool = False,
-                                on_tag_chosen=None) -> dict | int:
-        min_point, max_point = 0, 0
-        if limit is not None:
-            min_point, max_point = decode_range(limit, length=(3, 4))
-            if min_point == -2:
-                return -1
-            elif min_point == -3:
-                return 0
-
-        if tag_needed == "all":
-            problems = Codeforces._api('problemset.problems')
-        else:
-            all_tags = Codeforces.get_prob_tags_all()
+                                on_tag_chosen=None, excludes: set[str] | None = None) -> dict | int:
+        """
+        根据tag、是否非远古题、难度范围和排除题目进行随机选题（async版本）
+        """
+        # 标签匹配（如果需要）
+        if tag_needed != "all":
+            all_tags = cls.get_prob_tags_all()
             if all_tags is None:
                 return -2
             if tag_needed not in all_tags:  # 模糊匹配
@@ -350,19 +368,22 @@ class Codeforces(CompetitivePlatform):
                 tag_needed = closet_tag[0]
                 if on_tag_chosen is not None:
                     await on_tag_chosen(f"标签最佳匹配: {tag_needed}")
-            problems = Codeforces._api('problemset.problems', tags=tag_needed.replace("-", " "))
 
-        if isinstance(problems, int) or len(problems) == 0:
-            return -1
-
-        filtered_data = problems['problems']
+        # 校验 limit 格式
         if limit is not None:
-            filtered_data = [prob for prob in problems['problems']
-                             if 'rating' in prob and min_point <= prob['rating'] <= max_point]
-        if newer:
-            filtered_data = [prob for prob in filtered_data if prob['contestId'] >= 1000]
+            min_point, max_point = decode_range(limit, length=(3, 4))
+            if min_point == -2:
+                return -1
+            elif min_point == -3:
+                return 0
 
-        return random.choice(filtered_data) if len(filtered_data) > 0 else 0
+        # 使用同步版本的核心逻辑
+        prob_info = ProbInfo(tag=tag_needed, limit=limit, newer=newer)
+        result = cls.get_prob_filtered_sync(prob_info, excludes)
+
+        if result is None:
+            return 0
+        return result
 
     @classmethod
     def get_user_rank(cls, handle: str) -> str | None:
@@ -448,7 +469,8 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def get_user_last_submit(cls, handle: str, count: int = 5) -> str:
-        status = Codeforces._api('user.status', handle=handle, _from_=1, count=count)
+        status = Codeforces._api(
+            'user.status', handle=handle, _from_=1, count=count)
 
         if status == -1:
             return "查询异常"
@@ -499,7 +521,8 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def get_user_contest_standings(cls, handle: str, contest_id: str) -> tuple[str, list[str] | None]:
-        standings = Codeforces._api('contest.standings', handles=handle, contestId=contest_id, showUnofficial=True)
+        standings = Codeforces._api(
+            'contest.standings', handles=handle, contestId=contest_id, showUnofficial=True)
 
         if standings == -1:
             return "查询异常", None
@@ -507,12 +530,13 @@ class Codeforces(CompetitivePlatform):
             return "比赛不存在", None
 
         contest_info = Codeforces._format_contest(standings['contest'])
-        standings_info = [Codeforces._format_standing(standing, contest_id) for standing in standings['rows']]
+        standings_info = [Codeforces._format_standing(
+            standing, contest_id) for standing in standings['rows']]
 
         return contest_info, standings_info
 
     @classmethod
-    def get_contest(cls,contestId:str):
+    def get_contest(cls, contestId: str):
         contest_list = Codeforces._fetch_contest_list_all()
         contest = [Contest(
             start_time=contest['startTimeSeconds'],
@@ -522,3 +546,182 @@ class Codeforces(CompetitivePlatform):
             supplement=f"{contest['type']} 赛制"
         ) for contest in contest_list if contest['phase'] == 'BEFORE' and contest['id'] == int(contestId)][0]
         return contest
+
+    @classmethod
+    def get_user_rating(cls, handle: str) -> int | None:
+        """获取用户当前 rating"""
+        info = Codeforces._api('user.info', handles=handle)
+        if isinstance(info, int) or len(info) == 0:
+            return None
+        info = info[-1]
+        return info.get('rating')
+
+    @classmethod
+    def get_user_submit_prob_id(cls, handle: str) -> set[str]:
+        """获取用户提交过的所有题目，列表项格式为 contestId + index"""
+        status = Codeforces._api('user.status', handle=handle)
+        if isinstance(status, int):
+            return set()
+        prob_id = [(f'{submission["problem"]["contestId"]}'
+                    f'{submission["problem"]["index"]}')
+                   for submission in status
+                   if "contestId" in submission.get("problem", {})]
+        return set(prob_id)
+
+    @classmethod
+    def get_prob_status(cls, handle: str, establish_time: int,
+                        contest_id: int, index: str) -> tuple[bool, int] | None:
+        """
+        获取过题状态以及罚时 (类ICPC，错误提交*1 = 罚时20min, AC之后的提交不计)
+        """
+        submissions = Codeforces._api(
+            'contest.status', contestId=contest_id, handle=handle)
+        if isinstance(submissions, int) or submissions == 0:
+            return None
+
+        accepted = False
+        penalty = 0
+
+        skip_verdicts = [
+            "COMPILATION_ERROR", "SKIPPED", "TESTING", "SUBMITTED"
+        ]
+        submissions = list(submissions)
+        submissions.reverse()
+
+        for submission in submissions:
+            if submission['problem']['index'] != index:
+                continue
+            if 'verdict' not in submission or submission['verdict'] in skip_verdicts:
+                continue
+            if submission['creationTimeSeconds'] < establish_time:
+                continue
+            if submission['verdict'] == 'OK':
+                penalty += (submission['creationTimeSeconds'] -
+                            establish_time) // 60
+                accepted = True
+                break
+            if submission['passedTestCount'] == 0:  # 排除样例1错误带来的罚时
+                continue
+            penalty += 20
+
+        return accepted, penalty
+
+    @classmethod
+    def validate_binding(cls, handle: str, establish_time: int) -> bool:
+        """
+        验证发起绑定后10分钟内在P1A有一发CE提交
+        """
+        submissions = Codeforces._api(
+            'contest.status', contestId=1, handle=handle, count=1)
+        if isinstance(submissions, int) or submissions == 0 or len(submissions) == 0:
+            return False
+
+        last_submission = submissions[-1]
+        if last_submission['problem']['index'] != 'A':
+            return False
+
+        if ('verdict' not in last_submission or
+                last_submission['verdict'] != 'COMPILATION_ERROR'):
+            return False
+
+        if not establish_time <= last_submission['creationTimeSeconds'] <= establish_time + 10 * 60:
+            return False
+
+        return True
+
+    @classmethod
+    def validate_prob_filtered(cls, prob_info: ProbInfo, on_tag_chosen=None) -> bool:
+        """
+        校验筛选条件，标签替换为匹配到的
+        """
+        if prob_info.tag != "all":
+            all_tags = cls.get_prob_tags_all()
+            if all_tags is None:
+                return False
+            if prob_info.tag not in all_tags:  # 模糊匹配
+                closet_tag = difflib.get_close_matches(
+                    prob_info.tag, all_tags, n=1)
+                if len(closet_tag) == 0:
+                    return False
+                prob_info.tag = closet_tag[0]
+                if on_tag_chosen is not None:
+                    on_tag_chosen(f"标签最佳匹配: {prob_info.tag}")
+
+        if prob_info.limit is not None:
+            min_point, max_point = decode_range(prob_info.limit, length=(3, 4))
+            if min_point in [-2, -3]:
+                return False
+
+        return True
+
+    @classmethod
+    def get_prob_filtered_sync(cls, prob_info: ProbInfo, excludes: set[str] | None = None) -> dict | None:
+        """
+        根据tag、是否非远古题、难度范围和排除题目进行随机选题
+        excludes 列表项格式为 contestId + index
+        """
+        if prob_info.tag == "all":
+            problems = cls._api('problemset.problems')
+        else:
+            problems = cls._api('problemset.problems',
+                                tags=prob_info.tag.replace("-", " "))
+
+        if isinstance(problems, int) or problems == 0:
+            return None
+
+        filtered_data = problems['problems']
+        if prob_info.limit is not None:
+            min_point, max_point = decode_range(prob_info.limit, length=(3, 4))
+            filtered_data = [prob for prob in problems['problems']
+                             if 'rating' in prob and min_point <= prob['rating'] <= max_point]
+        if prob_info.newer:
+            filtered_data = [
+                prob for prob in filtered_data if prob['contestId'] >= 1000]
+
+        if excludes is not None:
+            filtered_data = [prob for prob in filtered_data
+                             if f'{prob["contestId"]}{prob["index"]}' not in excludes]
+
+        return random.choice(filtered_data) if len(filtered_data) > 0 else None
+
+    @classmethod
+    def get_prob_filtered_with_fallback(cls, prob_info: ProbInfo, excludes: set[str] | None = None,
+                                        avg_rating: int | None = None) -> dict | None:
+        """
+        带 fallback 逻辑的随机选题
+        如果找不到题目，会逐步放宽条件重试
+
+        Args:
+            prob_info: 题目筛选信息
+            excludes: 排除的题目ID集合
+            avg_rating: 平均 rating，用于生成默认难度范围
+
+        Returns:
+            选中的题目字典，如果找不到则返回 None
+        """
+        # 如果没有指定难度范围且提供了平均 rating，使用平均 rating 生成默认范围
+        changed_limit = False
+        if prob_info.limit is None and avg_rating is not None:
+            prob_info.limit = f"{max(800, avg_rating - 250)}-{min(3000, avg_rating + 250)}"
+            changed_limit = True
+
+        # 第一次尝试：使用原始条件
+        chosen_prob = cls.get_prob_filtered_sync(prob_info, excludes)
+        if chosen_prob:
+            return chosen_prob
+
+        # 如果是因为自动添加了 limit 导致找不到，尝试放宽到 800-3000
+        if changed_limit:
+            prob_info.limit = "800-3000"  # 一定要有范围，否则会选到没难度标级的新题
+            chosen_prob = cls.get_prob_filtered_sync(prob_info, excludes)
+            if chosen_prob:
+                return chosen_prob
+
+        # 最后一次尝试：放宽所有条件（tag=all, 使用默认难度范围, newer=True）
+        prob_info.tag = "all"
+        if avg_rating is not None:
+            prob_info.limit = f"{max(800, avg_rating - 250)}-{min(3000, avg_rating + 250)}"
+        else:
+            prob_info.limit = "800-3000"
+        prob_info.newer = True
+        return cls.get_prob_filtered_sync(prob_info, excludes)

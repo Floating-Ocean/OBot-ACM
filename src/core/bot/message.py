@@ -53,36 +53,30 @@ async def reply(contents: list[str | bytes], event: Event, modal_words: bool = F
         modal_words: 是否添加语气词（当前项目未使用，保留参数以兼容）
         finish: 是否结束处理（调用 finish 或 send）
     """
-    try:
-        images: list[Image] = []
-        text_parts: list[str] = []
+    images: list[Image] = []
+    text_parts: list[str] = []
 
-        for content in contents:
-            if isinstance(content, bytes):
-                images.append(Image(content))
-            elif _is_image_url(content):
-                # 如果是图片 URL，使用 Image 类处理
-                images.append(Image(content))
-            else:
-                text_parts.append(content)
+    for content in contents:
+        if isinstance(content, bytes):
+            images.append(Image(content))
+        elif _is_image_url(content):
+            # 如果是图片 URL，使用 Image 类处理
+            images.append(Image(content))
+        else:
+            text_parts.append(content)
 
-        texts = Text("".join(text_parts)) if text_parts else None
+    texts = Text("".join(text_parts)) if text_parts else None
+    msg_builder = MessageFactory(texts) if texts else None
+    should_aggregate = "".join(text_parts).count('\n') > 5 or len(images) > 0
+    if should_aggregate:
+        msg_builder = AggregatedMessageFactory([msg_builder, *images])
+    else:
         msg_builder = MessageFactory(texts) if texts else None
-
-        if len(images):
-            if msg_builder:
-                msg_builder = AggregatedMessageFactory([msg_builder, *images])
-            else:
-                msg_builder = AggregatedMessageFactory(images)
-
-        if msg_builder:
-            if finish:
-                await msg_builder.finish()
-            else:
-                await msg_builder.send()
-    except MatcherException:
-        # 忽略 MatcherException，这是 NoneBot 的正常终止行为
-        pass
+    if msg_builder:
+        if finish:
+            await msg_builder.finish()
+        else:
+            await msg_builder.send()
 
 
 async def send(contents: list[str | bytes], target: SaaTarget):
@@ -94,33 +88,27 @@ async def send(contents: list[str | bytes], target: SaaTarget):
         contents: 消息内容列表，可以是字符串（文本或图片URL）或字节（图片数据）
         target: 目标对象（如 TargetQQGroup, TargetQQPrivate）
     """
-    try:
-        message_factories = []
-
-        for content in contents:
-            if isinstance(content, bytes):
-                message_factories.append(Image(content))
-            elif _is_image_url(content):
-                # 如果是图片 URL，使用 Image 类处理
-                message_factories.append(Image(content))
-            else:
-                # 文本消息，每条消息创建一个 MessageFactory
-                message_factories.append(MessageFactory(Text(content)))
-
+    message_factories = []
+    for content in contents:
+        if isinstance(content, bytes):
+            message_factories.append(Image(content))
+        elif _is_image_url(content):
+            # 如果是图片 URL，使用 Image 类处理
+            message_factories.append(Image(content))
+        else:
+            # 文本消息，每条消息创建一个 MessageFactory
+            message_factories.append(MessageFactory(Text(content)))
         if not message_factories:
             return
-
         # 如果只有一条消息，直接发送；否则使用 AggregatedMessageFactory 聚合
         if len(message_factories) == 1:
             msg_builder = message_factories[0]
         else:
             msg_builder = AggregatedMessageFactory(message_factories)
 
-        bot = get_bot()
-        await msg_builder.send_to(target=target, bot=bot)
-    except MatcherException:
-        # 忽略 MatcherException，这是 NoneBot 的正常终止行为
-        pass
+    bot = get_bot()
+    await msg_builder.send_to(target=target, bot=bot)
+
 
 
 async def report_exception(event: Event, module_name: str, e: Exception):

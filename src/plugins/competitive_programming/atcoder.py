@@ -17,7 +17,7 @@ from src.platform.cp.atcoder import AtCoder
 
 __atc_version__ = "v1.2.0"
 
-supported_commands = ['pick']#'info','user', 'contests', 'pick']
+supported_commands = ['info','user', 'contests', 'pick']
 
 def register_module():
     pass
