@@ -567,7 +567,8 @@ class Codeforces(CompetitivePlatform):
         """获取用户提交过的所有题目，列表项格式为 contestId + index"""
         status = cls._api('user.status', handle=handle)
         prob_id = [(f'{submission["problem"]["contestId"]}'
-                    f'{submission["problem"]["index"]}') for submission in status]
+                    f'{submission["problem"]["index"]}') for submission in status
+                   if 'contestId' in submission['problem']]  # 特判 problemsets/acmsguru
         return set(prob_id)
 
     @classmethod
