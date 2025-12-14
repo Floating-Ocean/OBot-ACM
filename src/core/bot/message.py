@@ -6,7 +6,6 @@ from nonebot import get_bot
 from nonebot.adapters import Event
 
 
-
 def _is_image_url(content: str) -> bool:
     """
     判断字符串是否是图片 URL
@@ -66,12 +65,12 @@ async def reply(contents: list[str | bytes], event: Event, modal_words: bool = F
             text_parts.append(content)
 
     texts = Text("".join(text_parts)) if text_parts else None
-    msg_builder = MessageFactory(texts) if texts else None
-    should_aggregate = "".join(text_parts).count('\n') > 5 or len(images) > 0
+    segments = [texts] + images
+    should_aggregate = "".join(text_parts).count('\n') > 5 or len(images) > 1
     if should_aggregate:
-        msg_builder = AggregatedMessageFactory([msg_builder, *images])
+        msg_builder = AggregatedMessageFactory(segments)
     else:
-        msg_builder = MessageFactory(texts) if texts else None
+        msg_builder = MessageFactory(segments)
     if msg_builder:
         if finish:
             await msg_builder.finish()
@@ -108,7 +107,6 @@ async def send(contents: list[str | bytes], target: SaaTarget):
 
     bot = get_bot()
     await msg_builder.send_to(target=target, bot=bot)
-
 
 
 async def report_exception(event: Event, module_name: str, e: Exception):
