@@ -40,7 +40,7 @@ def reply_cpcfinder(message: RobotMessage):
             
             for i, stu in enumerate(candidates, 1):
                 reply_text += (
-                    f"#{i} {stu['name']} / {stu['schoolName']}\n"
+                    f"#{i} {stu.get('name', '未知姓名')} / {stu.get('schoolName', '未知学校')}\n"
                     f"金牌: {stu.get('goldCount', 0)} / "
                     f"银牌: {stu.get('silverCount', 0)} / "
                     f"铜牌: {stu.get('bronzeCount', 0)}\n\n"
