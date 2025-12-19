@@ -28,8 +28,23 @@ def reply_cpcfinder(message: RobotMessage):
         if isinstance(stu_id, int):
             if stu_id == 0:
                 message.reply('未找到该选手信息')
-            elif stu_id == 1:
-                message.reply('目前只支持查询单一用户，请缩小查询范围')
+            return
+        
+        if isinstance(stu_id, list):
+            # 显示前5个候选结果
+            candidates = stu_id[:5]
+            reply_text = f"[CPCFinder] 找到{len(stu_id)}个候选结果\n\n"
+            
+            for i, stu in enumerate(candidates, 1):
+                reply_text += (
+                    f"#{i} {stu['name']} / {stu['schoolName']}\n"
+                    f"金牌: {stu.get('goldCount', 0)} / "
+                    f"银牌: {stu.get('silverCount', 0)} / "
+                    f"铜牌: {stu.get('bronzeCount', 0)}\n\n"
+                )
+            
+            reply_text += "建议缩小查询范围以精确匹配"
+            message.reply(reply_text, modal_words=False)
             return
 
         stu_general = CPCFinder.get_student_general(stu_id)
