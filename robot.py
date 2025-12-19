@@ -116,8 +116,8 @@ class MyClient(Client):
 
 
 def open_robot_session():
-    intents = botpy.Intents.all()  # 对目前已支持的所有事件进行监听
-    client = MyClient(intents=intents, timeout=60)
+    intents = botpy.Intents(public_messages=True)  # 使用允许的 intents
+    client = MyClient(intents=intents, timeout=60, is_sandbox=True)
 
     # 更新每日排行榜
     threading.Thread(target=daily_sched_thread, args=[]).start()

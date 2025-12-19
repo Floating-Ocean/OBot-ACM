@@ -28,7 +28,10 @@ def reply_cpcfinder(message: RobotMessage):
         if isinstance(stu_id, int):
             if stu_id == 0:
                 message.reply('未找到该选手信息')
-            return
+                return
+            else:
+                message.reply('查询出现意外错误，请稍后重试')
+                return
         
         if isinstance(stu_id, list):
             # 显示前5个候选结果
