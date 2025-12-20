@@ -43,7 +43,7 @@ _MEDAL_TYPE = {
 class CPCFinder:
 
     @classmethod
-    def find_student_id(cls, name: str, school: str) -> str | int:
+    def find_student_id(cls, name: str, school: str) -> str | int | list:
         name = quote_plus(str(name).strip())
         school = quote_plus(str(school).strip())
         json_data = fetch_url_json(f"https://cpcfinder.com/api/student?"
@@ -54,7 +54,8 @@ class CPCFinder:
         if len(json_data['data']) == 0:
             return 0
         if len(json_data['data']) > 1:
-            return 1
+            # 返回候选列表
+            return json_data['data']
 
         stu = json_data['data'][0]
         return stu['studentId']
