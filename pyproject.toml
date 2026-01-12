@@ -6,7 +6,7 @@ requires-python = ">=3.10"
 dependencies = [
     "av>=16.1.0",
     "botpy",
-    "easy-pixie>=0.0.8",
+    "easy-pixie>=0.0.9",
     "easyocr>=1.7.2",
     "gitpython>=3.1.46",
     "imgkit>=1.2.3",

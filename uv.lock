@@ -443,14 +443,14 @@ wheels = [
 
 [[package]]
 name = "easy-pixie"
-version = "0.0.8"
+version = "0.0.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pixie-python" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/e5/deb852b70f7400e0d8f501155d05101e7862599eb0cf705f60d49cbdbfeb/easy_pixie-0.0.8.tar.gz", hash = "sha256:a502a10d986b8c8fc7ebdc6f0dc5ed00126e3e63d54d47b7381b24e3dc3544b9", size = 35074724, upload-time = "2025-07-14T06:32:19.493Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/55/635f97f9d2d413c374a459fb24a47ccecc0c6ff1524760eb919930303cd8/easy_pixie-0.0.9.tar.gz", hash = "sha256:07c3696e8504cb1d96b327fdaeb42e67fed5106445e850bdaca3b94d2b97a999", size = 35074749, upload-time = "2026-01-12T17:26:46.188Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/50/8976c5df7b415cc71522a21d19911e46409149043288cbf66fd38818a545/easy_pixie-0.0.8-py3-none-any.whl", hash = "sha256:d00a756fb0212c67b10850dc8e3c6bacab5833cf0170d2775f1605ba92c1b18c", size = 35178267, upload-time = "2025-07-14T06:32:16.915Z" },
+    { url = "https://files.pythonhosted.org/packages/22/4c/f9819e7bb01c5d82779b1a95d94ca124188739e04bae322de7c9ad2556a0/easy_pixie-0.0.9-py3-none-any.whl", hash = "sha256:63c52515515a631713379a203f27c2226f779cf0224bcd00140977c5530ed945", size = 35178356, upload-time = "2026-01-12T17:26:43.321Z" },
 ]
 
 [[package]]
@@ -1438,7 +1438,7 @@ dependencies = [
 requires-dist = [
     { name = "av", specifier = ">=16.1.0" },
     { name = "botpy", git = "https://github.com/Floating-Ocean/botpy.git?rev=a4add8c9b4e9ef274774c2f6f70a694cd024354e" },
-    { name = "easy-pixie", specifier = ">=0.0.8" },
+    { name = "easy-pixie", specifier = ">=0.0.9" },
     { name = "easyocr", specifier = ">=1.7.2" },
     { name = "gitpython", specifier = ">=3.1.46" },
     { name = "imgkit", specifier = ">=1.2.3" },
