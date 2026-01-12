@@ -9,7 +9,7 @@ pixie-python==4.3.0
 qq-botpy==1.2.1
 numpy==2.2.1
 pypinyin==0.53.0
-aiohttp==3.12.14
+aiohttp==3.13.3
 easyocr==1.7.2
 nest-asyncio==1.6.0
 thefuzz==0.22.1
