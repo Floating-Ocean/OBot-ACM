@@ -13,6 +13,7 @@ from src.platform.collect.cpcfinder import CPCFinder
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces, ProbInfo
+from test.file_output import get_output_path
 
 
 class Module(unittest.TestCase):
@@ -37,7 +38,7 @@ class Module(unittest.TestCase):
 
     def test_cf_predict(self):
         try:
-            with open('data.json', 'w', encoding='utf-8') as json_file:
+            with open(get_output_path('module_cf_predict.json'), 'w', encoding='utf-8') as json_file:
                 self.assertIsNotNone(json_file)
                 contest_id = "2043"
                 json.dump({handle: asdict(predict)

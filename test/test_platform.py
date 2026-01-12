@@ -7,23 +7,27 @@ from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
 from src.platform.online.nowcoder import NowCoder
 from src.platform.collect.clist import Clist
+from test.file_output import get_output_path
 
 
 class Platform(unittest.TestCase):
     def test_codeforces_contest_list(self):
         p = Codeforces.get_contest_list()
         self.assertIsNotNone(p)
-        print(json.dumps([asdict(d) for d in p], indent=4, ensure_ascii=False))
+        for tp in p:
+            print(json.dumps([asdict(d) for d in tp], indent=4, ensure_ascii=False))
 
     def test_atcoder_contest_list(self):
         p = AtCoder.get_contest_list()
         self.assertIsNotNone(p)
-        print(json.dumps([asdict(d) for d in p], indent=4, ensure_ascii=False))
+        for tp in p:
+            print(json.dumps([asdict(d) for d in tp], indent=4, ensure_ascii=False))
 
     def test_nowcoder_contest_list(self):
         p = NowCoder.get_contest_list()
         self.assertIsNotNone(p)
-        print(json.dumps([asdict(d) for d in p], indent=4, ensure_ascii=False))
+        for tp in p:
+            print(json.dumps([asdict(d) for d in tp], indent=4, ensure_ascii=False))
 
     def test_atcoder_user(self):
         handle = "FluctuateOcean"
@@ -54,21 +58,21 @@ class Platform(unittest.TestCase):
         for handle in test_handles:
             img = Codeforces.get_user_id_card(handle)
             self.assertIsNotNone(img)
-            img.write_file(f"cf_user_card_{handle}.png")
+            img.write_file(get_output_path(f"platform_cf_user_card_{handle}.png"))
 
     def test_atcoder_user_card(self):
         test_handles = ['floatingocean', 'qwedc001', 'jiangly', 'Lingyu0qwq']
         for handle in test_handles:
             img = AtCoder.get_user_id_card(handle)
             self.assertIsNotNone(img)
-            img.write_file(f"atc_user_card_{handle}.png")
+            img.write_file(get_output_path(f"platform_atc_user_card_{handle}.png"))
 
     def test_nowcoder_user_card(self):
         test_handles = ['144128559', '140690880', '737857302', '329687984', '815516497', '882260751']
         for handle in test_handles:
             img = NowCoder.get_user_id_card(handle)
             self.assertIsNotNone(img)
-            img.write_file(f"nk_user_card_{handle}.png")
+            img.write_file(get_output_path(f"platform_nk_user_card_{handle}.png"))
 
     def test_nowcoder_contest_search(self):
         test_names = ['福建师范', '牛客周赛', '牛客国庆集训派对']

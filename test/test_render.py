@@ -19,6 +19,7 @@ from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 from src.render.pixie.render_uptime import UptimeRenderer
+from test.file_output import get_output_path
 
 
 class Render(unittest.TestCase):
@@ -29,7 +30,7 @@ class Render(unittest.TestCase):
         hex_raw_text, rgb_raw_text, hsv_raw_text = transform_color(picked_color)
         color_card = ColorCardRenderer(picked_color, hex_raw_text, rgb_raw_text, hsv_raw_text).render()
         self.assertIsNotNone(color_card)
-        color_card.write_file("test_color_rand.png")
+        color_card.write_file(get_output_path("render_color_rand.png"))
 
     def test_color_qrcode(self):
         colors = get_colors("chinese_traditional")
@@ -37,9 +38,10 @@ class Render(unittest.TestCase):
         hex_raw_text, rgb_raw_text, hsv_raw_text = transform_color(picked_color)
         color_card = ColorCardRenderer(picked_color, hex_raw_text, rgb_raw_text, hsv_raw_text).render()
         self.assertIsNotNone(color_card)
-        color_card.write_file("test_color_qrcode.png")
-        add_qrcode("test_color_qrcode.png", picked_color, COLOR_QRCODE_COORD)
-        png2jpg("test_color_qrcode.png")
+        png_path = get_output_path("render_color_qrcode.png")
+        color_card.write_file(png_path)
+        add_qrcode(png_path, picked_color, COLOR_QRCODE_COORD)
+        png2jpg(png_path)
 
     def test_contest_list(self):
         running_contests, upcoming_contests, finished_contests = [], [], []
@@ -51,18 +53,18 @@ class Render(unittest.TestCase):
 
         contest_list_img = ContestListRenderer(running_contests, upcoming_contests, finished_contests).render()
         self.assertIsNotNone(contest_list_img)
-        contest_list_img.write_file("test_contest_list.png")
+        contest_list_img.write_file(get_output_path("render_contest_list.png"))
 
     def test_cook_md(self):
         _lib_path = Constants.modules_conf.get_lib_path("How-To-Cook")
-        dish_path = os.path.join(_lib_path, "lib", "dishes", "vegetable_dish", "西红柿豆腐汤羹", "西红柿豆腐汤羹.md")
+        dish_path = os.path.join(_lib_path, "dishes", "vegetable_dish", "西红柿豆腐汤羹", "西红柿豆腐汤羹.md")
         self.assertTrue(os.path.exists(dish_path))
-        render_how_to_cook("1.5.0", dish_path, "西红柿豆腐汤羹.png")
+        render_how_to_cook("1.5.0", dish_path, get_output_path("render_cook_md.png"))
 
     def test_help(self):
         help_img = HelpRenderer().render()
         self.assertIsNotNone(help_img)
-        help_img.write_file("test_help.png")
+        help_img.write_file(get_output_path("render_help.png"))
 
     def test_tetris_game(self):
         current_map = [[0] * 24 for _ in range(16)]
@@ -77,24 +79,24 @@ class Render(unittest.TestCase):
             [0, 4, 4, 4, 4, 2, 0, 2, 0, 2, 2, 2, 1, 1, 6, 1, 1, 5, 5, 5, 1, 1, 1, 0]
         ])
 
-        tetris_game_img = TetrisGameRenderer(current_map, 'test_tetris_map_to_svg',
+        tetris_game_img = TetrisGameRenderer(current_map, get_output_path("render_tetris_map_to_svg"),
                                              45, 153).render()
         self.assertIsNotNone(tetris_game_img)
-        tetris_game_img.write_file("test_tetris_game.png")
+        tetris_game_img.write_file(get_output_path("render_tetris_game.png"))
 
     def test_tetris_next_block(self):
         for idx, block in enumerate(BLOCKS):
             tetris_next_block_img = TetrisNextBlockRenderer(block,
-                                                            f'test_tetris_next_{idx}').render()
+                                                            get_output_path(f"render_tetris_next_{idx}")).render()
             self.assertIsNotNone(tetris_next_block_img)
-            tetris_next_block_img.write_file(f"test_tetris_next_block_{idx}.png")
+            tetris_next_block_img.write_file(get_output_path(f"render_tetris_next_block_{idx}.png"))
 
     def test_uptime(self):
         status = fetch_url_json("https://stats.uptimerobot.com/api/getMonitorList/BAPG4sPMZr",
                                 method='GET')
-        uptime_img = UptimeRenderer(status, 'test_uptime_monitor').render()
+        uptime_img = UptimeRenderer(status, get_output_path("render_uptime_monitor")).render()
         self.assertIsNotNone(uptime_img)
-        uptime_img.write_file("test_uptime.png")
+        uptime_img.write_file(get_output_path("render_uptime.png"))
 
     def test_about(self):
         about_img = AboutRenderer(
@@ -102,7 +104,7 @@ class Render(unittest.TestCase):
             get_all_modules_info()
         ).render()
         self.assertIsNotNone(about_img)
-        about_img.write_file("test_about.png")
+        about_img.write_file(get_output_path("render_about.png"))
 
 if __name__ == '__main__':
     unittest.main()

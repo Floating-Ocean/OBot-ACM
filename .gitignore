@@ -11,9 +11,8 @@ lib/Pick-One/**
 !lib/Pick-One/
 !lib/Pick-One/config_example.json
 
-unittest/**
-!unitest/
-!unittest/**.py
+test/output/**
+!test/output/
 
 **.log
 **.log.**
