@@ -25,8 +25,7 @@ class ModulesConfig:
     @classmethod
     def get_cache_path(cls) -> str:
         cache_path = os.path.join(_project_dir, 'cache')
-        if not os.path.exists(cache_path):
-            os.makedirs(cache_path)
+        os.makedirs(cache_path, exist_ok=True)
         return cache_path
 
 

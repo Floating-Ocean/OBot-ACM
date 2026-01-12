@@ -32,7 +32,7 @@
 
 ### 部署
 
-请在部署之前，确保系统已安装 `uv` 环境。
+请在部署之前，确保系统已安装 [`uv`](https://docs.astral.sh/uv/) 环境。
 
 ```bash
 git clone https://github.com/Floating-Ocean/OBot-ACM.git --recursive

@@ -32,8 +32,7 @@ def save_data(current_data: Any, data_path: str, serializer: type[JsonSerializer
     try:
         raw_data = serializer.serialize(current_data)
 
-        if not os.path.exists(os.path.dirname(data_path)):
-            os.makedirs(os.path.dirname(data_path))
+        os.makedirs(os.path.dirname(data_path), exist_ok=True)
 
         tmp_path = f"{data_path}.tmp"
         with open(tmp_path, 'w', encoding='utf-8') as f:
