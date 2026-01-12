@@ -245,7 +245,7 @@ wheels = [
 [[package]]
 name = "botpy"
 version = "0.0.0"
-source = { git = "https://github.com/Floating-Ocean/botpy.git#a4add8c9b4e9ef274774c2f6f70a694cd024354e" }
+source = { git = "https://github.com/Floating-Ocean/botpy.git?rev=a4add8c9b4e9ef274774c2f6f70a694cd024354e#a4add8c9b4e9ef274774c2f6f70a694cd024354e" }
 dependencies = [
     { name = "aiohttp" },
     { name = "apscheduler" },
@@ -1437,7 +1437,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "av", specifier = ">=16.1.0" },
-    { name = "botpy", git = "https://github.com/Floating-Ocean/botpy.git" },
+    { name = "botpy", git = "https://github.com/Floating-Ocean/botpy.git?rev=a4add8c9b4e9ef274774c2f6f70a694cd024354e" },
     { name = "easy-pixie", specifier = ">=0.0.8" },
     { name = "easyocr", specifier = ">=1.7.2" },
     { name = "gitpython", specifier = ">=3.1.46" },

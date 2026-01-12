@@ -22,10 +22,8 @@ import importlib
 import asyncio
 import urllib3
 
-try:
-    asyncio.get_event_loop()
-except RuntimeError:  # Python 3.14 之后不会主动新建事件循环
-    asyncio.set_event_loop(asyncio.new_event_loop())
+# Python 3.14 之后不会主动新建事件循环（在 Python 3.10 中被废弃）
+asyncio.set_event_loop(asyncio.new_event_loop())
 
 urllib3.disable_warnings()
 faulthandler.enable()
