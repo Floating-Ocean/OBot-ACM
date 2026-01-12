@@ -44,7 +44,7 @@ def add_qrcode(target_path: str, color: Colors, paste_coord: tuple[int, int]):
             back_color=color_to_tuple(font_transparent_color),
             front_color=color_to_tuple(font_color)
         )
-    )
+    ).get_image()
 
     target_img = Image.open(target_path)
     target_img.paste(qrcode_img, paste_coord, qrcode_img)
