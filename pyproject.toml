@@ -1,0 +1,27 @@
+[project]
+name = "obot-acm"
+version = "5.0.0-beta.6"
+description = "Source code of the qqbot OBot's ACM."
+requires-python = ">=3.10"
+dependencies = [
+    "av>=16.1.0",
+    "botpy",
+    "easy-pixie>=0.0.8",
+    "easyocr>=1.7.2",
+    "gitpython>=3.1.46",
+    "imgkit>=1.2.3",
+    "lxml>=6.0.2",
+    "markdown2>=2.5.4",
+    "pilk>=0.2.4",
+    "pixie-python>=4.3.0",
+    "psutil>=7.2.1",
+    "pypinyin>=0.55.0",
+    "python-dateutil>=2.9.0.post0",
+    "qrcode>=8.2",
+    "requests>=2.32.5",
+    "soundfile>=0.13.1",
+    "thefuzz>=0.22.1",
+]
+
+[tool.uv.sources]
+botpy = { git = "https://github.com/Floating-Ocean/botpy.git" }
