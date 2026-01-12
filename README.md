@@ -27,19 +27,17 @@
 在运行机器人前，请将 **[`config_example.json`](config_example.json)** 复制为 **`config.json`**，并根据文件内提示填写相关字段。
 
 > [!CAUTION]
-> 1. 项目依赖包含部分修改的 **[`botpy`](https://github.com/Floating-Ocean/botpy)**；
-> 2. 项目依赖子模块，以 `git submodule` 的形式被引用在项目中，请在克隆时加上 `--recursive` 参数。
+> 
+> 项目依赖子模块，以 `git submodule` 的形式被引用在项目中，请在克隆时加上 `--recursive` 参数。
 
 ### 部署
 
-可参考下面的脚本进行部署。
+请在部署之前，确保系统已安装 `uv` 环境。
 
 ```bash
 git clone https://github.com/Floating-Ocean/OBot-ACM.git --recursive
 cd OBot-ACM
-pip install -r requirements.txt
-pip uninstall qq-botpy
-pip install git+https://github.com/Floating-Ocean/botpy.git
+uv sync --frozen
 ```
 
 ### 运行
