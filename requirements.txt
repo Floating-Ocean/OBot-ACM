@@ -4,7 +4,7 @@ lxml==5.2.2
 qrcode==8.0
 psutil==6.1.1
 APScheduler==3.10.4
-urllib3==2.6.0
+urllib3==2.6.3
 pixie-python==4.3.0
 qq-botpy==1.2.1
 numpy==2.2.1
