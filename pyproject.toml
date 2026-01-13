@@ -1,6 +1,6 @@
 [project]
 name = "obot-acm"
-version = "5.0.0-beta.6"
+version = "5.0.0-beta.8"
 description = "Source code of the qqbot OBot's ACM."
 requires-python = ">=3.10"
 dependencies = [

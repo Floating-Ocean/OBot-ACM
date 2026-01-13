@@ -1412,7 +1412,7 @@ wheels = [
 
 [[package]]
 name = "obot-acm"
-version = "5.0.0b6"
+version = "5.0.0b8"
 source = { virtual = "." }
 dependencies = [
     { name = "av" },
