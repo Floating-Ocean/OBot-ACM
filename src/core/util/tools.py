@@ -224,8 +224,7 @@ def download_img(url: str, file_path: str) -> bool:
 
     if response.status_code == 200:
         parent_path = os.path.dirname(file_path)
-        if not os.path.exists(parent_path):
-            os.makedirs(parent_path)
+        os.makedirs(parent_path, exist_ok=True)
 
         with open(file_path, "wb") as f:
             f.write(response.content)

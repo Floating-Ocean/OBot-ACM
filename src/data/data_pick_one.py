@@ -54,8 +54,7 @@ def get_pick_one_data() -> PickOne:
 def _get_img_dir_path(img_key: str, audit: bool = False) -> str:
     dir_path = (os.path.join(_lib_path, "__AUDIT__", img_key) if audit else
                 os.path.join(_lib_path, img_key))
-    if not os.path.exists(dir_path):  # 保证目录存在
-        os.makedirs(dir_path)
+    os.makedirs(dir_path, exist_ok=True)
     return dir_path
 
 

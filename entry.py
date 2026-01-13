@@ -19,10 +19,12 @@ logger.debug("[obot-init] 载入核心组件中")
 
 import faulthandler
 import importlib
-import nest_asyncio
+import asyncio
 import urllib3
 
-nest_asyncio.apply()
+# Python 3.14 之后不会主动新建事件循环（在 Python 3.10 中被废弃）
+asyncio.set_event_loop(asyncio.new_event_loop())
+
 urllib3.disable_warnings()
 faulthandler.enable()
 

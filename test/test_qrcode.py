@@ -5,6 +5,8 @@ from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
 from qrcode.main import QRCode
 
+from test.file_output import get_output_path
+
 
 class QrCode(unittest.TestCase):
     def test_qrcode_normal(self):
@@ -15,7 +17,7 @@ class QrCode(unittest.TestCase):
         img_1 = qr.make_image(image_factory=StyledPilImage, module_drawer=RoundedModuleDrawer(), eye_drawer=RoundedModuleDrawer(),
                               color_mask=SolidFillColorMask(back_color=(0, 0, 0, 0), front_color=(0, 0, 0, 255)))
         self.assertIsNotNone(img_1)
-        img_1.save("qrcode_normal.png")
+        img_1.save(get_output_path("qrcode_normal.png"))
 
 
 if __name__ == '__main__':

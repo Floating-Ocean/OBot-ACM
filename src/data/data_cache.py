@@ -33,8 +33,6 @@ def clean_cache_hours_ago(category: str):
 def get_cached_prefix(category: str):
     clean_cache_hours_ago(category)
 
-    category_path = os.path.join(_cache_path, category)
-    if not os.path.exists(category_path):
-        os.makedirs(os.path.join(_cache_path, category))
+    os.makedirs(os.path.join(_cache_path, category), exist_ok=True)
 
     return os.path.join(_cache_path, category, f"{datetime.now().timestamp()}")
