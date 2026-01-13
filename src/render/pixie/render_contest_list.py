@@ -3,10 +3,10 @@ from datetime import datetime
 
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
-    darken_color, change_alpha, hex_to_color
+    darken_color, change_alpha, hex_to_color, draw_mask_rect
 
 from src.core.constants import Constants
-from src.core.util.tools import format_timestamp, format_timestamp_diff, format_seconds
+from src.core.util.tools import format_timestamp, format_timestamp_diff, format_seconds, coord_x_centralize
 from src.platform.model import Contest
 from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
 
@@ -17,19 +17,27 @@ _TYPE_PADDING = 128
 
 
 class _ContestItem(RenderableSection):
-    def __init__(self, contest: Contest, idx: int):
+    def __init__(self, contest: Contest, idx: int, is_running: bool = False):
         self._contest = contest
         self._idx = idx + 1
+        self._is_running = is_running
 
-        if int(time.time()) >= self._contest.start_time:
+        _time_elapsed = int(time.time()) - self._contest.start_time
+        if _time_elapsed >= 0:
             _status = self._contest.phase  # 用于展示"比赛中"，或者诸如 Codeforces 平台的 "正在重测中"
         else:
-            _status = format_timestamp_diff(int(time.time()) - self._contest.start_time)
+            _status = format_timestamp_diff(_time_elapsed)
+
+        if self._is_running:
+            self._elapsed_ratio = min(self._contest.duration, _time_elapsed) / self._contest.duration
+            self.str_ratio = StyledString(
+                f"{int(self._elapsed_ratio * 100)}% ET", 'H', 24, font_color=(0, 0, 0, 60)
+            )
 
         self._00_idx_text = StyledString(
-            "00", 'H', 72
+            "00", 'H', 78
         )
-        self._00_idx_text_width = calculate_width(self._00_idx_text)
+        self._00_idx_text_width = int(calculate_width(self._00_idx_text))
         max_width = _CONTENT_WIDTH - self._00_idx_text_width - 48
 
         self.img_time = Renderer.load_img_resource("Time", (0, 0, 0), size=(32, 32))
@@ -37,7 +45,7 @@ class _ContestItem(RenderableSection):
         self.img_platform = Renderer.load_img_resource(self._contest.platform, (0, 0, 0),
                                                        size=(20, 20))
         self.str_idx = StyledString(
-            f"{self._idx:02d}", 'H', 78, font_color=(0, 0, 0, 30), padding_bottom=12
+            f"{self._idx:02d}", 'H', 78, font_color=(0, 0, 0, 60), padding_bottom=12
         )
         self.str_subtitle = StyledString(
             f"{self._contest.platform.upper()} · {self._contest.abbr}", 'H', 20,
@@ -60,10 +68,37 @@ class _ContestItem(RenderableSection):
                                  self.str_time, self.str_status])
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        current_x, current_y = x + self._00_idx_text_width - calculate_width(self.str_idx), y
+        current_x, current_y = x, y
 
-        draw_text(img, self.str_idx, current_x, current_y - 14)
-        current_x = x + self._00_idx_text_width + 48
+        _idx_width = int(calculate_width(self.str_idx))
+        if self._is_running:
+            # 居中对齐
+            current_x = coord_x_centralize(
+                _idx_width, x, x + self._00_idx_text_width
+            )
+
+            current_y = draw_text(img, self.str_idx, current_x, current_y - 14)
+            current_x = x
+            draw_mask_rect(img, Loc(current_x, current_y, self._00_idx_text_width, 14),
+                           (0, 0, 0, 16), 7)
+            draw_mask_rect(img, Loc(current_x, current_y,
+                                    int(self._00_idx_text_width * self._elapsed_ratio), 14),
+                           (0, 0, 0, 44), 7)
+            current_y += 14 + 8
+
+            _ratio_width = int(calculate_width(self.str_ratio))
+            current_x = coord_x_centralize(
+                _ratio_width, x, x + self._00_idx_text_width
+            )
+            draw_text(img, self.str_ratio, current_x, current_y)
+
+            current_x, current_y = x, y
+        else:
+            # 向右对齐
+            current_x = x + self._00_idx_text_width - _idx_width
+            draw_text(img, self.str_idx, current_x, current_y - 14)
+
+        current_x = x + self._00_idx_text_width + 36
 
         draw_img(img, self.img_platform, Loc(current_x, current_y + 4, 20, 20))
         current_y = draw_text(img, self.str_subtitle, current_x + 28, current_y)
@@ -110,7 +145,8 @@ class _ContestsSection(RenderableSection):
     def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest],
                  finished_contests: list[Contest]):
         mild_ext_color = (0, 0, 0, 192)
-        self.section_running = [_ContestItem(contest, idx) for idx, contest in enumerate(running_contests)]
+        self.section_running = [_ContestItem(contest, idx, is_running=True)
+                                for idx, contest in enumerate(running_contests)]
         self.section_upcoming = [_ContestItem(contest, idx) for idx, contest in enumerate(upcoming_contests)]
         self.section_finished = [_ContestItem(contest, idx) for idx, contest in enumerate(finished_contests)]
         self.img_running = Renderer.load_img_resource("Running", mild_ext_color, 1, 192 / 255)

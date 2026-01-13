@@ -55,6 +55,18 @@ class Render(unittest.TestCase):
         self.assertIsNotNone(contest_list_img)
         contest_list_img.write_file(get_output_path("render_contest_list.png"))
 
+    def test_manual_only_contest_list(self):
+        running_contests, upcoming_contests, finished_contests = [], [], []
+        for platform in [ManualPlatform]:
+            running, upcoming, finished = platform.get_contest_list()
+            running_contests.extend(running)
+            upcoming_contests.extend(upcoming)
+            finished_contests.extend(finished)
+
+        contest_list_img = ContestListRenderer(running_contests, upcoming_contests, finished_contests).render()
+        self.assertIsNotNone(contest_list_img)
+        contest_list_img.write_file(get_output_path("render_manual_only_contest_list.png"))
+
     def test_cook_md(self):
         _lib_path = Constants.modules_conf.get_lib_path("How-To-Cook")
         dish_path = os.path.join(_lib_path, "dishes", "vegetable_dish", "西红柿豆腐汤羹", "西红柿豆腐汤羹.md")

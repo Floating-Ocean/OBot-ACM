@@ -411,6 +411,10 @@ def is_valid_date(date_str: str, fmt: str) -> bool:
         return False
 
 
+def coord_x_centralize(width: int, left: int, right: int) -> int:
+    return max(left, left + (right - left - width) // 2)
+
+
 class SSLAdapter(HTTPAdapter):
     def init_poolmanager(self, *args, **kwargs):
         """
