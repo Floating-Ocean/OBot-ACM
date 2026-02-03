@@ -9,7 +9,7 @@ import pixie
 from lxml.etree import Element
 
 from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, check_intersect, \
-    get_today_timestamp_range, format_timestamp, format_seconds
+    get_today_timestamp_range, format_timestamp, format_seconds, check_is_int
 from src.platform.model import CompetitivePlatform, Contest
 from src.render.pixie.render_user_card import UserCardRenderer
 
@@ -244,16 +244,37 @@ class NowCoder(CompetitivePlatform):
     @classmethod
     def _get_specified_contest(cls, search_name: str) -> tuple[int, str] | None:
         search_name = quote_plus(str(search_name).strip())
-        html = fetch_url_element("https://ac.nowcoder.com/acm-heavy/acm/contest/search?"
-                                 f"searchName={search_name}")
-        tr_elements = html.xpath('//tr[@class="js-nc-wrap-link js-item"]')
-        if not tr_elements:
-            return None
+        chosen_contest = []
+        for category, _ in cls.contest_category.items():
+            html = fetch_url_element("https://ac.nowcoder.com/acm-heavy/acm/contest/search-detail?"
+                                        f"searchName={search_name}&topCategoryFilter=13")
+            tr_elements = html.xpath('//tr[@class="js-nc-wrap-link js-item"]')
+            if not tr_elements:
+                continue
 
-        # 牛客直接把每个比赛的 json 数据放在了 data-json 里，读即可
-        data_json = tr_elements[0].get('data-json')
-        unescaped_json = unescape(data_json)
-        contest = json.loads(unescaped_json)
+            # 牛客直接把每个比赛的 json 数据放在了 data-json 里，读即可
+            candidates = [json.loads(unescape(ele.get('data-json'))) for ele in tr_elements]
+
+            # 选取开始时间距离现在最近的已开始的比赛（未开始的比赛和过于远古的比赛无意义）
+            # 可猜测的是，牛客为：关键词强匹配 + 所有候选按时间降序 + 查询比赛编号时对应比赛在首位
+            if check_is_int(search_name) and int(search_name) == candidates[0]['contestId']:
+                chosen_contest = [candidates[0]]
+                break
+            else:
+                # pending 不会太多，直接暴力算了
+                contest = None
+                for candidate in candidates:
+                    if time.time() >= candidate['contestStartTime'] / 1000:
+                        contest = candidate
+                        break
+                if contest is None:
+                    # 只有 pending 那就 pending 吧
+                    contest = candidates[0]
+                chosen_contest.append(contest)
+
+        if len(chosen_contest) == 0:
+            return None
+        contest = max(chosen_contest, key=lambda c: c['contestStartTime'] / 1000)
         contest_id = contest['contestId']
 
         phase = "即将开始"
@@ -262,8 +283,13 @@ class NowCoder(CompetitivePlatform):
         if time.time() >= contest['contestEndTime'] / 1000:
             phase = "已结束"
 
-        rated_info = "为所有人计分" if contest['settingInfo']['ratingStatus'] != 'No' else '不计分'
-        if contest['settingInfo']['needRatingUpperLimit']:
+        rated_info = "不计分"
+        if ('ratingStatus' in contest['settingInfo'] and
+                contest['settingInfo']['ratingStatus'] != 'No'):
+            rated_info = "为所有人计分"
+
+        if ('needRatingUpperLimit' in contest['settingInfo'] and
+                contest['settingInfo']['needRatingUpperLimit']):
             unrated_range = contest['settingInfo']['ratingUpperLimit']
             rated_info = f"为 0-{unrated_range} 计分"
 

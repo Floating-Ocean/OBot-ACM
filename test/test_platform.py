@@ -84,11 +84,13 @@ class Platform(unittest.TestCase):
             print(contest_info)
 
     def test_nowcoder_contest_standing(self):
-        standing = NowCoder.get_user_contest_standings("福建师范", "牛客周赛")
-        self.assertIsNotNone(standing)
-        contest_info, standings_info = standing
-        print(contest_info)
-        print(standings_info)
+        test_names = ['寒假', '周赛', '6']
+        for name in test_names:
+            standing = NowCoder.get_user_contest_standings("福建师范", name)
+            self.assertIsNotNone(standing)
+            contest_info, standings_info = standing
+            print(contest_info)
+            print(standings_info)
 
 
 if __name__ == '__main__':
