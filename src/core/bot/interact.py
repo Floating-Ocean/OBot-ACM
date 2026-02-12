@@ -73,7 +73,7 @@ def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name
                     return
 
             picked, ratio = picked_tuple[pick_idx - 1]
-            query_more_tip = f"\n标签匹配度 {ratio}%"
+            query_more_tip = f"\n匹配度 {ratio}%"
             if len(message.tokens) > query_idx + 1:
                 query_more_tip += f"，在 {len(picked_tuple)} 个候选中排名第 {pick_idx} "
             else:

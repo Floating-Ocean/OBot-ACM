@@ -2,9 +2,8 @@ import os
 import re
 import shutil
 
-from thefuzz import process
-
 from src.core.bot.decorator import command, get_all_modules_info, module
+from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.lib.huo_zi_yin_shua import HuoZiYinShua
@@ -40,35 +39,11 @@ def reply_fixed(message: RobotMessage):
                  '今日的比赛'])
 def reply_recent_contests(message: RobotMessage):
     query_today = message.tokens[0] in ['/今天比赛', '/今天的比赛', '/今日比赛', '/今日的比赛']
-    queries = [AtCoder, Codeforces, NowCoder, ManualPlatform]
-    if len(message.tokens) >= 2:
-        if message.tokens[1] == 'today':
-            query_today = True
-        else:
-            platform_arg = message.tokens[1]
-            if len(message.tokens) >= 3 and message.tokens[1] == 'today':
-                query_today = True
-                platform_arg = message.tokens[2]
-            closest_type = process.extract(platform_arg.lower(), [
-                "cf", "codeforces", "atc", "atcoder", "牛客", "nk", "nc", "nowcoder",
-                "ccpc", "icpc", "other", "其他", "misc", "杂项", "manual", "手动"], limit=1)[0]
-            if closest_type[1] >= 60:
-                if closest_type[0] in ["cf", "codeforces"]:
-                    queries = [Codeforces]
-                elif closest_type[0] in ["atc", "atcoder"]:
-                    queries = [AtCoder]
-                elif closest_type[0] in ["ccpc", "icpc", "other", "其他", "misc", "杂项", "manual", "手动"]:
-                    queries = [ManualPlatform]
-                else:
-                    queries = [NowCoder]
     tip_time_range = '今日' if query_today else '近期'
-    if len(queries) == 1:
-        message.reply(f"正在查询{tip_time_range} {queries[0].platform_name} 比赛，请稍等")
-    else:
-        message.reply(f"正在查询{tip_time_range}比赛，请稍等")
+    message.reply(f"正在查询{tip_time_range}比赛，请稍等")
 
     running_contests, upcoming_contests, finished_contests = [], [], []
-    for platform in queries:
+    for platform in [AtCoder, Codeforces, NowCoder, ManualPlatform]:
         running, upcoming, finished = platform.get_contest_list()
         running_contests.extend(running)
         upcoming_contests.extend(upcoming)
@@ -92,11 +67,23 @@ def reply_recent_contests(message: RobotMessage):
             range2=(contest.start_time, contest.start_time + contest.duration)
         )]
 
-    cached_prefix = get_cached_prefix('Contest-List-Renderer')
-    contest_list_img = ContestListRenderer(running_contests, upcoming_contests, finished_contests).render()
-    contest_list_img.write_file(f"{cached_prefix}.png")
+    if len(message.tokens) >= 2:
+        # 去除了重复逻辑，查询特定平台需 /平台 contests
+        all_contests = running_contests + upcoming_contests + finished_contests
+        contest_map = {contest.name: contest for contest in all_contests}
 
-    message.reply(f"{tip_time_range}比赛", png2jpg(f"{cached_prefix}.png"))
+        def reply_ok(query_tag: str, query_more_tip: str, picked: str):
+            message.reply(f"帮你找到了{query_tag}一个比赛{query_more_tip}\n\n"
+                          f"{contest_map[picked].format()}\n", modal_words=False)
+
+        reply_fuzzy_matching(message, contest_map, "比赛", 1, reply_ok)
+
+    else:
+        cached_prefix = get_cached_prefix('Contest-List-Renderer')
+        contest_list_img = ContestListRenderer(running_contests, upcoming_contests, finished_contests).render()
+        contest_list_img.write_file(f"{cached_prefix}.png")
+
+        message.reply(f"{tip_time_range}比赛", png2jpg(f"{cached_prefix}.png"))
 
 
 @command(tokens=["qr", "qrcode", "二维码", "码"])
