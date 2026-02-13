@@ -74,7 +74,7 @@ def reply_recent_contests(message: RobotMessage):
 
         def reply_ok(query_tag: str, query_more_tip: str, picked: str):
             message.reply(f"帮你找到了{query_tag}一个比赛{query_more_tip}\n\n"
-                          f"{contest_map[picked].format()}\n", modal_words=False)
+                          f"{contest_map[picked].format()}", modal_words=False)
 
         reply_fuzzy_matching(message, contest_map, "比赛", 1, reply_ok)
 
