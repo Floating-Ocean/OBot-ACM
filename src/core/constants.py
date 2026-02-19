@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 from dataclasses import dataclass
 
 import git
@@ -104,6 +105,9 @@ class Constants:
 
     core_version = "v5.0.0-beta.8"
     git_commit = _get_git_commit()
+
+    inst_id = secrets.token_hex(16)
+    inst_paused = False
 
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [

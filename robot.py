@@ -42,12 +42,51 @@ def reply_reload_conf(message: RobotMessage):
 
 @command(tokens=["对话场景ID", "chat_scene_id"])
 def reply_chat_scene_id(message: RobotMessage):
-    message.reply(f'当前对话场景ID\n\n{message.uuid}', modal_words=False)
+    message.reply(f'当前对话场景 ID\n\n{message.uuid}', modal_words=False)
 
 
 @command(tokens=["我的ID", "my_id"])
 def reply_my_id(message: RobotMessage):
-    message.reply(f'你的ID（不同对话场景下你的ID是不同的）\n\n{message.author_id}', modal_words=False)
+    message.reply(f'你的 ID（不同对话场景下你的 ID 是不同的）\n\n{message.author_id}', modal_words=False)
+
+
+@command(tokens=["实例ID", "inst_id"], permission_level=PermissionLevel.ADMIN)
+def reply_my_id(message: RobotMessage):
+    message.reply(f'当前正在运行的 OBot 实例的 ID\n\n{Constants.inst_id}', modal_words=False)
+
+
+@command(tokens=["pause_inst"], permission_level=PermissionLevel.ADMIN)
+def reply_pause_inst(message: RobotMessage):
+    if len(message.tokens) < 2:
+        message.reply("请提供实例 ID，可使用 /inst_id 获取", modal_words=False)
+        return
+
+    inst_id = message.tokens[1]
+    if inst_id != Constants.inst_id:
+        Constants.log.info("[obot-core] ID 不匹配，不响应该消息")
+        return
+
+    Constants.inst_paused = True
+    Constants.log.info("[obot-core] 实例已暂停")
+    message.reply("已暂停实例，可使用 /resume_inst 恢复\n\n"
+                  f"ID: {Constants.inst_id}", modal_words=False)
+
+
+@command(tokens=["resume_inst"], permission_level=PermissionLevel.ADMIN)
+def reply_resume_inst(message: RobotMessage):
+    if len(message.tokens) < 2:
+        message.reply("请提供实例 ID，可使用 /inst_id 获取", modal_words=False)
+        return
+
+    inst_id = message.tokens[1]
+    if inst_id != Constants.inst_id:
+        Constants.log.info("[obot-core] ID 不匹配，不响应该消息")
+        return
+
+    Constants.inst_paused = False
+    Constants.log.info("[obot-core] 实例已恢复")
+    message.reply("已恢复实例\n\n"
+                  f"ID: {Constants.inst_id}", modal_words=False)
 
 
 class MyClient(Client):
@@ -59,6 +98,7 @@ class MyClient(Client):
     async def on_ready(self):
         Constants.log.info("[obot-core] 机器人上线，"
                            f"版本 {Constants.core_version}-{Constants.git_commit.hash_short}")
+        Constants.log.info(f"[obot-core] 当前运行实例 ID: {Constants.inst_id}")
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"

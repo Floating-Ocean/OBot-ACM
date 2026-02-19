@@ -112,6 +112,10 @@ def handle_message(message: RobotMessage, message_id: MessageID):
     处理消息
     """
     try:
+        if Constants.inst_paused and message_id != MessageID("robot", "/resume_inst"):
+            Constants.log.warning(f"[obot-core] 实例被暂停，弃置消息")
+            return
+
         fixed_handlers = {
             None: (no_reply, {}),
             MessageID("default.manual", "no_reply"): (no_reply, {}),
