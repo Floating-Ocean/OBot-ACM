@@ -1,6 +1,5 @@
 import json
 import random
-import shutil
 import time
 import unittest
 from dataclasses import asdict
@@ -120,16 +119,14 @@ class Module(unittest.TestCase):
             parser = get_img_parser(img_key)
             if not parser:
                 continue
-            img_name = random.choice(list(parser.keys()))
-            img_path = get_img_full_path(img_key, img_name)
-            imgs.append((img_name, img_path))
+            img_path = get_img_full_path(img_key, random.choice(list(parser.keys())))
+            imgs.append(img_path)
 
-        self.assertIsNot(imgs, [])
-        img_name, img_path = random.choice(imgs)
+        self.assertTrue(imgs, "未找到可用测试图片")
+        img_path = random.choice(imgs)
         for sym in ImgSymmetric:
-            img_test_path = get_output_path(f'module_img_trans_{sym.value}_{img_name}')
-            shutil.copy(img_path, img_test_path)
-            _ = make_img_sym(img_test_path, sym, remove_origin=(sym.value != 0))
+            img_test_path = get_output_path(f'module_img_trans_{sym.value}')
+            _ = make_img_sym(img_path, sym, img_test_path)
 
 
 if __name__ == '__main__':

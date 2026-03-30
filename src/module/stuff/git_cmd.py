@@ -9,7 +9,7 @@ from src.core.bot.message import RobotMessage
 from src.core.bot.perm import PermissionLevel
 from src.core.bot.transit import clear_message_queue
 from src.core.constants import Constants, InvalidGitCommit, HelpStrList
-from src.data.data_cache import get_cached_prefix
+from src.core.util.output_cache import get_cached_prefix
 
 _GIT_HELP = '\n'.join(HelpStrList(Constants.help_contents["git-cmd"]))
 

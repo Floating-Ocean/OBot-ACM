@@ -2,7 +2,7 @@ from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int, png2jpg
-from src.data.data_cache import get_cached_prefix
+from src.core.util.output_cache import get_cached_prefix
 from src.platform.online.nowcoder import NowCoder
 from src.render.pixie.render_contest_list import ContestListRenderer
 

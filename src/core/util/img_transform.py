@@ -3,12 +3,18 @@ from enum import Enum
 
 from PIL import Image, ImageSequence
 
+from src.core.util.output_cache import get_cached_prefix
+
 
 class ImgSymmetric(Enum):
+    INHERIT = -1
     LEFT = 0
     RIGHT = 1
     TOP = 2
     BOTTOM = 3
+
+
+apply_transform: dict[str, tuple[ImgSymmetric, int]] = {}
 
 
 def _sym_img(img: Image.Image, way: ImgSymmetric) -> Image.Image:
@@ -27,7 +33,7 @@ def _sym_img(img: Image.Image, way: ImgSymmetric) -> Image.Image:
         new_img.paste(r_part, (img.width // 2, 0))
         return new_img.crop((0, 0, img.width // 2 * 2, img.height))
 
-    else:
+    elif way in (ImgSymmetric.TOP, ImgSymmetric.BOTTOM):
         mirrored = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         if way == ImgSymmetric.TOP:
             t_part = img.crop((0, 0, img.width, img.height // 2))
@@ -40,9 +46,12 @@ def _sym_img(img: Image.Image, way: ImgSymmetric) -> Image.Image:
         new_img.paste(b_part, (0, img.height // 2))
         return new_img.crop((0, 0, img.width, img.height // 2 * 2))
 
+    else:
+        return img
 
-def make_img_sym(img_path: str, way: ImgSymmetric, remove_origin: bool = True) -> str:
-    new_path = os.path.splitext(img_path)[0] + '_trans.' + os.path.splitext(img_path)[1]
+
+def make_img_sym(img_path: str, way: ImgSymmetric, output_prefix: str) -> str:
+    new_path = f"{output_prefix}{os.path.splitext(img_path)[1]}"
 
     with Image.open(img_path) as im:
         is_animated = getattr(im, "is_animated", False) and im.format == "GIF"
@@ -74,7 +83,20 @@ def make_img_sym(img_path: str, way: ImgSymmetric, remove_origin: bool = True) -
                 format="GIF"
             )
 
-    if remove_origin:
-        os.remove(img_path)
-
     return new_path
+
+
+def patch_img_transform(author: str, img_path: str) -> str:
+    way = ImgSymmetric.INHERIT
+    if author in apply_transform:
+        cached_way, cnt = apply_transform[author]
+        if cnt > 0:
+            cnt -= 1
+            way = cached_way
+            apply_transform[author] = (cached_way, cnt)
+
+    if way == ImgSymmetric.INHERIT:
+        return img_path
+    else:
+        cached_prefix = get_cached_prefix('Img-Transform')
+        return make_img_sym(img_path, way, cached_prefix)

@@ -9,7 +9,7 @@ from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import check_is_int, get_simple_qrcode, png2jpg, format_int_delta
-from src.data.data_cache import get_cached_prefix
+from src.core.util.output_cache import get_cached_prefix
 from src.data.data_duel_cf import CFUser, get_binding, establish_binding, accept_binding, settle_duel, unbind
 from src.data.model.binding import BindStatus
 from src.platform.online.codeforces import Codeforces, ProbInfo
