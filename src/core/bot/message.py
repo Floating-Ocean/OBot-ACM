@@ -14,7 +14,7 @@ from src.core.bot.perm import PermissionLevel
 from src.core.constants import Constants
 from src.core.util.exception import handle_exception
 from src.core.util.img_transform import patch_img_transform
-from src.core.util.tools import april_fool_magic
+from src.core.util.tools import reverse_text_on_41
 
 
 class MessageType(Enum):
@@ -90,7 +90,7 @@ class RobotMessage:
             raise RuntimeError("Event loop not initialized")
 
         friendly_content = content + random.choice(Constants.modal_words) if modal_words else content
-        friendly_content = april_fool_magic(friendly_content)
+        friendly_content = reverse_text_on_41(friendly_content)
 
         with self.seq_lock:
             self.msg_seq += 1

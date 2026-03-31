@@ -397,9 +397,10 @@ def reverse_str_by_line(original_str: str) -> str:
     return '\n'.join([line[::-1] for line in mirrored.split('\n')])
 
 
-def april_fool_magic(original_str: str) -> str:
+def reverse_text_on_41(original_str: str) -> str:
     if datetime.datetime.today().month == 4 and datetime.datetime.today().day == 1:
-        return reverse_str_by_line(original_str)
+        if random.randint(0, 100) < 5:  # 5% 概率触发
+            return reverse_str_by_line(original_str)
     return original_str
 
 

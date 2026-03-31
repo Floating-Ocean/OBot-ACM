@@ -1,4 +1,6 @@
+import datetime
 import os
+import random
 from enum import Enum
 
 from PIL import Image, ImageSequence
@@ -87,15 +89,23 @@ def make_img_sym(img_path: str, way: ImgSymmetric, output_prefix: str) -> str:
 
 
 def patch_img_transform(author: str, img_path: str) -> str:
-    way = ImgSymmetric.INHERIT
+    way = None
+
+    if datetime.datetime.today().month == 4 and datetime.datetime.today().day == 1:
+        way = random.choice([ImgSymmetric.LEFT, ImgSymmetric.RIGHT,
+                             ImgSymmetric.TOP, ImgSymmetric.BOTTOM])
+
     if author in apply_transform:
         cached_way, cnt = apply_transform[author]
-        if cnt > 0:
-            cnt -= 1
-            way = cached_way
-            apply_transform[author] = (cached_way, cnt)
+        if way is None or cached_way == ImgSymmetric.INHERIT:  # 愚人节时可以手动恢复正常
+            if cnt > 0:
+                cnt -= 1
+                way = cached_way
+                apply_transform[author] = (cached_way, cnt)
+            if cnt == 0:
+                del apply_transform[author]
 
-    if way == ImgSymmetric.INHERIT:
+    if way is None or way == ImgSymmetric.INHERIT:
         return img_path
     else:
         cached_prefix = get_cached_prefix('Img-Transform')
