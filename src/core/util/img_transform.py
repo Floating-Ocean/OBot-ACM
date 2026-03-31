@@ -17,7 +17,7 @@ class ImgSymmetric(Enum):
     BOTTOM = 3
 
 
-apply_transform: dict[str, tuple[ImgSymmetric, int]] = {}
+_transform_cache: dict[str, tuple[ImgSymmetric, int]] = {}
 _trans_lock = threading.Lock()
 
 
@@ -91,25 +91,30 @@ def make_img_sym(img_path: str, way: ImgSymmetric, output_prefix: str) -> str:
 
 
 def patch_img_transform(author: str, img_path: str) -> str:
-    way = None
+    way = ImgSymmetric.INHERIT
 
-    if datetime.datetime.today().month == 4 and datetime.datetime.today().day == 1:
+    today = datetime.datetime.today()
+    if today.month == 4 and today.day == 1:
         way = random.choice([ImgSymmetric.LEFT, ImgSymmetric.RIGHT,
                              ImgSymmetric.TOP, ImgSymmetric.BOTTOM])
 
     with _trans_lock:
-        if author in apply_transform:
-            cached_way, cnt = apply_transform[author]
-            if way is None or cached_way == ImgSymmetric.INHERIT:  # 愚人节时可以手动恢复正常
-                if cnt > 0:
-                    cnt -= 1
-                    way = cached_way
-                    apply_transform[author] = (cached_way, cnt)
-                if cnt == 0:
-                    del apply_transform[author]
+        if author in _transform_cache:
+            cached_way, cnt = _transform_cache[author]
+            if cnt > 0:
+                cnt -= 1
+                way = cached_way
+                _transform_cache[author] = (cached_way, cnt)
+            if cnt == 0:
+                del _transform_cache[author]
 
-    if way is None or way == ImgSymmetric.INHERIT:
+    if way == ImgSymmetric.INHERIT:
         return img_path
     else:
         cached_prefix = get_cached_prefix('Img-Transform')
         return make_img_sym(img_path, way, cached_prefix)
+
+
+def apply_transform(author: str, way: ImgSymmetric, cnt: int):
+    with _trans_lock:
+        _transform_cache[author] = (way, cnt)

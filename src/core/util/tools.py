@@ -398,8 +398,9 @@ def reverse_str_by_line(original_str: str) -> str:
 
 
 def reverse_text_on_41(original_str: str) -> str:
-    if datetime.datetime.today().month == 4 and datetime.datetime.today().day == 1:
-        if random.randint(0, 100) < 5:  # 5% 概率触发
+    today = datetime.datetime.today()
+    if today.month == 4 and today.day == 1:
+        if random.random() < 0.05:  # 5% 概率触发
             return reverse_str_by_line(original_str)
     return original_str
 

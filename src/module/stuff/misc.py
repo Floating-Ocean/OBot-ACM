@@ -190,6 +190,7 @@ def reply_arcapk(message: RobotMessage):
 @command(tokens=["trans", "transform", "img_transform"])
 def reply_img_transform(message: RobotMessage):
     if (len(message.tokens) != 3 or
+            len(message.tokens[1]) != 1 or
             message.tokens[1].lower() not in "ilrtb" or
             not (check_is_int(message.tokens[2]) and 1 <= int(message.tokens[2]) <= 999)):
         message.reply("请提供两个参数，第一个参数为 i, l, r, t, b（原图、左右上下），"
@@ -201,7 +202,7 @@ def reply_img_transform(message: RobotMessage):
                'b': (ImgSymmetric.BOTTOM, "下方对称")}
     way, way_desc = way_map[message.tokens[1].lower()]
     cnt = int(message.tokens[2])
-    apply_transform[message.author_id] = way, cnt
+    apply_transform(message.author_id, way, cnt)
 
     message.reply(f"设置成功，在后续由你触发的指令中，{cnt} 张图片会 {way_desc}", modal_words=False)
 
