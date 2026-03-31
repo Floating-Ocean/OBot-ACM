@@ -11,7 +11,7 @@ from qrcode.main import QRCode
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.util.tools import png2jpg
-from src.data.data_cache import get_cached_prefix
+from src.core.util.output_cache import get_cached_prefix
 from src.data.data_color import get_colors, Colors
 from src.render.pixie.render_color_card import ColorCardRenderer, COLOR_QRCODE_COORD
 

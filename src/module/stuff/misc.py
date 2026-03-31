@@ -7,8 +7,10 @@ from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.lib.huo_zi_yin_shua import HuoZiYinShua
-from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, fetch_url_json
-from src.data.data_cache import get_cached_prefix
+from src.core.util.img_transform import ImgSymmetric, apply_transform
+from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, fetch_url_json, \
+    check_is_int
+from src.core.util.output_cache import get_cached_prefix
 from src.module.stuff.mc import reply_mc_sleep
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
@@ -185,9 +187,29 @@ def reply_arcapk(message: RobotMessage):
                   f"{url_sendable}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
+@command(tokens=["trans", "transform", "img_transform"])
+def reply_img_transform(message: RobotMessage):
+    if (len(message.tokens) != 3 or
+            len(message.tokens[1]) != 1 or
+            message.tokens[1].lower() not in "ilrtb" or
+            not (check_is_int(message.tokens[2]) and 1 <= int(message.tokens[2]) <= 999)):
+        message.reply("请提供两个参数，第一个参数为 i, l, r, t, b（原图、左右上下），"
+                      "第二个参数为保持该效果多少次（范围 1-999）", modal_words=False)
+        return
+
+    way_map = {'i': (ImgSymmetric.INHERIT, "保持不变"), 'l': (ImgSymmetric.LEFT, "左侧对称"),
+               'r': (ImgSymmetric.RIGHT, "右侧对称"), 't': (ImgSymmetric.TOP, "上方对称"),
+               'b': (ImgSymmetric.BOTTOM, "下方对称")}
+    way, way_desc = way_map[message.tokens[1].lower()]
+    cnt = int(message.tokens[2])
+    apply_transform(message.author_id, way, cnt)
+
+    message.reply(f"设置成功，在后续由你触发的指令中，{cnt} 张图片会 {way_desc}", modal_words=False)
+
+
 @module(
     name="Misc",
-    version="v3.1.2"
+    version="v3.1.3"
 )
 def register_module():
     pass

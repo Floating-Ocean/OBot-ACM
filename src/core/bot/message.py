@@ -13,7 +13,8 @@ from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 from src.core.bot.perm import PermissionLevel
 from src.core.constants import Constants
 from src.core.util.exception import handle_exception
-from src.core.util.tools import april_fool_magic
+from src.core.util.img_transform import patch_img_transform
+from src.core.util.tools import reverse_text_on_41
 
 
 class MessageType(Enum):
@@ -89,7 +90,7 @@ class RobotMessage:
             raise RuntimeError("Event loop not initialized")
 
         friendly_content = content + random.choice(Constants.modal_words) if modal_words else content
-        friendly_content = april_fool_magic(friendly_content)
+        friendly_content = reverse_text_on_41(friendly_content)
 
         with self.seq_lock:
             self.msg_seq += 1
@@ -116,6 +117,9 @@ class RobotMessage:
         Constants.log.info(f"[obot-act] 发起回复: {content}")
 
         try:
+            if img_path:
+                img_path = patch_img_transform(self.author_id, img_path)
+
             # 处理媒体文件上传
             media = (await self._upload_media(img_path, img_url, media_type="Image")
                      if (img_path or img_url) and

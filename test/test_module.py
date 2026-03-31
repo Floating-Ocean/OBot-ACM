@@ -1,4 +1,5 @@
 import json
+import random
 import time
 import unittest
 from dataclasses import asdict
@@ -8,7 +9,9 @@ from aiohttp import ClientConnectorSSLError
 from botpy.errors import ServerError
 
 from src.core.util.exception import handle_exception, UnauthorizedError, ModuleRuntimeError
+from src.core.util.img_transform import ImgSymmetric, make_img_sym
 from src.core.util.tools import decode_range
+from src.data.data_pick_one import get_pick_one_data, get_img_parser, get_img_full_path
 from src.platform.collect.cpcfinder import CPCFinder
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
@@ -107,6 +110,23 @@ class Module(unittest.TestCase):
         print(stu_general)
         stu_awards = CPCFinder.get_student_awards(stu_id)
         print(stu_awards)
+
+    def test_img_transform(self):
+        data = get_pick_one_data()
+        imgs = []
+
+        for img_key in data.conf:
+            parser = get_img_parser(img_key)
+            if not parser:
+                continue
+            img_path = get_img_full_path(img_key, random.choice(list(parser.keys())))
+            imgs.append(img_path)
+
+        self.assertTrue(imgs, "未找到可用测试图片")
+        img_path = random.choice(imgs)
+        for sym in ImgSymmetric:
+            img_test_path = get_output_path(f'module_img_trans_{sym.value}')
+            _ = make_img_sym(img_path, sym, img_test_path)
 
 
 if __name__ == '__main__':

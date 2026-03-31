@@ -2,7 +2,7 @@ from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants, HelpStrList
 from src.core.util.tools import get_simple_qrcode, png2jpg
-from src.data.data_cache import get_cached_prefix
+from src.core.util.output_cache import get_cached_prefix
 from src.platform.online.atcoder import AtCoder
 from src.render.pixie.render_contest_list import ContestListRenderer
 

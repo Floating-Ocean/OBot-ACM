@@ -11,7 +11,7 @@ from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.tools import run_py_file, escape_mail_url, png2jpg, check_is_int, clean_unsafe_shell_str
-from src.data.data_cache import get_cached_prefix
+from src.core.util.output_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
 _allowed_id_re = re.compile(r'^[A-Za-z0-9_-]+$')
