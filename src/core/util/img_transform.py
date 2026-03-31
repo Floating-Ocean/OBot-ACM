@@ -1,6 +1,7 @@
 import datetime
 import os
 import random
+import threading
 from enum import Enum
 
 from PIL import Image, ImageSequence
@@ -17,6 +18,7 @@ class ImgSymmetric(Enum):
 
 
 apply_transform: dict[str, tuple[ImgSymmetric, int]] = {}
+_trans_lock = threading.Lock()
 
 
 def _sym_img(img: Image.Image, way: ImgSymmetric) -> Image.Image:
@@ -95,15 +97,16 @@ def patch_img_transform(author: str, img_path: str) -> str:
         way = random.choice([ImgSymmetric.LEFT, ImgSymmetric.RIGHT,
                              ImgSymmetric.TOP, ImgSymmetric.BOTTOM])
 
-    if author in apply_transform:
-        cached_way, cnt = apply_transform[author]
-        if way is None or cached_way == ImgSymmetric.INHERIT:  # 愚人节时可以手动恢复正常
-            if cnt > 0:
-                cnt -= 1
-                way = cached_way
-                apply_transform[author] = (cached_way, cnt)
-            if cnt == 0:
-                del apply_transform[author]
+    with _trans_lock:
+        if author in apply_transform:
+            cached_way, cnt = apply_transform[author]
+            if way is None or cached_way == ImgSymmetric.INHERIT:  # 愚人节时可以手动恢复正常
+                if cnt > 0:
+                    cnt -= 1
+                    way = cached_way
+                    apply_transform[author] = (cached_way, cnt)
+                if cnt == 0:
+                    del apply_transform[author]
 
     if way is None or way == ImgSymmetric.INHERIT:
         return img_path

@@ -187,7 +187,7 @@ def reply_arcapk(message: RobotMessage):
                   f"{url_sendable}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
-@command(tokens=["trans"])
+@command(tokens=["trans", "transform", "img_transform"])
 def reply_img_transform(message: RobotMessage):
     if (len(message.tokens) != 3 or
             message.tokens[1].lower() not in "ilrtb" or
