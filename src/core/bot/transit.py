@@ -197,9 +197,19 @@ def clear_message_queue():
                 break
 
 
-def _make_scheduled_wrapper(func: Callable, message_type: MessageType,
-                            target: str, api, loop):
-    """为定时任务创建闭包，在调度器线程中构造 RobotMessage 并调用处理函数"""
+def _make_scheduled_wrapper(func: Callable, message_type: MessageType | None,
+                            target: str | None, api, loop):
+    """为定时任务创建闭包，message_type 为 None 时作为纯定时任务（无 message 参数）"""
+
+    if message_type is None:
+        def wrapper():
+            try:
+                func()
+            except Exception as e:
+                Constants.log.warning(f"[obot-sched] 定时任务 {func.__name__} 执行失败")
+                Constants.log.exception(f"[obot-sched] {e}")
+        return wrapper
+
     setup_map = {
         MessageType.GUILD: lambda rm: rm.setup_active_guild_message(loop, target),
         MessageType.DIRECT: lambda rm: rm.setup_active_direct_message(loop, target),
@@ -221,7 +231,7 @@ def _make_scheduled_wrapper(func: Callable, message_type: MessageType,
 
 def activate_scheduled_jobs(api, loop, scheduler) -> int:
     """
-        将所有已注册的 @scheduled 任务添加到运行中的调度器。
+        将所有已注册的 @scheduled 任务添加到调度器。
         应在 MyClient.on_ready() 中调用，确保 api/loop 已可用。
 
         :param api: BotAPI 实例
@@ -236,7 +246,7 @@ def activate_scheduled_jobs(api, loop, scheduler) -> int:
             wrapper = _make_scheduled_wrapper(
                 job.func, job.message_type, job.target, api, loop)
             trigger = CronTrigger.from_crontab(job.cron)
-            job_id = f"sched.{module_name}.{job.func.__name__}.{job.target}"
+            job_id = f"sched.{module_name}.{job.func.__name__}.{job.target or 'task'}"
             scheduler.add_job(wrapper, trigger=trigger, id=job_id,
                               replace_existing=True)
             count += 1

@@ -14,14 +14,12 @@ from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, dispatch_message, activate_scheduled_jobs
 from src.core.constants import Constants
-from src.module.cp.peeper import peeper_daily_update_job
 
-daily_sched = BlockingScheduler()
+tasks_sched = BlockingScheduler()
 
 
-def daily_sched_thread():
-    daily_sched.add_job(peeper_daily_update_job, "cron", hour=0, minute=0, args=[])
-    daily_sched.start()
+def tasks_sched_thread():
+    tasks_sched.start()
 
 
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
@@ -36,7 +34,8 @@ def reply_restart_bot(message: RobotMessage):
 @command(tokens=["配置重载", "reload_conf"], permission_level=PermissionLevel.ADMIN)
 def reply_reload_conf(message: RobotMessage):
     Constants.reload_conf()
-    message.reply("已重载配置文件")
+    message.reply("已重载配置文件，定时任务需重启 Bot 生效",
+                  modal_words=False)
     Constants.log.info("[obot-core] 已重载配置文件")
 
 
@@ -100,8 +99,8 @@ class MyClient(Client):
                            f"版本 {Constants.core_version}-{Constants.git_commit.hash_short}")
         Constants.log.info(f"[obot-core] 当前运行实例 ID: {Constants.inst_id}")
 
-        # 激活所有 @scheduled 定时主动消息任务
-        activate_scheduled_jobs(self.api, self.loop, daily_sched)
+        # 激活所有定时主动消息任务
+        activate_scheduled_jobs(self.api, self.loop, tasks_sched)
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
@@ -162,7 +161,7 @@ def open_robot_session():
     intents = botpy.Intents.all()  # 对目前已支持的所有事件进行监听
     client = MyClient(intents=intents, timeout=60)
 
-    # 更新每日排行榜
-    threading.Thread(target=daily_sched_thread, args=[]).start()
+    # 启动定时任务调度器（具体任务由 activate_scheduled_jobs 在 on_ready 中注册）
+    threading.Thread(target=tasks_sched_thread, args=[]).start()
 
     client.run(appid=Constants.botpy_conf["appid"], secret=Constants.botpy_conf["secret"])
