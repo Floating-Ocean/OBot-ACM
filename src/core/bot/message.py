@@ -51,6 +51,9 @@ class RobotMessage:
     def is_guild_public(self):
         return self._public
 
+    def is_active(self):
+        return self._active
+
     def _initial_setup(self, message: Message | GroupMessage | C2CMessage | DirectMessage,
                        author_id_path: str):
         self.content = message.content
@@ -159,7 +162,10 @@ class RobotMessage:
     async def _send_message(self, content: str, msg_seq: int,
                             img_path: str = None, img_url: str = None):
         """统一消息发送入口"""
-        Constants.log.info(f"[obot-act] 发起回复: {content}")
+        if self._active:
+            Constants.log.info(f"[obot-act] 向 {self.uuid} 发起主动回复: {content}")
+        else:
+            Constants.log.info(f"[obot-act] 发起回复: {content}")
 
         try:
             if img_path:

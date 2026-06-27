@@ -12,12 +12,12 @@ __modules__: dict[str, str | Callable[[], str]] = {}
 
 @dataclass(frozen=True)
 class ScheduledJobInfo:
-    """定时主动消息任务的元数据"""
+    """定时任务的元数据"""
     func: Callable
     cron: str                       # 标准5段cron表达式，如 "0 9 * * *"
-    message_type: MessageType       # GUILD / DIRECT / GROUP / C2C
-    target: str                     # 目标标识符 (channel_id / guild_id / group_openid / openid)
-    module_name: str
+    module_name: str = ""
+    message_type: MessageType | None = None   # None = 纯定时任务，不传递 message
+    target: str | None = None                 # 消息目标 ID，纯定时任务时为 None
 
 
 __scheduled_jobs__: dict[str, list[ScheduledJobInfo]] = {}
@@ -75,7 +75,7 @@ def module(name: str,
     return decorator
 
 
-def _parse_uuid(uuid: str) -> tuple[MessageType, str]:
+def parse_uuid(uuid: str) -> tuple[MessageType, str]:
     """从 uuid 解析消息类型和目标 ID，uuid 格式为 {prefix}_{id}"""
     uuid_prefix_map = {
         "guild_": MessageType.GUILD,
@@ -104,17 +104,20 @@ def scheduled(cron: str, targets: list[str]):
     """
 
     def decorator(func):
-        if not targets:
-            raise ValueError(f'Function {func.__name__} requires at least one target')
-
         module_name = func.__module__ or "default.unknown"
 
         __scheduled_jobs__.setdefault(module_name, [])
-        for uuid in targets:
-            message_type, target_id = _parse_uuid(uuid)
+        if not targets:
+            # 纯定时任务，不传递 message 参数
             __scheduled_jobs__[module_name].append(
-                ScheduledJobInfo(func=func, cron=cron, message_type=message_type,
-                                 target=target_id, module_name=module_name))
+                ScheduledJobInfo(func=func, cron=cron, module_name=module_name))
+        else:
+            for uuid in targets:
+                message_type, target_id = parse_uuid(uuid)
+                __scheduled_jobs__[module_name].append(
+                    ScheduledJobInfo(func=func, cron=cron,
+                                     message_type=message_type, target=target_id,
+                                     module_name=module_name))
         return func
 
     return decorator
