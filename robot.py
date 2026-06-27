@@ -12,7 +12,7 @@ from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 
 from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
-from src.core.bot.transit import clear_message_queue, dispatch_message
+from src.core.bot.transit import clear_message_queue, dispatch_message, activate_scheduled_jobs
 from src.core.constants import Constants
 from src.module.cp.peeper import peeper_daily_update_job
 
@@ -99,6 +99,9 @@ class MyClient(Client):
         Constants.log.info("[obot-core] 机器人上线，"
                            f"版本 {Constants.core_version}-{Constants.git_commit.hash_short}")
         Constants.log.info(f"[obot-core] 当前运行实例 ID: {Constants.inst_id}")
+
+        # 激活所有 @scheduled 定时主动消息任务
+        activate_scheduled_jobs(self.api, self.loop, daily_sched)
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"

@@ -42,6 +42,11 @@ class RobotMessage:
         self.user_permission_level: PermissionLevel = PermissionLevel.USER
         self.uuid = str(uuid.uuid4())  # 默认值，正常来说会被覆盖
         self._public = False  # Guild only
+        self._active = False  # 主动消息标记
+        # 主动消息所需的标识符
+        self._channel_id: Optional[str] = None
+        self._guild_id: Optional[str] = None
+        self._group_openid: Optional[str] = None
 
     def is_guild_public(self):
         return self._public
@@ -83,6 +88,46 @@ class RobotMessage:
         self.message = message
         self._initial_setup(message, 'user_openid')
         self.uuid = f"c2c_{self.author_id}"
+
+    def setup_active_guild_message(self, loop: asyncio.AbstractEventLoop,
+                                    channel_id: str):
+        """设置主动频道消息（无需 incoming message）"""
+        self.loop = loop
+        self.message_type = MessageType.GUILD
+        self.message = None
+        self._active = True
+        self._channel_id = channel_id
+        self.uuid = f"guild_{channel_id}"
+
+    def setup_active_direct_message(self, loop: asyncio.AbstractEventLoop,
+                                     guild_id: str):
+        """设置主动私信消息（无需 incoming message）"""
+        self.loop = loop
+        self.message_type = MessageType.DIRECT
+        self.message = None
+        self._active = True
+        self._guild_id = guild_id
+        self.uuid = f"direct_{guild_id}"
+
+    def setup_active_group_message(self, loop: asyncio.AbstractEventLoop,
+                                    group_openid: str):
+        """设置主动群聊消息（无需 incoming message）"""
+        self.loop = loop
+        self.message_type = MessageType.GROUP
+        self.message = None
+        self._active = True
+        self._group_openid = group_openid
+        self.uuid = f"group_{group_openid}"
+
+    def setup_active_c2c_message(self, loop: asyncio.AbstractEventLoop,
+                                  openid: str):
+        """设置主动私聊消息（无需 incoming message）"""
+        self.loop = loop
+        self.message_type = MessageType.C2C
+        self.message = None
+        self._active = True
+        self.author_id = openid  # C2C 使用 author_id 存储 openid
+        self.uuid = f"c2c_{openid}"
 
     def reply(self, content: str, img_path: str = None, img_url: str = None, modal_words: bool = True):
         """异步发送回复的入口方法"""
@@ -203,7 +248,8 @@ class RobotMessage:
         }
 
         if self.message_type == MessageType.GROUP:
-            common_args["group_openid"] = self.message.group_openid
+            common_args["group_openid"] = (self._group_openid if self._active
+                                           else self.message.group_openid)
         elif self.message_type == MessageType.C2C:
             common_args["openid"] = self.author_id
 
@@ -218,7 +264,7 @@ class RobotMessage:
         """构造消息发送参数"""
         base_params = {
             "content": content,
-            "msg_id": self.message.id,
+            "msg_id": None if self._active else self.message.id,
             "msg_seq": msg_seq
         }
 
@@ -237,17 +283,22 @@ class RobotMessage:
         intended_params_name = ['content', 'embed', 'ark', 'message_reference',
                                 'msg_id', 'event_id', 'markdown', 'keyboard']
         if self.message_type == MessageType.GUILD:
-            params['content'] = f"<@{self.message.author.id}>{params['content']}"
-            params['channel_id'] = self.message.channel_id
+            if not self._active:
+                params['content'] = f"<@{self.message.author.id}>{params['content']}"
+            params['channel_id'] = (self._channel_id if self._active
+                                    else self.message.channel_id)
             intended_params_name.extend(['channel_id', 'image', 'file_image'])
             api_method = self.api.post_message
         elif self.message_type == MessageType.DIRECT:
-            params['content'] = f"<@{self.message.author.id}>{params['content']}"
-            params['guild_id'] = self.message.guild_id
+            if not self._active:
+                params['content'] = f"<@{self.message.author.id}>{params['content']}"
+            params['guild_id'] = (self._guild_id if self._active
+                                  else self.message.guild_id)
             intended_params_name.extend(['guild_id', 'image', 'file_image'])
             api_method = self.api.post_dms
         elif self.message_type == MessageType.GROUP:
-            params['group_openid'] = self.message.group_openid
+            params['group_openid'] = (self._group_openid if self._active
+                                      else self.message.group_openid)
             intended_params_name.extend(['group_openid', 'msg_type', 'media', 'msg_seq'])
             api_method = self.api.post_group_message
         else:
@@ -263,7 +314,7 @@ class RobotMessage:
         fallback_params = {
             "msg_type": 0,
             "content": text,
-            "msg_id": self.message.id,
+            "msg_id": None if self._active else self.message.id,
             "msg_seq": msg_seq
         }
         await self._handle_send_request(fallback_params)

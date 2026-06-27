@@ -1,11 +1,26 @@
 import logging
+from dataclasses import dataclass
 from typing import Callable
 
+from src.core.bot.message import MessageType
 from src.core.bot.perm import PermissionLevel
 
 __commands_primary__: dict[str, dict[str, str]] = {}
 __commands__: dict[str, dict[str, tuple[Callable, PermissionLevel, bool, bool]]] = {}
 __modules__: dict[str, str | Callable[[], str]] = {}
+
+
+@dataclass(frozen=True)
+class ScheduledJobInfo:
+    """定时主动消息任务的元数据"""
+    func: Callable
+    cron: str                       # 标准5段cron表达式，如 "0 9 * * *"
+    message_type: MessageType       # GUILD / DIRECT / GROUP / C2C
+    target: str                     # 目标标识符 (channel_id / guild_id / group_openid / openid)
+    module_name: str
+
+
+__scheduled_jobs__: dict[str, list[ScheduledJobInfo]] = {}
 
 
 def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
@@ -60,6 +75,51 @@ def module(name: str,
     return decorator
 
 
+def _parse_uuid(uuid: str) -> tuple[MessageType, str]:
+    """从 uuid 解析消息类型和目标 ID，uuid 格式为 {prefix}_{id}"""
+    uuid_prefix_map = {
+        "guild_": MessageType.GUILD,
+        "direct_": MessageType.DIRECT,
+        "group_": MessageType.GROUP,
+        "c2c_": MessageType.C2C,
+    }
+    for prefix, msg_type in uuid_prefix_map.items():
+        if uuid.startswith(prefix):
+            return msg_type, uuid[len(prefix):]
+    raise ValueError(f"Invalid uuid: {uuid!r}, "
+                     f"must start with guild_/direct_/group_/c2c_")
+
+
+def scheduled(cron: str, targets: list[str]):
+    """
+        注册一条定时主动消息任务。
+
+        :param cron: 标准5段cron表达式，如 "0 9 * * *" (分 时 日 月 周)
+        :param targets: 目标 uuid 列表，格式为 {prefix}_{id}
+                        可通过 /chat_scene_id 获取：
+                        guild_{channel_id}   -> 频道消息
+                        direct_{guild_id}    -> 频道私信
+                        group_{group_openid} -> 群聊消息
+                        c2c_{openid}         -> 私聊消息
+    """
+
+    def decorator(func):
+        if not targets:
+            raise ValueError(f'Function {func.__name__} requires at least one target')
+
+        module_name = func.__module__ or "default.unknown"
+
+        __scheduled_jobs__.setdefault(module_name, [])
+        for uuid in targets:
+            message_type, target_id = _parse_uuid(uuid)
+            __scheduled_jobs__[module_name].append(
+                ScheduledJobInfo(func=func, cron=cron, message_type=message_type,
+                                 target=target_id, module_name=module_name))
+        return func
+
+    return decorator
+
+
 def get_command_count() -> int:
     """获取当前注册的主指令数量 (不包括别名)"""
     return sum(len(module_commands) for module_commands in __commands_primary__.values())
@@ -86,3 +146,17 @@ def get_all_modules_info() -> list[tuple[str, str]]:
 
     all_modules_info.sort()
     return all_modules_info
+
+
+def get_scheduled_job_count() -> int:
+    """获取当前注册的定时任务总数"""
+    return sum(len(jobs) for jobs in __scheduled_jobs__.values())
+
+
+def get_scheduled_jobs_info() -> list[tuple[str, str, str, str]]:
+    """获取所有已注册定时任务信息: [(module, func_name, cron, target), ...]"""
+    result = []
+    for module_name, jobs in __scheduled_jobs__.items():
+        for job in jobs:
+            result.append((module_name, job.func.__name__, job.cron, job.target))
+    return sorted(result)
