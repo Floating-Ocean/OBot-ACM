@@ -84,10 +84,11 @@ def parse_uuid(uuid: str) -> tuple[MessageType, str]:
         "c2c_": MessageType.C2C,
     }
     for prefix, msg_type in uuid_prefix_map.items():
-        if uuid.startswith(prefix):
+        if uuid.startswith(prefix) and len(uuid) > len(prefix):
             return msg_type, uuid[len(prefix):]
     raise ValueError(f"Invalid uuid: {uuid!r}, "
-                     f"must start with guild_/direct_/group_/c2c_")
+                     f"must start with guild_/direct_/group_/c2c_ "
+                     f"and non-empty id")
 
 
 def scheduled(cron: str, targets: list[str]):
@@ -149,17 +150,3 @@ def get_all_modules_info() -> list[tuple[str, str]]:
 
     all_modules_info.sort()
     return all_modules_info
-
-
-def get_scheduled_job_count() -> int:
-    """获取当前注册的定时任务总数"""
-    return sum(len(jobs) for jobs in __scheduled_jobs__.values())
-
-
-def get_scheduled_jobs_info() -> list[tuple[str, str, str, str]]:
-    """获取所有已注册定时任务信息: [(module, func_name, cron, target), ...]"""
-    result = []
-    for module_name, jobs in __scheduled_jobs__.items():
-        for job in jobs:
-            result.append((module_name, job.func.__name__, job.cron, job.target))
-    return sorted(result)

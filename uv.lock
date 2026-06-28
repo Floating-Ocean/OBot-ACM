@@ -1406,6 +1406,7 @@ name = "obot-acm"
 version = "5.0.0b8"
 source = { virtual = "." }
 dependencies = [
+    { name = "apscheduler" },
     { name = "av" },
     { name = "botpy" },
     { name = "easy-pixie" },
@@ -1427,6 +1428,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "apscheduler", specifier = ">=3.11.2" },
     { name = "av", specifier = ">=17.1.0" },
     { name = "botpy", git = "https://github.com/Floating-Ocean/botpy.git?rev=a4add8c9b4e9ef274774c2f6f70a694cd024354e" },
     { name = "easy-pixie", specifier = ">=0.0.9" },

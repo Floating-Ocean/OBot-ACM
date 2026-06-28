@@ -89,8 +89,8 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
                 except ValueError as e:
                     raise RuntimeError(
                         f"Invalid uuid in `{field}[{j}]` of "
-                        f"peeper.configs[{i}]: {e}"
-                    )
+                        f"peeper.configs[{i}]"
+                    ) from e
 
     if len(execute_conf) == 0:
         raise RuntimeError("No config found.")
