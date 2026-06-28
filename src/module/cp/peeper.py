@@ -113,6 +113,11 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
                     f"for {uuid}."
                 )
             uuid_dict[uuid] = wrapped
+        for uuid in wrapped["obot_push_to"]:
+            if uuid not in wrapped["obot_apply_to"]:
+                raise RuntimeError(
+                    f"Attempt to 'push' {conf_id} to {uuid} without 'apply' first"
+                )
         if idx == 0:  # 选取第一个作为默认
             default_conf = wrapped
 
