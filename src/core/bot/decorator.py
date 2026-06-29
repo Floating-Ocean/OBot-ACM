@@ -1,4 +1,5 @@
 import logging
+import warnings
 from dataclasses import dataclass
 from typing import Callable
 
@@ -91,24 +92,25 @@ def parse_uuid(uuid: str) -> tuple[MessageType, str]:
                      f"and non-empty id")
 
 
-def scheduled(cron: str, targets: list[str]):
+def scheduled(cron: str, targets: list[str], no_target: bool = False):
     """
         注册一条定时主动消息任务。
 
-        :param cron: 标准5段cron表达式，如 "0 9 * * *" (分 时 日 月 周)
+        :param cron: 标准 5 段 cron 表达式，如 "0 9 * * *" (分 时 日 月 周)
         :param targets: 目标 uuid 列表，格式为 {prefix}_{id}
                         可通过 /chat_scene_id 获取：
                         guild_{channel_id}   -> 频道消息
                         direct_{guild_id}    -> 频道私信
                         group_{group_openid} -> 群聊消息
                         c2c_{openid}         -> 私聊消息
+        :param no_target: 可选，为 True 时设定为纯定时任务，方法将不传递 message 参数
     """
 
     def decorator(func):
         module_name = func.__module__ or "default.unknown"
 
         __scheduled_jobs__.setdefault(module_name, [])
-        if not targets:
+        if no_target:
             # 纯定时任务，不传递 message 参数
             __scheduled_jobs__[module_name].append(
                 ScheduledJobInfo(func=func, cron=cron, module_name=module_name))

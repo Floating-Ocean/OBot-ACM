@@ -210,7 +210,7 @@ def _call_lib_method(message: RobotMessage | None, prop: str,
     return result
 
 
-@scheduled(cron="0 0 * * *", targets=[])
+@scheduled(cron="0 0 * * *", targets=[], no_target=True)
 def peeper_daily_update():
     """每日榜单数据更新，纯定时任务（无 message 参数）"""
     execute_conf = Constants.modules_conf.peeper["configs"]
