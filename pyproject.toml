@@ -4,7 +4,7 @@ version = "5.0.0-beta.8"
 description = "Source code of the qqbot OBot's ACM."
 requires-python = ">=3.10"
 dependencies = [
-    "apscheduler>=3.11.2",
+    "apscheduler>=3.11.3",
     "av>=17.1.0",
     "botpy",
     "easy-pixie>=0.0.9",
@@ -25,4 +25,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-botpy = { git = "https://github.com/Floating-Ocean/botpy.git", rev = "a4add8c9b4e9ef274774c2f6f70a694cd024354e" }
+botpy = { git = "https://github.com/Floating-Ocean/botpy.git", rev = "599c516afcf2e15fadc22cdde6f3696c22dd4de7" }

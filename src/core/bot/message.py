@@ -41,7 +41,8 @@ class RobotMessage:
         self.seq_lock = threading.Lock()
         self.user_permission_level: PermissionLevel = PermissionLevel.USER
         self.uuid = str(uuid.uuid4())  # 默认值，正常来说会被覆盖
-        self._public = False  # Guild only
+        self._guild_public = False  # Guild only
+        self._group_public = False  # Group only，非 @bot 的群公屏消息
         self._active = False  # 主动消息标记
         # 主动消息所需的标识符
         self._channel_id: Optional[str] = None
@@ -49,7 +50,10 @@ class RobotMessage:
         self._group_openid: Optional[str] = None
 
     def is_guild_public(self):
-        return self._public
+        return self._guild_public
+
+    def is_group_public(self):
+        return self._group_public
 
     def is_active(self):
         return self._active
@@ -67,7 +71,7 @@ class RobotMessage:
         self.loop = loop
         self.message_type = MessageType.GUILD
         self.message = message
-        self._public = is_public
+        self._guild_public = is_public
         self._initial_setup(message, 'id')
         self.uuid = f"guild_{self.message.guild_id}"
 
@@ -78,10 +82,12 @@ class RobotMessage:
         self._initial_setup(message, 'id')
         self.uuid = f"direct_{self.author_id}"
 
-    def setup_group_message(self, loop: asyncio.AbstractEventLoop, message: GroupMessage):
+    def setup_group_message(self, loop: asyncio.AbstractEventLoop, message: GroupMessage,
+                            is_public: bool = False):
         self.loop = loop
         self.message_type = MessageType.GROUP
         self.message = message
+        self._group_public = is_public
         self._initial_setup(message, 'member_openid')
         self.uuid = f"group_{self.message.group_openid}"
 

@@ -146,6 +146,36 @@ class MyClient(Client):
         packed_message.setup_group_message(self.loop, message)
         dispatch_message(packed_message)
 
+    async def on_group_message_create(self, message: GroupMessage):
+        # 当 bot 拥有接收全部消息权限时，on_group_at_message_create 不再触发，
+        # 所有群消息都走此处。基于 role.bot_id 区分消息类型以避免 spam
+        content = message.content
+        bot_id = Constants.role_conf.get("bot_id", "")
+        if not bot_id:
+            return
+
+        bot_mention = f"<@{bot_id}>"
+        if bot_mention not in content and not content.startswith('/'):
+            # 非 @Bot → 仅 / 开头，其他静默
+            return
+
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+        Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
+                           f"收到公共群聊消息: {message.content}"
+                           f"{attachment_info}")
+        if bot_mention in content:
+            # @Bot → 去掉 @Bot 后等价于原 on_group_at_message_create 行为
+            message.content = message.content.replace(bot_mention, "")
+            packed_message = RobotMessage(self.api)
+            packed_message.setup_group_message(self.loop, message, is_public=False)
+            dispatch_message(packed_message)
+        else:
+            # 非 @Bot
+            packed_message = RobotMessage(self.api)
+            packed_message.setup_group_message(self.loop, message, is_public=True)
+            dispatch_message(packed_message)
+
     async def on_c2c_message_create(self, message: C2CMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")

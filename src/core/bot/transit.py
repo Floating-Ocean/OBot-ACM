@@ -51,8 +51,8 @@ def get_message_id(message: RobotMessage) -> MessageID:
                 if starts_with or cmd == func:
                     original_command, _, is_command, multi_thread = module_commands[cmd]
 
-                    if not is_command and message.is_guild_public():
-                        # 对频道无at消息的过滤，避免spam
+                    if not is_command and (message.is_guild_public() or message.is_group_public()):
+                        # 对频道/群聊无at消息的过滤，避免spam
                         continue
 
                     if multi_thread:
@@ -64,8 +64,8 @@ def get_message_id(message: RobotMessage) -> MessageID:
                     _work_thread_life[module] = -1
                     return MessageID(module, cmd)
 
-        # 如果是频道无at消息可能是发错了或者并非用户希望的处理对象
-        if message.is_guild_public():
+        # 如果是频道/群聊无at消息可能是发错了或者并非用户希望的处理对象
+        if message.is_guild_public() or message.is_group_public():
             return MessageID("default.manual", "no_reply")
 
         if '/' in func:
