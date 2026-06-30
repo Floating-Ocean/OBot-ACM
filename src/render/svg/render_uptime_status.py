@@ -32,7 +32,6 @@ def render_uptime_status(status_list: list[dict]) -> tuple[str, int, int]:
 
     render_status_list = [-1 if status['label'] == 'black' else float(status['ratio'])
                           for status in status_list]
-    render_status_list.reverse()
 
     for x_offset, status in enumerate(render_status_list):
         bar_color, opacity = get_percentile_color(status)

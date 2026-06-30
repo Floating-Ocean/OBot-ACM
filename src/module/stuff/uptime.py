@@ -22,7 +22,7 @@ def reply_alive(message: RobotMessage):
 
 @module(
     name="Uptime-Robot",
-    version="v2.0.0"
+    version="v2.0.1"
 )
 def register_module():
     pass
