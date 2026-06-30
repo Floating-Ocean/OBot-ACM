@@ -276,9 +276,10 @@ class RobotMessage:
         """构造消息发送参数"""
         base_params = {
             "content": content,
-            "msg_id": None if self._active else self.message.id,
             "msg_seq": msg_seq
         }
+        if not self._active:
+            base_params["msg_id"] = self.message.id
 
         # 媒体消息
         if media:
