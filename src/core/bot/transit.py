@@ -3,10 +3,13 @@ import queue
 import threading
 import time
 from dataclasses import dataclass
+from typing import Callable
 
-from src.core.bot.decorator import __commands__
+from apscheduler.triggers.cron import CronTrigger
+
+from src.core.bot.decorator import __commands__, __scheduled_jobs__
 from src.core.bot.interact import reply_key_words, no_reply
-from src.core.bot.message import RobotMessage
+from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
 
@@ -48,8 +51,8 @@ def get_message_id(message: RobotMessage) -> MessageID:
                 if starts_with or cmd == func:
                     original_command, _, is_command, multi_thread = module_commands[cmd]
 
-                    if not is_command and message.is_guild_public():
-                        # 对频道无at消息的过滤，避免spam
+                    if not is_command and (message.is_guild_public() or message.is_group_public()):
+                        # 对频道/群聊无at消息的过滤，避免spam
                         continue
 
                     if multi_thread:
@@ -61,8 +64,8 @@ def get_message_id(message: RobotMessage) -> MessageID:
                     _work_thread_life[module] = -1
                     return MessageID(module, cmd)
 
-        # 如果是频道无at消息可能是发错了或者并非用户希望的处理对象
-        if message.is_guild_public():
+        # 如果是频道/群聊无at消息可能是发错了或者并非用户希望的处理对象
+        if message.is_guild_public() or message.is_group_public():
             return MessageID("default.manual", "no_reply")
 
         if '/' in func:
@@ -192,6 +195,65 @@ def clear_message_queue():
                 message.reply("O宝被爆了！等待一段时间后再试试")
             except queue.Empty:
                 break
+
+
+def _make_scheduled_wrapper(func: Callable, message_type: MessageType | None,
+                            target: str | None, api, loop):
+    """为定时任务创建闭包，message_type 为 None 时作为纯定时任务（无 message 参数）"""
+
+    if message_type is None:
+        def wrapper():
+            try:
+                func()
+            except Exception as e:
+                Constants.log.warning(f"[obot-sched] 定时任务 {func.__name__} 执行失败")
+                Constants.log.exception(f"[obot-sched] {e}")
+        return wrapper
+
+    setup_map = {
+        MessageType.GUILD: lambda rm: rm.setup_active_guild_message(loop, target),
+        MessageType.DIRECT: lambda rm: rm.setup_active_direct_message(loop, target),
+        MessageType.GROUP: lambda rm: rm.setup_active_group_message(loop, target),
+        MessageType.C2C: lambda rm: rm.setup_active_c2c_message(loop, target),
+    }
+
+    def wrapper():
+        packed_message = RobotMessage(api)
+        setup_map[message_type](packed_message)
+        try:
+            func(packed_message)
+        except Exception as e:
+            Constants.log.warning(f"[obot-sched] 定时任务 {func.__name__} 执行失败")
+            Constants.log.exception(f"[obot-sched] {e}")
+
+    return wrapper
+
+
+def activate_scheduled_jobs(api, loop, scheduler) -> int:
+    """
+        将所有已注册的 @scheduled 任务添加到调度器。
+        应在 MyClient.on_ready() 中调用，确保 api/loop 已可用。
+
+        :param api: BotAPI 实例
+        :param loop: asyncio 事件循环
+        :param scheduler: 已启动的 BlockingScheduler 实例
+        :return: 添加的 job 数量
+    """
+
+    count = 0
+    for module_name, jobs in __scheduled_jobs__.items():
+        for job in jobs:
+            wrapper = _make_scheduled_wrapper(
+                job.func, job.message_type, job.target, api, loop)
+            trigger = CronTrigger.from_crontab(job.cron)
+            job_id = f"sched.{module_name}.{job.func.__name__}.{job.target or 'task'}"
+            scheduler.add_job(wrapper, trigger=trigger, id=job_id,
+                              replace_existing=True)
+            count += 1
+
+    if count > 0:
+        Constants.log.info(f"[obot-core] 已激活 {count} 个定时任务")
+    return count
 
 
 def queue_up_handler(worker_id: str):
