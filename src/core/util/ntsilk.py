@@ -27,20 +27,18 @@ def _get_ntsilk_binary() -> str | None:
     return None
 
 
-def convert_to_silk(media_path: str, output_path: str | None = None) -> str:
+def convert_to_silk(media_path: str) -> str:
     """
     将任意媒体文件转换为 Silk 格式。
     优先使用 NTSilk 原生二进制，无匹配平台时 fallback 到 pilk。
 
     Args:
         media_path: 输入媒体文件路径
-        output_path: 输出 silk 文件路径，不指定则自动替换扩展名为 .silk
 
     Returns:
         输出 silk 文件路径
     """
-    if output_path is None:
-        output_path = os.path.splitext(media_path)[0] + '.ntsilk'
+    output_path = os.path.splitext(media_path)[0] + '.ntsilk'
 
     binary = _get_ntsilk_binary()
     if binary is not None:
