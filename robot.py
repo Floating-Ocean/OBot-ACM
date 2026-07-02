@@ -12,16 +12,14 @@ from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 
 from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
-from src.core.bot.transit import clear_message_queue, dispatch_message
+from src.core.bot.transit import clear_message_queue, dispatch_message, activate_scheduled_jobs
 from src.core.constants import Constants
-from src.module.cp.peeper import peeper_daily_update_job
 
-daily_sched = BlockingScheduler()
+tasks_sched = BlockingScheduler()
 
 
-def daily_sched_thread():
-    daily_sched.add_job(peeper_daily_update_job, "cron", hour=0, minute=0, args=[])
-    daily_sched.start()
+def tasks_sched_thread():
+    tasks_sched.start()
 
 
 @command(tokens=["去死", "重启", "restart", "reboot"], permission_level=PermissionLevel.ADMIN)
@@ -36,7 +34,8 @@ def reply_restart_bot(message: RobotMessage):
 @command(tokens=["配置重载", "reload_conf"], permission_level=PermissionLevel.ADMIN)
 def reply_reload_conf(message: RobotMessage):
     Constants.reload_conf()
-    message.reply("已重载配置文件")
+    message.reply("已重载配置文件，定时任务需重启 Bot 生效",
+                  modal_words=False)
     Constants.log.info("[obot-core] 已重载配置文件")
 
 
@@ -100,6 +99,9 @@ class MyClient(Client):
                            f"版本 {Constants.core_version}-{Constants.git_commit.hash_short}")
         Constants.log.info(f"[obot-core] 当前运行实例 ID: {Constants.inst_id}")
 
+        # 激活所有定时主动消息任务
+        activate_scheduled_jobs(self.api, self.loop, tasks_sched)
+
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
@@ -144,6 +146,36 @@ class MyClient(Client):
         packed_message.setup_group_message(self.loop, message)
         dispatch_message(packed_message)
 
+    async def on_group_message_create(self, message: GroupMessage):
+        # 当 bot 拥有接收全部消息权限时，on_group_at_message_create 不再触发，
+        # 所有群消息都走此处。基于 role.bot_id 区分消息类型以避免 spam
+        content = message.content
+        bot_id = Constants.role_conf.get("bot_id", "")
+        if not bot_id:
+            return
+
+        bot_mention = f"<@{bot_id}>"
+        if bot_mention not in content and not content.startswith('/'):
+            # 非 @Bot → 仅 / 开头，其他静默
+            return
+
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+        Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
+                           f"收到公共群聊消息: {message.content}"
+                           f"{attachment_info}")
+        if bot_mention in content:
+            # @Bot → 去掉 @Bot 后等价于原 on_group_at_message_create 行为
+            message.content = message.content.replace(bot_mention, "")
+            packed_message = RobotMessage(self.api)
+            packed_message.setup_group_message(self.loop, message, is_public=False)
+            dispatch_message(packed_message)
+        else:
+            # 非 @Bot
+            packed_message = RobotMessage(self.api)
+            packed_message.setup_group_message(self.loop, message, is_public=True)
+            dispatch_message(packed_message)
+
     async def on_c2c_message_create(self, message: C2CMessage):
         attachment_info = (f" | {message.attachments}"
                            if len(message.attachments) > 0 else "")
@@ -159,7 +191,7 @@ def open_robot_session():
     intents = botpy.Intents.all()  # 对目前已支持的所有事件进行监听
     client = MyClient(intents=intents, timeout=60)
 
-    # 更新每日排行榜
-    threading.Thread(target=daily_sched_thread, args=[]).start()
+    # 启动定时任务调度器（具体任务由 activate_scheduled_jobs 在 on_ready 中注册）
+    threading.Thread(target=tasks_sched_thread, args=[]).start()
 
     client.run(appid=Constants.botpy_conf["appid"], secret=Constants.botpy_conf["secret"])

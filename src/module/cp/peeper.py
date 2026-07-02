@@ -3,10 +3,11 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from thefuzz import process
 
-from src.core.bot.decorator import command, module
+from src.core.bot.decorator import command, module, scheduled, parse_uuid
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
@@ -60,7 +61,8 @@ def _wrap_conf_id(conf_id: str, conf: dict) -> dict:
 
 
 def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
-    required = {"obot_conf_id": str, "obot_apply_to": list, "obot_is_private": bool}
+    required = {"obot_conf_id": str, "obot_apply_to": list, "obot_push_to": list,
+                "obot_is_private": bool}
 
     def _validate(i: int, check_conf: dict):
         for k, tp in required.items():
@@ -73,10 +75,22 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
                 )
         if not check_conf["obot_conf_id"]:
             raise RuntimeError(f"`obot_conf_id` cannot be empty in peeper.configs[{i}]")
-        if any(not isinstance(u, str) or not u for u in check_conf["obot_apply_to"]):
-            raise RuntimeError(
-                f"`obot_apply_to` must be non-empty strings in peeper.configs[{i}]"
-            )
+
+        # uuid 列表字段统一校验
+        for field in ("obot_apply_to", "obot_push_to"):
+            for j, _uuid in enumerate(check_conf[field]):
+                if not isinstance(_uuid, str) or not _uuid:
+                    raise RuntimeError(
+                        f"`{field}[{j}]` must be a non-empty string "
+                        f"in peeper.configs[{i}]"
+                    )
+                try:
+                    parse_uuid(_uuid)
+                except ValueError as e:
+                    raise RuntimeError(
+                        f"Invalid uuid in `{field}[{j}]` of "
+                        f"peeper.configs[{i}]"
+                    ) from e
 
     if len(execute_conf) == 0:
         raise RuntimeError("No config found.")
@@ -99,6 +113,11 @@ def _generate_peeper_conf(execute_conf: list) -> PeeperConfigs:
                     f"for {uuid}."
                 )
             uuid_dict[uuid] = wrapped
+        for uuid in wrapped["obot_push_to"]:
+            if uuid not in wrapped["obot_apply_to"]:
+                raise RuntimeError(
+                    f"Attempt to 'push' {conf_id} to {uuid} without 'apply' first"
+                )
         if idx == 0:  # 选取第一个作为默认
             default_conf = wrapped
 
@@ -191,7 +210,9 @@ def _call_lib_method(message: RobotMessage | None, prop: str,
     return result
 
 
-def peeper_daily_update_job():
+@scheduled(cron="0 0 * * *", targets=[], no_target=True)
+def peeper_daily_update():
+    """每日榜单数据更新，纯定时任务（无 message 参数）"""
     execute_conf = Constants.modules_conf.peeper["configs"]
     peeper_conf = _generate_peeper_conf(execute_conf)
     Constants.log.info(f'[peeper] 每日榜单更新任务开始，检测到 {len(peeper_conf.conf_dict)} 个榜单')
@@ -206,6 +227,22 @@ def peeper_daily_update_job():
             Constants.log.exception(f"[peeper] {e}")
 
     Constants.log.info("[peeper] 每日榜单更新任务完成")
+
+
+def _collect_push_targets() -> list[str]:
+    """从配置中收集所有 obot_push_to 目标 uuid，经过 _generate_peeper_conf 校验"""
+    execute_conf = Constants.modules_conf.peeper["configs"]
+    peeper_conf = _generate_peeper_conf(execute_conf)
+    targets = []
+    for conf in peeper_conf.conf_dict.values():
+        targets.extend(conf.get("obot_push_to", []))
+    return targets
+
+
+@scheduled(cron="30 0 * * *", targets=_collect_push_targets())
+def push_yesterday_board(message: RobotMessage):
+    """定时主动推送昨日总榜，直接复用已有的 send_yesterday_board 逻辑"""
+    send_yesterday_board(message)
 
 
 def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
@@ -263,7 +300,9 @@ def send_today_board(message: RobotMessage):
 @command(tokens=['昨日总榜', 'yesterday', 'full'])
 def send_yesterday_board(message: RobotMessage):
     conf_id = message.tokens[1] if len(message.tokens) >= 2 else None
-    message.reply("正在查询昨日总榜，请稍等")
+
+    if not message.is_active():
+        message.reply("正在查询昨日总榜，请稍等")
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
@@ -272,7 +311,8 @@ def send_yesterday_board(message: RobotMessage):
     if run is None:
         return
 
-    message.reply("昨日卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
+    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y/%m/%d")
+    message.reply(f"{yesterday} 卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
 
 
 def get_version_info() -> str:

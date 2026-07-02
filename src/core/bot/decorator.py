@@ -1,11 +1,26 @@
 import logging
+from dataclasses import dataclass
 from typing import Callable
 
+from src.core.bot.message import MessageType
 from src.core.bot.perm import PermissionLevel
 
 __commands_primary__: dict[str, dict[str, str]] = {}
 __commands__: dict[str, dict[str, tuple[Callable, PermissionLevel, bool, bool]]] = {}
 __modules__: dict[str, str | Callable[[], str]] = {}
+
+
+@dataclass(frozen=True)
+class ScheduledJobInfo:
+    """定时任务的元数据"""
+    func: Callable
+    cron: str                       # 标准5段cron表达式，如 "0 9 * * *"
+    module_name: str = ""
+    message_type: MessageType | None = None   # None = 纯定时任务，不传递 message
+    target: str | None = None                 # 消息目标 ID，纯定时任务时为 None
+
+
+__scheduled_jobs__: dict[str, list[ScheduledJobInfo]] = {}
 
 
 def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
@@ -56,6 +71,56 @@ def module(name: str,
 
     logging.getLogger("entry").debug(f'[obot-init] 载入模块 {name} '
                                      f'{version if isinstance(version, str) else "v_dynamic"}')
+
+    return decorator
+
+
+def parse_uuid(uuid: str) -> tuple[MessageType, str]:
+    """从 uuid 解析消息类型和目标 ID，uuid 格式为 {prefix}_{id}"""
+    uuid_prefix_map = {
+        "guild_": MessageType.GUILD,
+        "direct_": MessageType.DIRECT,
+        "group_": MessageType.GROUP,
+        "c2c_": MessageType.C2C,
+    }
+    for prefix, msg_type in uuid_prefix_map.items():
+        if uuid.startswith(prefix) and len(uuid) > len(prefix):
+            return msg_type, uuid[len(prefix):]
+    raise ValueError(f"Invalid uuid: {uuid!r}, "
+                     f"must start with guild_/direct_/group_/c2c_ "
+                     f"and non-empty id")
+
+
+def scheduled(cron: str, targets: list[str], no_target: bool = False):
+    """
+        注册一条定时主动消息任务。
+
+        :param cron: 标准 5 段 cron 表达式，如 "0 9 * * *" (分 时 日 月 周)
+        :param targets: 目标 uuid 列表，格式为 {prefix}_{id}
+                        可通过 /chat_scene_id 获取：
+                        guild_{channel_id}   -> 频道消息
+                        direct_{guild_id}    -> 频道私信
+                        group_{group_openid} -> 群聊消息
+                        c2c_{openid}         -> 私聊消息
+        :param no_target: 可选，为 True 时设定为纯定时任务，方法将不传递 message 参数
+    """
+
+    def decorator(func):
+        module_name = func.__module__ or "default.unknown"
+
+        __scheduled_jobs__.setdefault(module_name, [])
+        if no_target:
+            # 纯定时任务，不传递 message 参数
+            __scheduled_jobs__[module_name].append(
+                ScheduledJobInfo(func=func, cron=cron, module_name=module_name))
+        else:
+            for uuid in targets:
+                message_type, target_id = parse_uuid(uuid)
+                __scheduled_jobs__[module_name].append(
+                    ScheduledJobInfo(func=func, cron=cron,
+                                     message_type=message_type, target=target_id,
+                                     module_name=module_name))
+        return func
 
     return decorator
 
