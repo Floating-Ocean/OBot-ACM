@@ -5,13 +5,12 @@ https://github.com/DSP-8192/HuoZiYinShua/blob/main/huoZiYinShua.py
 import json
 import os
 
-import av
 import numpy as np
-import pilk
 import soundfile as sf
 from pypinyin import lazy_pinyin
 
 from src.core.constants import Constants
+from src.core.util.silk_convert import convert_to_silk
 
 
 class HuoZiYinShua:
@@ -46,47 +45,10 @@ class HuoZiYinShua:
                              np.linspace(0, new_len - 1, len(data)), data)  # 转换
         return data
 
-    @classmethod
-    def _convert_to_pcm(cls, in_path: str, remove_origin: bool = True) -> tuple[str, int]:
-        """任意媒体文件转 pcm"""
-        out_path = os.path.splitext(in_path)[0] + '.pcm'
-        converted = False
-        try:
-            with av.open(in_path) as in_container:
-                in_stream = in_container.streams.audio[0]
-                sample_rate = in_stream.codec_context.sample_rate
-                with av.open(out_path, 'w', 's16le') as out_container:
-                    out_stream = out_container.add_stream(
-                        'pcm_s16le',
-                        rate=sample_rate,
-                        layout='mono'
-                    )
-                    for frame in in_container.decode(in_stream):
-                        frame.pts = None
-                        for packet in out_stream.encode(frame):
-                            out_container.mux(packet)
-                    converted = True
-        except Exception as e:
-            Constants.log.warning("[hzys] 转换 pcm 失败")
-            Constants.log.exception(e)
-
-        if remove_origin and converted:
-            os.remove(in_path)
-        return out_path, sample_rate
-
-    @classmethod
-    def _convert_to_silk(cls, media_path: str) -> str:
-        """任意媒体文件转 silk, 返回silk路径"""
-        pcm_path, sample_rate = cls._convert_to_pcm(media_path)
-        silk_path = os.path.splitext(pcm_path)[0] + '.silk'
-        pilk.encode(pcm_path, silk_path, pcm_rate=sample_rate, tencent=True)
-        os.remove(pcm_path)
-        return silk_path
-
     def generate(self, raw_data: str, output_path: str) -> str:
         """生成音频，返回 .silk 语音文件路径"""
         sf.write(output_path + '.wav', self._concat(raw_data), self._TARGET_SR)
-        return self._convert_to_silk(output_path + '.wav')
+        return convert_to_silk(output_path + '.wav')
 
     def _concat(self, raw_data: str) -> np.ndarray:
         """拼接音频"""
