@@ -149,9 +149,16 @@ class MyClient(Client):
     async def on_group_message_create(self, message: GroupMessage):
         # 当 bot 拥有接收全部消息权限时，on_group_at_message_create 不再触发，
         # 所有群消息都走此处。基于 role.bot_id 区分消息类型以避免 spam
+        attachment_info = (f" | {message.attachments}"
+                           if len(message.attachments) > 0 else "")
+
         content = message.content
         bot_id = Constants.role_conf.get("bot_id", "")
         if not bot_id:
+            Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
+                               f"收到公共群聊消息: {message.content}"
+                               f"{attachment_info}")
+            Constants.log.warning(f"[obot-act] 未配置 config.role.bot_id，弃置消息")
             return
 
         bot_mention = f"<@{bot_id}>"
@@ -159,8 +166,6 @@ class MyClient(Client):
             # 非 @Bot → 仅 / 开头，其他静默
             return
 
-        attachment_info = (f" | {message.attachments}"
-                           if len(message.attachments) > 0 else "")
         Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
                            f"收到公共群聊消息: {message.content}"
                            f"{attachment_info}")
