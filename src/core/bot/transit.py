@@ -8,7 +8,7 @@ from typing import Callable
 from apscheduler.triggers.cron import CronTrigger
 
 from src.core.bot.decorator import __commands__, __scheduled_jobs__
-from src.core.bot.interact import reply_key_words, no_reply
+from src.core.bot.interact import reply_key_words, no_reply, reply_command_not_found
 from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
@@ -68,7 +68,7 @@ def get_message_id(message: RobotMessage) -> MessageID:
         if message.is_guild_public() or message.is_group_public():
             return MessageID("default.manual", "no_reply")
 
-        if '/' in func:
+        if func.startswith('/'):
             return MessageID("default.manual", "reply_not_implemented")
         else:
             return MessageID("default.manual", "reply_key_words_func")
@@ -123,8 +123,8 @@ def handle_message(message: RobotMessage, message_id: MessageID):
             None: (no_reply, {}),
             MessageID("default.manual", "no_reply"): (no_reply, {}),
             MessageID("default.manual", "reply_not_implemented"): (
-                message.reply,
-                {"content": "其他指令还在开发中"}
+                reply_command_not_found,
+                {"message": message, "content": message.tokens[0].lower()}
             ),
             MessageID("default.manual", "reply_key_words_empty"): (
                 reply_key_words,

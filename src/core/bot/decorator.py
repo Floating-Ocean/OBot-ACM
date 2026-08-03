@@ -2,6 +2,8 @@ import logging
 from dataclasses import dataclass
 from typing import Callable
 
+from thefuzz import process
+
 from src.core.bot.message import MessageType
 from src.core.bot.perm import PermissionLevel
 
@@ -128,6 +130,41 @@ def scheduled(cron: str, targets: list[str], no_target: bool = False):
 def get_command_count() -> int:
     """获取当前注册的主指令数量 (不包括别名)"""
     return sum(len(module_commands) for module_commands in __commands_primary__.values())
+
+
+def find_similar_commands(input_cmd: str, limit: int = 3,
+                          permission_level: PermissionLevel = PermissionLevel.USER) -> list[str]:
+    """
+    在已注册的指令中模糊查找与输入最相似的候选指令。
+
+        :param input_cmd: 用户输入的指令，如 "/cf"
+        :param limit: 返回候选的最大数量
+        :param permission_level: 用户的权限等级，不会返回权限不足的指令
+        :return: 候选指令名列表，按相似度降序
+    """
+    if not input_cmd:
+        return []
+
+    command_levels: dict[str, PermissionLevel] = {}
+    for module_commands in __commands__.values():
+        for cmd, (_, execute_level, _, _) in module_commands.items():
+            if not cmd.startswith('/'):
+                continue
+            name = cmd[:-1] if cmd.endswith('*') else cmd
+            if name not in command_levels:
+                command_levels[name] = execute_level
+
+    accessible_commands = [name for name, level in command_levels.items()
+                           if level <= permission_level]
+    candidates = process.extract(input_cmd, accessible_commands, limit=limit)
+
+    suggestions: list[str] = []
+    for candidate, ratio in candidates:
+        if ratio >= 50 and candidate not in suggestions:
+            suggestions.append(candidate)
+        if len(suggestions) >= limit:
+            break
+    return suggestions
 
 
 def get_command_alias_count() -> int:
