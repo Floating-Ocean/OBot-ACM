@@ -154,11 +154,13 @@ def find_similar_commands(input_cmd: str, limit: int = 3,
             if name not in command_levels:
                 command_levels[name] = execute_level
 
-    candidates = process.extract(input_cmd, list(command_levels.keys()), limit=limit)
+    accessible_commands = [name for name, level in command_levels.items()
+                           if level <= permission_level]
+    candidates = process.extract(input_cmd, accessible_commands, limit=limit)
 
     suggestions: list[str] = []
     for candidate, ratio in candidates:
-        if ratio >= 50 and candidate not in suggestions and command_levels[candidate] <= permission_level:
+        if ratio >= 50 and candidate not in suggestions:
             suggestions.append(candidate)
         if len(suggestions) >= limit:
             break
