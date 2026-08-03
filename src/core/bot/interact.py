@@ -5,6 +5,7 @@ from typing import Callable
 from pypinyin import pinyin, Style
 from thefuzz import process
 
+from src.core.bot.decorator import find_similar_commands
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.tools import check_is_int
@@ -15,6 +16,19 @@ def no_reply():
     无回复
     """
     pass
+
+
+def reply_command_not_found(message: RobotMessage, content: str):
+    """
+    回复未匹配到的 '/' 指令，并附上模糊查找得到的候选指令
+    """
+    suggestions = find_similar_commands(content, limit=3,
+                                        permission_level=message.user_permission_level)
+    if suggestions:
+        message.reply("没有找到该指令，猜你想找：\n" +
+                      "\n".join(f"{suggestion}" for suggestion in suggestions), modal_words=False)
+    else:
+        message.reply("没有找到该指令，输入 /help 查看可用指令")
 
 
 def reply_key_words(message: RobotMessage, content: str):
