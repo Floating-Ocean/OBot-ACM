@@ -7,8 +7,28 @@ from thefuzz import process
 from src.core.bot.message import MessageType
 from src.core.bot.perm import PermissionLevel
 
+@dataclass(frozen=True)
+class CommandScope:
+    """
+    指令的对话场景限制。
+
+    :param types: 允许的对话场景，单个 MessageType 或 MessageType 列表。
+                  GUILD=频道公屏，DIRECT=频道私信，GROUP=群聊，C2C=私聊
+    :param denied_reply: 场景失配时的回复内容，可自定义
+    """
+    types: MessageType | list[MessageType]
+    denied_reply: str = "该指令不可在当前对话场景下使用"
+
+    def __post_init__(self):
+        if isinstance(self.types, MessageType):
+            object.__setattr__(self, "types", frozenset([self.types]))
+        else:
+            object.__setattr__(self, "types", frozenset(self.types))
+
+
 __commands_primary__: dict[str, dict[str, str]] = {}
-__commands__: dict[str, dict[str, tuple[Callable, PermissionLevel, bool, bool]]] = {}
+__commands__: dict[str, dict[str, tuple[Callable, PermissionLevel, bool, bool,
+                                          CommandScope | None]]] = {}
 __modules__: dict[str, str | Callable[[], str]] = {}
 
 
@@ -26,7 +46,8 @@ __scheduled_jobs__: dict[str, list[ScheduledJobInfo]] = {}
 
 
 def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
-            is_command: bool = True, multi_thread: bool = False):
+            is_command: bool = True, multi_thread: bool = False,
+            scope: CommandScope | None = None):
     """
         创建一条命令。
 
@@ -34,6 +55,8 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
         :param permission_level: 执行需要的权限等级，默认为USER，代表用户都可执行，MOD为内容审核用户，ADMIN为管理员
         :param is_command: 代表该条指令需不需要前置 "/"
         :param multi_thread: 同一文件下注册的函数是否只有一个工作线程，若为多线程则同文件同上下文（如同一群组）只有一个工作线程
+        :param scope: 限制该指令可用的对话场景，为 CommandScope，不指定时无限制。
+                      失配时将以 CommandScope.denied_reply 回复
 
         multi_thread为真时，线程生命周期最多一小时
     """
@@ -52,7 +75,7 @@ def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.US
         for token in tokens:
             token_name = (f'/{token}' if is_command else f'{token}').lower()  # 忽略大小写直接匹配
             __commands__[module_name][token_name] = (
-                func, permission_level, is_command, multi_thread)
+                func, permission_level, is_command, multi_thread, scope)
         return func
 
     return decorator
@@ -147,7 +170,7 @@ def find_similar_commands(input_cmd: str, limit: int = 3,
 
     command_levels: dict[str, PermissionLevel] = {}
     for module_commands in __commands__.values():
-        for cmd, (_, execute_level, _, _) in module_commands.items():
+        for cmd, (_, execute_level, _, _, _) in module_commands.items():
             if not cmd.startswith('/'):
                 continue
             name = cmd[:-1] if cmd.endswith('*') else cmd

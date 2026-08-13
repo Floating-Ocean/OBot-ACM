@@ -18,6 +18,13 @@ def no_reply():
     pass
 
 
+def reply_specified(message: RobotMessage, content: str):
+    """
+    回复指定内容
+    """
+    message.reply(content, modal_words=False)
+
+
 def reply_command_not_found(message: RobotMessage, content: str):
     """
     回复未匹配到的 '/' 指令，并附上模糊查找得到的候选指令

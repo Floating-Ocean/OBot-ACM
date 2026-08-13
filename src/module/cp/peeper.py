@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 
 from thefuzz import process
 
-from src.core.bot.decorator import command, module, scheduled, parse_uuid
-from src.core.bot.message import RobotMessage
+from src.core.bot.decorator import command, module, scheduled, parse_uuid, CommandScope
+from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.tools import run_py_file, escape_mail_url, png2jpg, check_is_int, clean_unsafe_shell_str
@@ -330,7 +330,9 @@ def get_version_info() -> str:
         return version[1]
 
 
-@command(tokens=['user'])
+@command(tokens=['user'],
+         scope=CommandScope([MessageType.C2C, MessageType.DIRECT],
+                            denied_reply="只能在私聊中查询用户信息哦"))
 def send_oj_user(message: RobotMessage):
     content = message.tokens
     if len(content) < 3:

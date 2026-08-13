@@ -8,7 +8,7 @@ from typing import Callable
 from apscheduler.triggers.cron import CronTrigger
 
 from src.core.bot.decorator import __commands__, __scheduled_jobs__
-from src.core.bot.interact import reply_key_words, no_reply, reply_command_not_found
+from src.core.bot.interact import reply_key_words, no_reply, reply_command_not_found, reply_specified
 from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
@@ -26,11 +26,20 @@ _MAINTAINING_SIGNAL = False
 @dataclass(frozen=True)
 class MessageID:
     """
-    消息的身份，包含所属模块，命令名，和是否多线程
+    消息的身份，包含所属模块，命令名，是否多线程，指定回复内容
     """
     module: str
     command: str
     multi_thread: bool = False
+    specified_reply: str | None = None
+
+    def __eq__(self, other):
+        if not isinstance(other, MessageID):
+            return NotImplemented
+        return self.module == other.module and self.command == other.command
+
+    def __hash__(self):
+        return hash((self.module, self.command))
 
 
 def get_message_id(message: RobotMessage) -> MessageID:
@@ -43,16 +52,23 @@ def get_message_id(message: RobotMessage) -> MessageID:
         if len(content) == 0 and not message.is_guild_public():
             return MessageID("default.manual", "reply_key_words_empty")
 
+        denied_reply = None
         func = content[0].lower()
         for module in __commands__:
             module_commands = __commands__[module]
             for cmd in module_commands:
                 starts_with = cmd[-1] == '*' and func.startswith(cmd[:-1])
                 if starts_with or cmd == func:
-                    original_command, _, is_command, multi_thread = module_commands[cmd]
+                    original_command, _, is_command, multi_thread, scope = module_commands[cmd]
 
                     if not is_command and (message.is_guild_public() or message.is_group_public()):
                         # 对频道/群聊无at消息的过滤，避免spam
+                        continue
+
+                    if scope and message.message_type not in scope.types:
+                        # 指令限定了对话场景，记录失配回复后继续尝试下一条指令
+                        if denied_reply is None:
+                            denied_reply = scope.denied_reply
                         continue
 
                     if multi_thread:
@@ -63,6 +79,11 @@ def get_message_id(message: RobotMessage) -> MessageID:
 
                     _work_thread_life[module] = -1
                     return MessageID(module, cmd)
+
+        # 命中了受限指令但场景失配，按自定义内容回复而不是静默忽略
+        if denied_reply is not None:
+            return MessageID("default.manual", "reply_specified",
+                             specified_reply=denied_reply)
 
         # 如果是频道/群聊无at消息可能是发错了或者并非用户希望的处理对象
         if message.is_guild_public() or message.is_group_public():
@@ -122,6 +143,10 @@ def handle_message(message: RobotMessage, message_id: MessageID):
         fixed_handlers = {
             None: (no_reply, {}),
             MessageID("default.manual", "no_reply"): (no_reply, {}),
+            MessageID("default.manual", "reply_specified"): (
+                reply_specified,
+                {"message": message, "content": message_id.specified_reply}
+            ),
             MessageID("default.manual", "reply_not_implemented"): (
                 reply_command_not_found,
                 {"message": message, "content": message.tokens[0].lower()}
@@ -143,7 +168,7 @@ def handle_message(message: RobotMessage, message_id: MessageID):
 
         func = message.tokens[0].lower()
 
-        (original_command, execute_level, _, _) = __commands__[message_id.module][message_id.command]
+        (original_command, execute_level, _, _, _) = __commands__[message_id.module][message_id.command]
 
         _check_permission(execute_level, func, message, message_id)
 
