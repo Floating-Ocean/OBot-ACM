@@ -19,6 +19,8 @@ _CATEGORY_CHIP_PADDING_HORIZONTAL = 26
 _CATEGORY_CHIP_PADDING_VERTICAL = 9
 _RESTRICTION_CHIP_PADDING_HORIZONTAL = 26
 _RESTRICTION_CHIP_PADDING_VERTICAL = 12
+_PARAM_CHIP_PADDING_HORIZONTAL = 18
+_PARAM_CHIP_PADDING_VERTICAL = 10
 
 _CATEGORY_NAMES = {
     'Main': '榜单·比赛',
@@ -55,6 +57,9 @@ class _HelpItem(RenderableSection):
     def __init__(self, single_help: Help, accent_color: str):
         self._help = single_help
         accent_light_color = lighten_color(hex_to_color(accent_color), _ACCENT_LIGHT_RATIO)
+        # 必填参数标签：高亮实心底；选填参数标签：淡色底
+        self._required_chip_color = change_alpha(accent_light_color, 200)
+        self._optional_chip_color = change_alpha(accent_light_color, 56)
 
         # 拆出限制短语，剩余内容作为描述展示
         self._restriction_text = None
@@ -63,19 +68,6 @@ class _HelpItem(RenderableSection):
             if re.search(pattern, self._help_content):
                 self._restriction_text = tag
                 self._help_content = self._help_content.replace(pattern, "").strip("，。 ,")
-
-        # 命令拆分为"命令本体 + 参数"分段，参数用强调色渲染
-        self._segments = []
-        for raw_segment in _PARAM_PATTERN.split(single_help.command):
-            if not raw_segment:
-                continue
-            is_param = _PARAM_PATTERN.fullmatch(raw_segment) is not None
-            self._segments.append((
-                StyledString(raw_segment, 'H', 52,
-                             font_color=accent_light_color if is_param else (255, 255, 255)),
-                is_param
-            ))
-        self._line_height = self._segments[0][0].height
 
         # 限制标签，绘制在命令行的右侧
         self.str_restriction = (StyledString(self._restriction_text, 'B', 26,
@@ -87,25 +79,48 @@ class _HelpItem(RenderableSection):
                                         int(calculate_width(self.str_restriction))
                                         if self.str_restriction else 0)
 
-        self.str_help = StyledString(
-            self._help_content, 'B', 28, font_color=(255, 255, 255, 228),
-            max_width=_CONTENT_WIDTH, line_multiplier=1.36
-        )
+        # 命令拆分为"命令本体 + 参数标签"分段，括号的必填/选填语义由标签虚实表达
+        self._segments = []
+        for raw_segment in _PARAM_PATTERN.split(single_help.command):
+            if not raw_segment:
+                continue
+            is_param = _PARAM_PATTERN.fullmatch(raw_segment) is not None
+            if is_param:
+                is_required = raw_segment.startswith('[')
+                str_label = StyledString(
+                    raw_segment.strip('[]()'), 'B', 32,
+                    font_color=(15, 15, 15, 235) if is_required else accent_light_color
+                )
+                self._segments.append((
+                    (str_label, is_required),
+                    int(calculate_width(str_label)) + _PARAM_CHIP_PADDING_HORIZONTAL * 2,
+                    str_label.height + _PARAM_CHIP_PADDING_VERTICAL * 2
+                ))
+            else:
+                str_segment = StyledString(raw_segment, 'H', 52, font_color=(255, 255, 255))
+                self._segments.append((str_segment, int(calculate_width(str_segment)),
+                                       str_segment.height))
 
         # 将命令分段按宽度折行
         command_max_width = _CONTENT_WIDTH - self._restriction_chip_width - 28
         self._lines = [[]]
         line_width = 0
-        for segment, is_param in self._segments:
-            segment_width = int(calculate_width(segment))
-            if line_width > 0 and line_width + segment_width > command_max_width:
+        for segment, width, _height in self._segments:
+            if line_width > 0 and line_width + width > command_max_width:
                 self._lines.append([])
                 line_width = 0
-            self._lines[-1].append((segment, is_param))
-            line_width += segment_width
+            self._lines[-1].append((segment, width, _height))
+            line_width += width
+        self._line_height = max(_height for _, _, _height in self._lines[0])
+
+        self.str_help = StyledString(
+            self._help_content, 'B', 28, font_color=(255, 255, 255, 228),
+            max_width=_CONTENT_WIDTH, line_multiplier=1.36
+        )
 
     def get_height(self):
-        command_height = len(self._lines) * self._line_height + 16
+        command_height = sum(max(_height for _, _, _height in line) for line in self._lines)
+        command_height += 16
         return command_height + calculate_height(self.str_help)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
@@ -122,10 +137,20 @@ class _HelpItem(RenderableSection):
 
         for line in self._lines:
             line_x = current_x
-            for segment, _ in line:
-                draw_text(img, segment, line_x, current_y)
-                line_x += int(calculate_width(segment))
-            current_y += self._line_height
+            line_height = max(_height for _, _, _height in line)
+            for segment, width, height in line:
+                if isinstance(segment, StyledString):
+                    draw_text(img, segment, line_x, current_y)
+                else:
+                    str_label, is_required = segment
+                    chip_y = current_y + (line_height - height) // 2
+                    draw_mask_rect(img, Loc(line_x, chip_y, width, height),
+                                   self._required_chip_color if is_required
+                                   else self._optional_chip_color, height // 2)
+                    draw_text(img, str_label, line_x + _PARAM_CHIP_PADDING_HORIZONTAL,
+                              chip_y + (height - str_label.height) // 2)
+                line_x += width
+            current_y += line_height
         current_y += 16
         current_y = draw_text(img, self.str_help, current_x, current_y)
 
@@ -240,19 +265,14 @@ class _TitleSection(RenderableSection):
 
 class _CopyrightSection(RenderableSection):
 
-    def __init__(self, gradient_color_name: str, accent_color: str):
+    def __init__(self, gradient_color_name: str):
         mild_text_color = (255, 255, 255, 156)
-        accent_light_color = lighten_color(hex_to_color(accent_color), _ACCENT_LIGHT_RATIO)
-        # 顶部与内容区分隔的渐隐线
-        self._line_color = change_alpha(accent_light_color, _LINE_ALPHA)
-        self._line_color_tran = change_alpha(accent_light_color, 0)
-        self._line_gap = 26
 
         self.str_tips_title = StyledString(
             "Tips:", 'H', 36, padding_bottom=64, font_color=(255, 255, 255, 228)
         )
         self.str_tips_detail = StyledString(
-            "中括号必填，小括号选填，使用指令时不用加括号", 'M', 28,
+            "实心标签必填，淡色标签选填，输入参数时无需加任何符号", 'M', 28,
             line_multiplier=1.32, padding_bottom=64, font_color=(255, 255, 255, 228),
             max_width=_CONTENT_WIDTH - calculate_width(self.str_tips_title) - 12  # 考虑右边界，不然画出去了
         )
@@ -268,11 +288,6 @@ class _CopyrightSection(RenderableSection):
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
 
-        draw_gradient_rect(img, Loc(current_x, current_y, _CONTENT_WIDTH, 2),
-                           GradientColor([self._line_color, self._line_color_tran], [0.0, 1.0], ''),
-                           GradientDirection.HORIZONTAL, 1)
-        current_y += self._line_gap
-
         draw_text(img, self.str_tips_title, current_x, current_y)
         current_y = draw_text(img, self.str_tips_detail,
                               current_x + calculate_width(self.str_tips_title) + 12,
@@ -283,9 +298,8 @@ class _CopyrightSection(RenderableSection):
         return current_y
 
     def get_height(self):
-        return (self._line_gap +
-                calculate_height([self.str_tips_title,
-                                  self.str_generator, self.str_generation_info]))
+        return calculate_height([self.str_tips_title,
+                                 self.str_generator, self.str_generation_info])
 
 
 class HelpRenderer(SimpleCardRenderer):
@@ -305,7 +319,6 @@ class HelpRenderer(SimpleCardRenderer):
     def _get_render_sections(self) -> list[RenderableSection]:
         section_title = _TitleSection(self._gradient_color.color_list[-1])
         section_help = _HelpSection(Constants.help_contents, self._gradient_color.color_list[-1])
-        section_copyright = _CopyrightSection(self._gradient_color.name,
-                                              self._gradient_color.color_list[-1])
+        section_copyright = _CopyrightSection(self._gradient_color.name)
 
         return [section_title, section_help, section_copyright]
