@@ -2,7 +2,7 @@ import re
 
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
-    tuple_to_color, change_alpha, hex_to_color, lighten_color, draw_mask_rect, pick_gradient_color, pick_gradient_color
+    tuple_to_color, change_alpha, hex_to_color, lighten_color, draw_mask_rect, pick_gradient_color
 
 from src.core.constants import Constants, Help
 from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
@@ -52,7 +52,7 @@ _RESTRICTION_PATTERNS = [
 ]
 
 # 参数的正则：中括号为必填，小括号为选填
-_PARAM_PATTERN = re.compile(r"(\[[^\]]*\]|\([^)]*\))")
+_PARAM_PATTERN = re.compile(r"(\[[^]]*]|\([^)]*\))")
 
 
 class _HelpItem(RenderableSection):
