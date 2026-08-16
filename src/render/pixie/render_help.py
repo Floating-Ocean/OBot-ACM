@@ -1,6 +1,8 @@
+import re
+
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, calculate_width, Loc, draw_img, \
-    tuple_to_color, change_alpha, hex_to_color, lighten_color
+    tuple_to_color, change_alpha, hex_to_color, lighten_color, draw_mask_rect
 
 from src.core.constants import Constants, Help
 from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
@@ -8,77 +10,180 @@ from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRender
 _CONTENT_WIDTH = 916
 _COLUMN_PADDING = 192
 _HELP_ITEM_PADDING = 64
-_HELP_SECTION_PADDING = 136
+_HELP_CATEGORY_PADDING = 136
+
+_CATEGORY_NAMES = {
+    'Main': '榜单·比赛',
+    'sub': '用户·信息',
+    'contestant': '选手查询',
+    'codeforces': 'Codeforces',
+    'atcoder': 'AtCoder',
+    'nowcoder': 'NowCoder',
+    'pick_one': '来只',
+    'random': '随机数',
+    'mc': 'Minecraft',
+    'tetris': '俄罗斯方块',
+    'guess-interval': '区间猜数',
+    'guess-1a2b': '1A2B',
+    'git-cmd': 'Git 管理',
+    'misc1': '趣味工具',
+    'misc2': '管理',
+    'help': '帮助',
+}
+
+# 描述文本中可识别的限制短语及其标签文案
+_RESTRICTION_PATTERNS = [
+    (r"需要管理员权限", "管理员"),
+    (r"需要管理员审核", "需审核"),
+    (r"最多连续被执行一次", "仅限1次"),
+]
+
+# 参数的正则：中括号为必填，小括号为选填
+_PARAM_PATTERN = re.compile(r"(\[[^\]]*\]|\([^)]*\))")
 
 
 class _HelpItem(RenderableSection):
 
-    def __init__(self, single_help: Help):
+    def __init__(self, single_help: Help, accent_color: str):
         self._help = single_help
+        accent_light_color = lighten_color(hex_to_color(accent_color), 0.8)
 
-        self.str_command = StyledString(
-            self._help.command, 'H', 52, font_color=(255, 255, 255), padding_bottom=16,
-            max_width=_CONTENT_WIDTH
-        )
+        # 拆出限制短语，剩余内容作为描述展示
+        self._restriction_text = None
+        self._help_content = single_help.help
+        for pattern, tag in _RESTRICTION_PATTERNS:
+            if re.search(pattern, self._help_content):
+                self._restriction_text = tag
+                self._help_content = self._help_content.replace(pattern, "").strip("，。 ,")
+
+        # 命令拆分为"命令本体 + 参数"分段，参数用强调色渲染
+        self._segments = []
+        for raw_segment in _PARAM_PATTERN.split(single_help.command):
+            if not raw_segment:
+                continue
+            is_param = _PARAM_PATTERN.fullmatch(raw_segment) is not None
+            self._segments.append((
+                StyledString(raw_segment, 'H', 52,
+                             font_color=accent_light_color if is_param else (255, 255, 255)),
+                is_param
+            ))
+        self._line_height = self._segments[0][0].height
+
+        # 限制标签，绘制在命令行的右侧
+        self.str_restriction = (StyledString(self._restriction_text, 'B', 26,
+                                             font_color=(255, 222, 170)) if self._restriction_text
+                                else None)
+        self._restriction_chip_height = 8 * 2 + (self.str_restriction.height if self.str_restriction else 0)
+        self._restriction_chip_width = (16 * 2 + int(calculate_width(self.str_restriction))
+                                        if self.str_restriction else 0)
+
         self.str_help = StyledString(
-            self._help.help, 'B', 28, font_color=(255, 255, 255, 228),
+            self._help_content, 'B', 28, font_color=(255, 255, 255, 228),
             max_width=_CONTENT_WIDTH, line_multiplier=1.36
         )
 
+        # 将命令分段按宽度折行
+        command_max_width = _CONTENT_WIDTH - self._restriction_chip_width - 28
+        self._lines = [[]]
+        line_width = 0
+        for segment, is_param in self._segments:
+            segment_width = int(calculate_width(segment))
+            if line_width > 0 and line_width + segment_width > command_max_width:
+                self._lines.append([])
+                line_width = 0
+            self._lines[-1].append((segment, is_param))
+            line_width += segment_width
+
     def get_height(self):
-        return calculate_height([self.str_command, self.str_help])
+        command_height = len(self._lines) * self._line_height + 16
+        return command_height + calculate_height(self.str_help)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
-        current_y = draw_text(img, self.str_command, current_x, current_y)
+
+        if self.str_restriction:
+            chip_x = current_x + _CONTENT_WIDTH - self._restriction_chip_width
+            chip_y = current_y + (self._line_height - self._restriction_chip_height) // 2
+            draw_mask_rect(img, Loc(chip_x, chip_y, self._restriction_chip_width,
+                                    self._restriction_chip_height),
+                           (255, 222, 170, 44), self._restriction_chip_height // 2)
+            draw_text(img, self.str_restriction, chip_x + 16,
+                      chip_y + (self._restriction_chip_height - self.str_restriction.height) // 2)
+
+        for line in self._lines:
+            line_x = current_x
+            for segment, _ in line:
+                draw_text(img, segment, line_x, current_y)
+                line_x += int(calculate_width(segment))
+            current_y += self._line_height
+        current_y += 16
         current_y = draw_text(img, self.str_help, current_x, current_y)
 
         return current_y
 
 
-class _HelpBundle(RenderableSection):
+class _HelpCategory(RenderableSection):
+    """分类色块标题 + 该分类下的指令列表"""
 
-    def __init__(self, helps: list[Help]):
-        self.section_help = [_HelpItem(single_help) for single_help in helps]
+    def __init__(self, category_name: str, helps: list[Help], accent_color: str):
+        accent_light_color = lighten_color(hex_to_color(accent_color), 0.8)
+        accent_light_color_tran = change_alpha(accent_light_color, 48)
+
+        self.str_title = StyledString(category_name, 'H', 36, font_color=accent_light_color)
+        self._chip_height = self.str_title.height + 12
+        self._chip_width = int(calculate_width(self.str_title)) + 28
+        self._chip_color = accent_light_color_tran
+
+        self.section_items = [_HelpItem(single_help, accent_color) for single_help in helps]
 
     def get_height(self):
-        return (sum(single_help.get_height() for single_help in self.section_help) +
-                _HELP_ITEM_PADDING * max(0, len(self.section_help) - 1))
+        items_height = (sum(item.get_height() for item in self.section_items) +
+                        _HELP_ITEM_PADDING * max(0, len(self.section_items) - 1))
+        return self._chip_height + 48 + items_height
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
 
+        draw_mask_rect(img, Loc(current_x, current_y, self._chip_width, self._chip_height),
+                       self._chip_color, self._chip_height // 2)
+        draw_text(img, self.str_title, current_x + 14,
+                  current_y + (self._chip_height - self.str_title.height) // 2)
+
+        current_y = y + self._chip_height + 48
         current_y -= _HELP_ITEM_PADDING
-        for single_help in self.section_help:
+        for item in self.section_items:
             current_y += _HELP_ITEM_PADDING
-            current_y = single_help.render(img, current_x, current_y)
+            current_y = item.render(img, current_x, current_y)
 
         return current_y
 
 
 class _HelpSection(RenderableSection):
 
-    def __init__(self, helps: dict[str, list[Help]]):
-        self.section_help = [_HelpBundle(help_items) for _, help_items in helps.items()]
+    def __init__(self, helps: dict[str, list[Help]], accent_color: str):
+        self.section_categories = [
+            _HelpCategory(_CATEGORY_NAMES.get(key, key), help_items, accent_color)
+            for key, help_items in helps.items()
+        ]
 
     def get_columns(self):
         return 3
 
     def get_height(self):
-        _, max_height = self._split_columns(self.section_help, _HELP_SECTION_PADDING)
+        _, max_height = self._split_columns(self.section_categories, _HELP_CATEGORY_PADDING)
         return max_height
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         current_x, current_y = x, y
-        current_y -= _HELP_SECTION_PADDING
+        current_y -= _HELP_CATEGORY_PADDING
         start_y, max_y = current_y, current_y
 
-        column_split, _ = self._split_columns(self.section_help, _HELP_SECTION_PADDING)
+        column_split, _ = self._split_columns(self.section_categories, _HELP_CATEGORY_PADDING)
         for current_col, _column in enumerate(column_split):
             current_y = start_y
-            for help_items in _column:
-                current_y += _HELP_SECTION_PADDING
-                current_y = help_items.render(
+            for category in _column:
+                current_y += _HELP_CATEGORY_PADDING
+                current_y = category.render(
                     img,
                     current_x + (_CONTENT_WIDTH + _COLUMN_PADDING) * current_col,
                     current_y
@@ -170,7 +275,7 @@ class HelpRenderer(SimpleCardRenderer):
 
     def _get_render_sections(self) -> list[RenderableSection]:
         section_title = _TitleSection(self._gradient_color.color_list[-1])
-        section_help = _HelpSection(Constants.help_contents)
+        section_help = _HelpSection(Constants.help_contents, self._gradient_color.color_list[-1])
         section_copyright = _CopyrightSection(self._gradient_color.name)
 
         return [section_title, section_help, section_copyright]
