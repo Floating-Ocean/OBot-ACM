@@ -211,8 +211,11 @@ def reply_img_transform(message: RobotMessage):
 
 @command(tokens=["dazs", "答案之书"])
 def reply_dazs(message: RobotMessage):
-    dazs_ans = get_dazs_resource()
-    message.reply(f"[答案之书] {random.choice(dazs_ans)}", modal_words=False)
+    if len(message.tokens) == 1:
+        message.reply("[答案之书] <empty>", modal_words=False)
+    else:
+        dazs_ans = get_dazs_resource()
+        message.reply(f"[答案之书] {random.choice(dazs_ans)}", modal_words=False)
 
 
 @module(
