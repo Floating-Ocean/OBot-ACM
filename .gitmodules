@@ -19,3 +19,6 @@
 [submodule "lib/Git-Pull-Indep"]
 	path = lib/Git-Pull-Indep
 	url = https://github.com/Floating-Ocean/Git-Pull-Indep.git
+[submodule "lib/Dazs"]
+	path = lib/Dazs
+	url = https://github.com/Floating-Ocean/OBot-Dazs.git

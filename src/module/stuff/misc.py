@@ -1,4 +1,5 @@
 import os
+import random
 import re
 import shutil
 
@@ -11,6 +12,7 @@ from src.core.util.img_transform import ImgSymmetric, apply_transform
 from src.core.util.tools import png2jpg, get_simple_qrcode, check_intersect, get_today_timestamp_range, fetch_url_json, \
     check_is_int
 from src.core.util.output_cache import get_cached_prefix
+from src.data.data_dazs import get_dazs_resource
 from src.module.stuff.mc import reply_mc_sleep
 from src.platform.manual.manual import ManualPlatform
 from src.platform.online.atcoder import AtCoder
@@ -207,9 +209,15 @@ def reply_img_transform(message: RobotMessage):
     message.reply(f"设置成功，在后续由你触发的指令中，{cnt} 张图片会 {way_desc}", modal_words=False)
 
 
+@command(tokens=["dazs", "答案之书"])
+def reply_dazs(message: RobotMessage):
+    dazs_ans = get_dazs_resource()
+    message.reply(f"[答案之书] {random.choice(dazs_ans)}", modal_words=False)
+
+
 @module(
     name="Misc",
-    version="v3.1.3"
+    version="v3.2.0"
 )
 def register_module():
     pass
