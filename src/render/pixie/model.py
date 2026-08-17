@@ -70,36 +70,51 @@ class RenderableSection(abc.ABC):
     def _split_columns(self,
                        sections: list["RenderableSection"],
                        section_padding: int) -> tuple[list[list["RenderableSection"]], int]:
-        """适用于嵌套且需分栏的场景，根据高度进行分栏，基于贪心策略，放不下时全部放在最后一栏"""
-        columns = self.get_columns()
-        total_height = (sum(section.get_height() for section in sections) +
-                        section_padding * (len(sections) - columns))
-        column_height = -section_padding
-        max_height = 0
+        """适用于嵌套且需分栏的场景，保持原有顺序、按高度均衡分栏：
+        二分搜索最小可行的最大列高，使各列高度尽量接近，避免某列被超高项目撑起导致其余列大量留白"""
+        if not sections:
+            return [[]], 0
 
-        height_limit = total_height / columns
-        first_column_exceeds = False
+        column_limit = max(1, min(self.get_columns(), len(sections)))
+        heights = [section.get_height() for section in sections]
+
+        def _can_fit(max_column_height: int) -> bool:
+            _used_columns = 1
+            _column_height = 0
+            for height in heights:
+                if _column_height:
+                    _column_height += section_padding
+                _column_height += height
+                if _column_height > max_column_height:
+                    _used_columns += 1
+                    _column_height = height
+                    if _used_columns > column_limit:
+                        return False
+            return True
+
+        height_low = max(heights)
+        height_high = sum(heights) + section_padding * (len(heights) - 1)
+        while height_low < height_high:
+            height_mid = (height_low + height_high) // 2
+            if _can_fit(height_mid):
+                height_high = height_mid
+            else:
+                height_low = height_mid + 1
+
         split_sections = [[]]
-
+        column_height = -section_padding
         for section in sections:
             section_height = section.get_height()
-            if len(split_sections) < columns and (
-                    column_height + section_height + section_padding > height_limit):
-                if len(split_sections) == 1:
-                    # 额外允许第一列超出一项，并将第一列作为最大高度
-                    if not first_column_exceeds:
-                        first_column_exceeds = True
-                        split_sections[-1].append(section)
-                        column_height += section_height + section_padding
-                        max_height = max(max_height, column_height)
-                        continue
-                    height_limit = column_height
+            if (len(split_sections) < column_limit and column_height >= 0 and
+                    column_height + section_padding + section_height > height_low):
                 split_sections.append([])
                 column_height = -section_padding
             split_sections[-1].append(section)
             column_height += section_height + section_padding
-            max_height = max(max_height, column_height)
 
+        max_height = max(sum(section.get_height() for section in column) +
+                         section_padding * max(0, len(column) - 1)
+                         for column in split_sections)
         return split_sections, max_height
 
     def get_columns(self):

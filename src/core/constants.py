@@ -170,6 +170,35 @@ class Constants:
             Help("/reply (what) (id) [content]", "评论上一个表情包，可指定类别 what 和 ID 来评论指定表情."),
             Help("/添加 [what]", "添加类别为 what 的表情包，移动端可使用 \"全屏输入\"，需要管理员审核.")
         ],
+        'codeforces': [
+            Help("/cf bind [handle]", "绑定用户名为 handle 的 Codeforces 账号."),
+            Help("/cf duel", "Codeforces 对战模块."),
+            Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
+            Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
+            Help("/cf recent [handle] (count)",
+                 "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
+            Help("/cf pick [标签 | all] (难度) (new)",
+                 "从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
+                 "末尾加上 new 参数则会忽视 P1000A 以前的题."),
+            Help("/cf tags", "用于列出 Codeforces 平台的 tags (辅助 pick)."),
+            Help("/cf stand [handle] [id]",
+                 "获取 Codeforces 上编号为 id 的比赛中用户名为 handle 的用户的榜单信息，支持预测分数变化.")
+        ],
+        'misc1': [
+            Help("/来道菜 (dish)", "获取一道 How-to-Cook 开源项目里的菜谱，可指定菜谱名进行查询."),
+            Help("/dazs [content]", "查询答案之书，获取一个建议 (仅供娱乐)."),
+            Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
+            Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
+            Help("/hzys [content]", "基于文本 content 合成电棍语音，活字乱刷.")
+        ],
+        'mc': [
+            Help("/kill", "抽取 Minecraft 死亡信息."),
+            Help("/gamemode [mode]", "模拟 Minecraft 游戏模式切换."),
+            Help("/effect (func)", "抽取 Minecraft 状态效果，func 留空时进行抽取、为 clear 时清空、为 now 时显示当前状态."),
+            Help("/sleep (type)",
+                 "进行一种 Minecraft 风格的睡觉，type 为 mc 时只包含 Minecraft 原版睡觉失败信息、"
+                 "为 joking 时只包含幽默睡觉失败信息、留空时两者都包含."),
+        ],
         'atcoder': [
             Help("/atc id [handle]", "获取用户名为 handle 的 AtCoder 基础用户信息卡片."),
             Help("/atc info [handle]", "获取用户名为 handle 的 AtCoder 详细用户信息."),
@@ -197,34 +226,6 @@ class Constants:
             Help("/1a2b", "开始 1a2b 游戏."),
             Help("/1a2b [num]", "猜测数字为 num."),
             Help("/1a2b stop", "结束本轮 1a2b 游戏.")
-        ],
-        'codeforces': [
-            Help("/cf bind [handle]", "绑定用户名为 handle 的 Codeforces 账号."),
-            Help("/cf duel", "Codeforces 对战模块."),
-            Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
-            Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
-            Help("/cf recent [handle] (count)",
-                 "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
-            Help("/cf pick [标签 | all] (难度) (new)",
-                 "从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
-                 "末尾加上 new 参数则会忽视 P1000A 以前的题."),
-            Help("/cf tags", "用于列出 Codeforces 平台的 tags (辅助 pick)."),
-            Help("/cf stand [handle] [id]",
-                 "获取 Codeforces 上编号为 id 的比赛中用户名为 handle 的用户的榜单信息，支持预测分数变化.")
-        ],
-        'mc': [
-            Help("/kill", "抽取 Minecraft 死亡信息."),
-            Help("/gamemode [mode]", "模拟 Minecraft 游戏模式切换."),
-            Help("/effect (func)", "抽取 Minecraft 状态效果，func 留空时进行抽取、为 clear 时清空、为 now 时显示当前状态."),
-            Help("/sleep (type)",
-                 "进行一种 Minecraft 风格的睡觉，type 为 mc 时只包含 Minecraft 原版睡觉失败信息、"
-                 "为 joking 时只包含幽默睡觉失败信息、留空时两者都包含."),
-        ],
-        'misc1': [
-            Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
-            Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
-            Help("/hzys [content]", "基于文本 content 合成电棍语音，活字乱刷."),
-            Help("/来道菜 (dish)", "获取一道 How-to-Cook 开源项目里的菜谱，可指定菜谱名进行查询.")
         ],
         'tetris': [
             Help("/tetris (col)", "开始 24 * col 大小的俄罗斯方块游戏，col 为列数，留空时默认为 24."),
