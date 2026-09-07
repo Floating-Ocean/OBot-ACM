@@ -149,7 +149,7 @@ def handle_message(message: RobotMessage, message_id: MessageID):
             ),
             MessageID("default.manual", "reply_not_implemented"): (
                 reply_command_not_found,
-                {"message": message, "content": message.tokens[0].lower()}
+                {"message": message, "content": "" if len(message.tokens) == 0 else message.tokens[0].lower()}
             ),
             MessageID("default.manual", "reply_key_words_empty"): (
                 reply_key_words,
