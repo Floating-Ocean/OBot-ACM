@@ -3,6 +3,7 @@ import colorsys
 import pixie
 from easy_pixie import StyledString, calculate_height, calculate_width, change_alpha, \
     draw_img, draw_mask_rect, draw_text, tuple_to_color, Loc
+from pypinyin import pinyin, Style
 
 from src.core.constants import Constants
 from src.data.data_pick_one import PickOne
@@ -17,11 +18,27 @@ _ITEM_WIDTH = (_GRID_WIDTH - _GRID_GAP * (_COLUMNS - 1)) // _COLUMNS
 
 _ITEM_ROUND_SIZE = 32
 _ITEM_INNER_HORIZONTAL_PADDING = 40
-_ITEM_INNER_VERTICAL_PADDING = 36
+_ITEM_INNER_TOP_PADDING = 36
+_ITEM_INNER_BOTTOM_PADDING = 28  # 内容区与底边框之间的留白
 _ITEM_TITLE_GAP = 18
 
-_COUNT_CHIP_PADDING_HORIZONTAL = 26
-_COUNT_CHIP_PADDING_VERTICAL = 10
+# 数量进度条：作为卡片的下边框存在，占满整宽。
+# 注意 pixie 会把圆角半径钳制到高度的一半，所以条形统一画成方角，
+# 再用 _draw_corner_trim() 把卡片底角圆角之外的区域补回卡片底色来贴合边角。
+_BAR_HEIGHT = 12
+_BAR_TRACK_ALPHA = 40  # 条形底槽
+_BAR_FILL_ALPHA = 232  # 条形填充
+_BAR_FILL_MIN_WIDTH = 8  # 非零数量至少露出一点点，避免看起来是 0
+_BAR_EXPONENT = 0.5  # 数量 -> 条长的压缩指数，0.5 即开方
+_BAR_CORNER_SEGMENTS = 24  # 底角补集多边形的弧线分段数
+
+# 巨号数字：背景与信息之间的中间层，无单位，高度撑满卡片内容区
+_NUMBER_ALPHA = 10
+_NUMBER_HORIZONTAL_PADDING = 16
+_NUMBER_TOP_PADDING = 16  # 数字顶部与卡片顶边的留白
+_NUMBER_INK_HEIGHT_RATIO = 0.855  # 数字墨迹高度 / 字号（OPPOSans-H 实测）
+_NUMBER_INK_TOP_RATIO = 0.24  # 墨迹顶部相对绘制原点的偏移 / 字号
+
 _SUMMARY_CHIP_PADDING_HORIZONTAL = 34
 _SUMMARY_CHIP_PADDING_VERTICAL = 12
 
@@ -33,8 +50,8 @@ _SPECTRUM_START_HUE = 0.0  # 红
 _SPECTRUM_END_HUE = 285.0  # 紫
 _SPECTRUM_SATURATION = 0.76
 # 各色相的天然亮度差别很大（黄最亮、蓝紫最暗），把亮度收进区间才不会深浅突兀
-_TINT_LUMINANCE_RANGE = (0.50, 0.66)  # 卡片底色与数量胶囊底色
-_TEXT_LUMINANCE_RANGE = (0.26, 0.36)  # 类别名与数量文字
+_TINT_LUMINANCE_RANGE = (0.50, 0.66)  # 卡片底色
+_TEXT_LUMINANCE_RANGE = (0.26, 0.36)  # 类别名、条形与数量文字
 _SPECTRUM_DESCRIPTION = "Rainbow spectrum: red to purple"
 
 _TEXT_COLOR = (0, 0, 0)
@@ -47,6 +64,33 @@ _CARD_COLOR = (242, 242, 242)
 def _relative_luminance(red: float, green: float, blue: float) -> float:
     """估算颜色亮度，与 choose_text_color 保持一致"""
     return 0.299 * red + 0.587 * green + 0.114 * blue
+
+
+def _draw_corner_trim(img: pixie.Image, corner_x: int, y_bottom: int, radius: int,
+                      bar_height: int, direction: int, color: pixie.Color):
+    """把卡片底角圆角之外、被条形方角盖住的区域补回卡片底色。
+
+    条形是方角的，只有把两个底角按卡片圆角"切"回来，进度条才会与卡片边角完全贴合。
+    direction 为 1 表示左下角、-1 表示右下角，corner_x 为该角在卡片上的横坐标。
+    """
+    height = min(bar_height, radius)
+
+    def arc_offset(distance: float) -> float:
+        """某点距卡片底边 distance 时，卡片边界相对角点水平内缩的距离"""
+        return radius - (radius ** 2 - (radius - distance) ** 2) ** 0.5
+
+    path = pixie.Path()
+    path.move_to(corner_x, y_bottom - height)
+    path.line_to(corner_x + direction * arc_offset(height), y_bottom - height)
+    for idx in range(1, _BAR_CORNER_SEGMENTS + 1):
+        distance = height * (1 - idx / _BAR_CORNER_SEGMENTS)
+        path.line_to(corner_x + direction * arc_offset(distance), y_bottom - distance)
+    path.line_to(corner_x, y_bottom)
+    path.close_path()
+
+    paint = pixie.Paint(pixie.SOLID_PAINT)
+    paint.color = color
+    img.fill_path(path, paint)
 
 
 def _hue_color(ratio: float, luminance_range: tuple[float, float]) -> tuple[int, int, int]:
@@ -71,29 +115,30 @@ def _hue_color(ratio: float, luminance_range: tuple[float, float]) -> tuple[int,
 
 
 class _StickerItem:
-    """单个表情包类别的卡片：展示名、数量与别名，使用所属类别的配色"""
+    """单个表情包类别的卡片：巨号数字铺在中间层，信息在其上，数量进度条作为卡片下边框"""
 
     def __init__(self, sticker_id: str, count: int, aliases: list[str],
-                 spectrum_ratio: float):
+                 spectrum_ratio: float, max_count: int):
         available = count > 0
+        self._count = count
+        self._text_color = tuple_to_color(_hue_color(spectrum_ratio, _TEXT_LUMINANCE_RANGE))
+
+        def _alpha(available_alpha: int, unavailable_alpha: int) -> int:
+            """数量为 0 的类别整体压淡，表示暂不可用"""
+            return available_alpha if available else unavailable_alpha
+
+        self.str_id = StyledString(
+            sticker_id, 'H', 44,
+            font_color=change_alpha(self._text_color, _alpha(255, 118)))
+
         pixie_color = tuple_to_color(_hue_color(spectrum_ratio, _TINT_LUMINANCE_RANGE))
-        text_color = tuple_to_color(_hue_color(spectrum_ratio, _TEXT_LUMINANCE_RANGE))
-
-        def _with_availability(color: pixie.Color, unavailable_alpha: int) -> pixie.Color:
-            """数量为 0 的类别降低不透明度，表示暂不可用"""
-            return change_alpha(color, 255 if available else unavailable_alpha)
-
-        self.str_id = StyledString(sticker_id, 'H', 44,
-                                   font_color=_with_availability(text_color, 118))
-        self.str_count = StyledString(f"{count} 只", 'B', 24,
-                                      font_color=_with_availability(text_color, 118))
-
-        self._cell_color = change_alpha(pixie_color, 26 if available else 12)
-        self._chip_color = change_alpha(pixie_color, 58 if available else 20)
-        self._chip_height = self.str_count.height + _COUNT_CHIP_PADDING_VERTICAL * 2
-        self._chip_width = (int(calculate_width(self.str_count)) +
-                            _COUNT_CHIP_PADDING_HORIZONTAL * 2)
-        self._title_line_height = max(self.str_id.height, self._chip_height)
+        self._cell_color = change_alpha(pixie_color, _alpha(26, 12))
+        self._number_color = change_alpha(self._text_color, _alpha(_NUMBER_ALPHA, 6))
+        self._bar_track_color = change_alpha(pixie_color, _alpha(_BAR_TRACK_ALPHA, 28))
+        self._bar_fill_color = change_alpha(self._text_color, _alpha(_BAR_FILL_ALPHA, 96))
+        # 开方压缩：避免 3000 只把 3 只压成看不见
+        self._bar_ratio = (count / max_count) ** _BAR_EXPONENT if max_count > 0 else 0.0
+        self._title_line_height = self.str_id.height
 
         self.str_aliases = (StyledString(
             f"别名：{'、'.join(aliases)}", 'B', 22, line_multiplier=1.36,
@@ -102,28 +147,57 @@ class _StickerItem:
         ) if aliases else None)
 
     def get_height(self):
-        height = _ITEM_INNER_VERTICAL_PADDING * 2 + self._title_line_height
+        height = (_ITEM_INNER_TOP_PADDING + self._title_line_height +
+                  _ITEM_INNER_BOTTOM_PADDING + _BAR_HEIGHT)
         if self.str_aliases:
             height += _ITEM_TITLE_GAP + calculate_height(self.str_aliases)
         return height
 
+    def _render_count_number(self, img: pixie.Image, x: int, y: int, height: int):
+        """巨号数字：撑满卡片内容区（上下各留一点余地），半透明地压在信息层之下"""
+        ink_height = height - _BAR_HEIGHT - _NUMBER_TOP_PADDING
+        font_size = round(ink_height / _NUMBER_INK_HEIGHT_RATIO)
+        number = StyledString(f"{self._count}", 'H', font_size, font_color=self._number_color)
+
+        max_width = _ITEM_WIDTH - _NUMBER_HORIZONTAL_PADDING * 2
+        width = int(calculate_width(number))
+        if width > max_width:  # 位数过多时按宽度回退，避免溢出卡片
+            font_size = int(font_size * max_width / width)
+            number = StyledString(f"{self._count}", 'H', font_size, font_color=self._number_color)
+            width = int(calculate_width(number))
+
+        draw_text(img, number, x + _ITEM_WIDTH - _NUMBER_HORIZONTAL_PADDING - width,
+                  round(y + _NUMBER_TOP_PADDING - _NUMBER_INK_TOP_RATIO * font_size))
+
+    def _render_bottom_bar(self, img: pixie.Image, x: int, y: int, height: int):
+        """数量进度条：方角条贴满卡片下沿，再把两个底角按卡片圆角切回来"""
+        bar_y = y + height - _BAR_HEIGHT
+        draw_mask_rect(img, Loc(x, bar_y, _ITEM_WIDTH, _BAR_HEIGHT), self._bar_track_color)
+
+        fill_width = round(_ITEM_WIDTH * self._bar_ratio)
+        if fill_width > 0:
+            fill_width = max(fill_width, _BAR_FILL_MIN_WIDTH)
+            draw_mask_rect(img, Loc(x, bar_y, fill_width, _BAR_HEIGHT), self._bar_fill_color)
+
+        y_bottom = y + height
+        card_color = tuple_to_color(_CARD_COLOR)
+        for direction, corner_x in ((1, x), (-1, x + _ITEM_WIDTH)):
+            _draw_corner_trim(img, corner_x, y_bottom, _ITEM_ROUND_SIZE, _BAR_HEIGHT,
+                              direction, card_color)
+
     def render(self, img: pixie.Image, x: int, y: int, height: int) -> int:
         draw_mask_rect(img, Loc(x, y, _ITEM_WIDTH, height), self._cell_color, _ITEM_ROUND_SIZE)
+        self._render_count_number(img, x, y, height)
 
         current_x = x + _ITEM_INNER_HORIZONTAL_PADDING
-        current_y = y + _ITEM_INNER_VERTICAL_PADDING
+        current_y = y + _ITEM_INNER_TOP_PADDING
         draw_text(img, self.str_id, current_x, current_y)
-
-        chip_x = x + _ITEM_WIDTH - _ITEM_INNER_HORIZONTAL_PADDING - self._chip_width
-        chip_y = current_y + (self._title_line_height - self._chip_height) // 2
-        draw_mask_rect(img, Loc(chip_x, chip_y, self._chip_width, self._chip_height),
-                       self._chip_color, self._chip_height // 2)
-        draw_text(img, self.str_count, chip_x + _COUNT_CHIP_PADDING_HORIZONTAL,
-                  chip_y + (self._chip_height - self.str_count.height) // 2)
 
         if self.str_aliases:
             draw_text(img, self.str_aliases, current_x,
                       current_y + self._title_line_height + _ITEM_TITLE_GAP)
+
+        self._render_bottom_bar(img, x, y, height)
 
         return y + height
 
@@ -134,8 +208,9 @@ class _StickerSection(RenderableSection):
     def __init__(self, stickers: list[tuple[str, int, list[str]]]):
         # 按阅读顺序在彩虹渐变上依次取色：每个类别色相唯一，首红尾紫
         spectrum_length = max(1, len(stickers) - 1)
+        max_count = max((count for _, count, _ in stickers), default=0)
         self.section_items = [
-            _StickerItem(sticker_id, count, aliases, idx / spectrum_length)
+            _StickerItem(sticker_id, count, aliases, idx / spectrum_length, max_count)
             for idx, (sticker_id, count, aliases) in enumerate(stickers)
         ]
         self._rows = [self.section_items[idx:idx + _COLUMNS]
@@ -235,8 +310,13 @@ class _TipsSection(RenderableSection):
         return current_y
 
 
+def _sort_key(sticker_id: str) -> str:
+    """按名称排序，中文取拼音、英文取原文，保证中英混排时顺序稳定可预期"""
+    return ''.join(item[0] for item in pinyin(sticker_id, Style.NORMAL)).lower()
+
+
 def _collect_stickers(data: PickOne) -> list[tuple[str, int, list[str]]]:
-    """汇总所有表情包类别，返回 (展示名, 数量, 别名列表)，并按数量降序排序"""
+    """汇总所有表情包类别，返回 (展示名, 数量, 别名列表)，并按名称排序"""
     counts = dict(data.ids)
     stickers = []
     for conf in data.conf.values():
@@ -244,7 +324,7 @@ def _collect_stickers(data: PickOne) -> list[tuple[str, int, list[str]]]:
                    if key.strip().lower() != conf.id.strip().lower()]
         stickers.append((conf.id, counts.get(conf.id, 0), aliases))
 
-    stickers.sort(key=lambda sticker: sticker[1], reverse=True)
+    stickers.sort(key=lambda sticker: _sort_key(sticker[0]))
     return stickers
 
 
