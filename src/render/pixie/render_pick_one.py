@@ -31,10 +31,10 @@ _TITLE_ICON_GAP = 18
 # 类别配色：色相从红扫到紫（彩虹渐变），每个类别固定取一个色相
 _SPECTRUM_START_HUE = 0.0  # 红
 _SPECTRUM_END_HUE = 285.0  # 紫
-_SPECTRUM_SATURATION = 0.86
-_SPECTRUM_VALUE = 0.76
-_NAME_VALUE = 0.56
-_COUNT_VALUE = 0.56
+_SPECTRUM_SATURATION = 0.76
+# 各色相的天然亮度差别很大（黄最亮、蓝紫最暗），把亮度收进区间才不会深浅突兀
+_TINT_LUMINANCE_RANGE = (0.50, 0.66)  # 卡片底色与数量胶囊底色
+_TEXT_LUMINANCE_RANGE = (0.26, 0.36)  # 类别名与数量文字
 _SPECTRUM_DESCRIPTION = "Rainbow spectrum: red to purple"
 
 _TEXT_COLOR = (0, 0, 0)
@@ -44,10 +44,29 @@ _UNAVAILABLE_ALIAS_TEXT_COLOR = (0, 0, 0, 96)
 _CARD_COLOR = (242, 242, 242)
 
 
-def _hue_color(ratio: float, value: float = _SPECTRUM_VALUE) -> tuple[int, int, int]:
-    """在彩虹渐变上按比例取色：色相自红至紫均匀变化，压暗明度可得同色系的深色"""
-    hue = _SPECTRUM_START_HUE + (_SPECTRUM_END_HUE - _SPECTRUM_START_HUE) * ratio
-    red, green, blue = colorsys.hsv_to_rgb((hue % 360) / 360, _SPECTRUM_SATURATION, value)
+def _relative_luminance(red: float, green: float, blue: float) -> float:
+    """估算颜色亮度，与 choose_text_color 保持一致"""
+    return 0.299 * red + 0.587 * green + 0.114 * blue
+
+
+def _hue_color(ratio: float, luminance_range: tuple[float, float]) -> tuple[int, int, int]:
+    """在彩虹渐变上按比例取色，并把亮度收进指定区间：
+    过亮的色相（黄）等比压暗、过暗的色相（蓝紫）向白色混合提亮，
+    区间内的色相保持原样，避免红黄系被压成褐色"""
+    hue = (_SPECTRUM_START_HUE + (_SPECTRUM_END_HUE - _SPECTRUM_START_HUE) * ratio) / 360
+    red, green, blue = colorsys.hsv_to_rgb(hue, _SPECTRUM_SATURATION, 1.0)
+
+    luminance_low, luminance_high = luminance_range
+    luminance = _relative_luminance(red, green, blue)
+    if luminance > luminance_high:  # 等比压暗，色相与饱和度不变
+        scale = luminance_high / luminance
+        red, green, blue = red * scale, green * scale, blue * scale
+    elif luminance < luminance_low:  # 向白色混合提亮，色相不变
+        mix = (luminance_low - luminance) / (1 - luminance)
+        red, green, blue = (red + (1 - red) * mix,
+                            green + (1 - green) * mix,
+                            blue + (1 - blue) * mix)
+
     return round(red * 255), round(green * 255), round(blue * 255)
 
 
@@ -57,17 +76,17 @@ class _StickerItem:
     def __init__(self, sticker_id: str, count: int, aliases: list[str],
                  spectrum_ratio: float):
         available = count > 0
-        pixie_color = tuple_to_color(_hue_color(spectrum_ratio))
-        name_color = tuple_to_color(_hue_color(spectrum_ratio, _NAME_VALUE))
-        count_color = tuple_to_color(_hue_color(spectrum_ratio, _COUNT_VALUE))
+        pixie_color = tuple_to_color(_hue_color(spectrum_ratio, _TINT_LUMINANCE_RANGE))
+        text_color = tuple_to_color(_hue_color(spectrum_ratio, _TEXT_LUMINANCE_RANGE))
 
-        def _text_color(color: pixie.Color, unavailable_alpha: int) -> pixie.Color:
+        def _with_availability(color: pixie.Color, unavailable_alpha: int) -> pixie.Color:
             """数量为 0 的类别降低不透明度，表示暂不可用"""
             return change_alpha(color, 255 if available else unavailable_alpha)
 
-        self.str_id = StyledString(sticker_id, 'H', 44, font_color=_text_color(name_color, 118))
+        self.str_id = StyledString(sticker_id, 'H', 44,
+                                   font_color=_with_availability(text_color, 118))
         self.str_count = StyledString(f"{count} 只", 'B', 24,
-                                      font_color=_text_color(count_color, 118))
+                                      font_color=_with_availability(text_color, 118))
 
         self._cell_color = change_alpha(pixie_color, 26 if available else 12)
         self._chip_color = change_alpha(pixie_color, 58 if available else 20)
