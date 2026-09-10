@@ -11,9 +11,11 @@ from src.core.bot.decorator import command, PermissionLevel, module
 from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
-from src.core.util.tools import read_image_with_opencv, base62_to_md5, md5_to_base62
+from src.core.util.output_cache import get_cached_prefix
+from src.core.util.tools import read_image_with_opencv, base62_to_md5, md5_to_base62, png2jpg
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
+from src.render.pixie.render_pick_one import PickOneRenderer
 
 _MAX_COMMENT_LENGTH = 32
 
@@ -110,6 +112,16 @@ def _decode_img_key(data: PickOne, what: str) -> str | None:
     return img_key
 
 
+def _reply_pick_one_list(message: RobotMessage, data: PickOne):
+    """以图片的形式回复可用的表情包类别"""
+    cached_prefix = get_cached_prefix('Pick-One-Renderer')
+    PickOneRenderer(data).render().write_file(f"{cached_prefix}.png")
+
+    total_count = sum(count for _, count in data.ids)
+    message.reply(f"[Pick-One] 目前可以来只（共 {len(data.ids)} 个类别，{total_count} 只表情包）",
+                  img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
+
+
 @command(tokens=["来只*"])
 def reply_pick_one(message: RobotMessage):
     data = get_pick_one_data()
@@ -117,9 +129,7 @@ def reply_pick_one(message: RobotMessage):
 
     img_key = _decode_img_key(data, what)
     if img_key is None:
-        img_help = "[Pick-One] 目前可以来只:\n\n"
-        img_help += ", ".join([_id for _id, _len in data.ids])
-        message.reply(img_help, modal_words=False)
+        _reply_pick_one_list(message, data)
         return
 
     current_config = data.conf[img_key]
@@ -361,9 +371,7 @@ def reply_count_one(message: RobotMessage):
 
     img_key = _decode_img_key(data, what)
     if img_key is None:
-        img_cnt = "[Pick-One] 目前所有图片的数量:\n\n"
-        img_cnt += ", ".join([f"{_id} ({_len})" for _id, _len in data.ids])
-        message.reply(img_cnt, modal_words=False)
+        _reply_pick_one_list(message, data)
         return
 
     img_cnt = 0
@@ -400,7 +408,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v5.4.0"
+    version="v5.5.0"
 )
 def register_module():
     pass

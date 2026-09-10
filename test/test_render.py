@@ -6,6 +6,7 @@ from src.core.bot.decorator import get_all_modules_info
 from src.core.constants import Constants
 from src.core.util.tools import png2jpg, fetch_url_json
 from src.data.data_color import get_colors
+from src.data.data_pick_one import get_pick_one_data
 from src.module.game.tetris import BLOCKS
 from src.module.stuff.color import transform_color, add_qrcode
 from src.platform.manual.manual import ManualPlatform
@@ -17,6 +18,7 @@ from src.render.pixie.render_about import AboutRenderer
 from src.render.pixie.render_color_card import ColorCardRenderer, COLOR_QRCODE_COORD
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
+from src.render.pixie.render_pick_one import PickOneRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 from src.render.pixie.render_uptime import UptimeRenderer
 from test.file_output import get_output_path
@@ -77,6 +79,11 @@ class Render(unittest.TestCase):
         help_img = HelpRenderer().render()
         self.assertIsNotNone(help_img)
         help_img.write_file(get_output_path("render_help.png"))
+
+    def test_pick_one(self):
+        pick_one_img = PickOneRenderer(get_pick_one_data()).render()
+        self.assertIsNotNone(pick_one_img)
+        pick_one_img.write_file(get_output_path("render_pick_one.png"))
 
     def test_tetris_game(self):
         current_map = [[0] * 24 for _ in range(16)]
