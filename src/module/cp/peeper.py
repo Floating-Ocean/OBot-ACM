@@ -315,6 +315,33 @@ def send_yesterday_board(message: RobotMessage):
     message.reply(f"{yesterday} 卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
 
 
+@command(tokens=['往期总榜', '往日总榜', 'history'])
+def send_yesterday_board(message: RobotMessage):
+    if len(message.tokens) < 2:
+        message.reply("请指定日期，格式为 YYYY-MM-DD，如 2026-09-11", modal_words=False)
+        return
+    date_string = message.tokens[1]
+    try:
+        datetime.strptime(date_string, "%Y-%m-%d")
+    except ValueError:
+        message.reply("日期格式错误，预期格式为 YYYY-MM-DD，如 2026-09-11", modal_words=False)
+        return
+
+    conf_id = message.tokens[2] if len(message.tokens) >= 3 else None
+
+    if not message.is_active():
+        message.reply("正在查询往期总榜，请稍等")
+
+    cached_prefix = get_cached_prefix('Peeper-Board-Generator')
+    run = _call_lib_method(message,
+                           f'--full {date_string} --separate_cols --output "{cached_prefix}.png"',
+                           conf_id=conf_id)
+    if run is None:
+        return
+
+    message.reply(f"{date_string} 卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
+
+
 def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(None,  # 留空选择默认
