@@ -1,8 +1,9 @@
 import os
+import random
 from dataclasses import dataclass, asdict
 
 from src.core.constants import Constants
-from src.core.util.tools import rand_str_len32, download_img, get_md5
+from src.core.util.tools import rand_str_len32, download_img, get_md5, md5_to_base62
 from src.data.model.json_storage import JsonSerializer, load_data, NoSerialize, save_data
 
 _lib_path = Constants.modules_conf.get_lib_path("Pick-One")
@@ -79,6 +80,67 @@ def list_img(img_key: str) -> list[tuple[str, str]]:
     dir_path = _get_img_dir_path(img_key)
     return [(img, get_img_full_path(img_key, img))
             for img in os.listdir(dir_path) if img.endswith(".gif")]
+
+
+@dataclass
+class PickOneImgStat:
+    """单张表情包的统计信息"""
+    md5: str
+    hash_id: str  # 展示用 ID，与 /来只 回复中的 ID 一致
+    likes: int
+    comments: int
+    pickup_times: int
+    add_time: float
+
+
+def _fallback_add_time(full_path: str, parser_data) -> float:
+    """parser 里还是旧版字符串（或缺失）时，退回文件的修改时间"""
+    if isinstance(parser_data, dict):
+        return 0.0
+    try:
+        return os.stat(full_path).st_mtime
+    except OSError:
+        return 0.0
+
+
+def _build_img_stat(name: str, parser_data, add_time: float) -> PickOneImgStat:
+    """把 parser 中的一条记录转成统计信息，兼容值仍是字符串（旧版仅存 ocr_text）的情况"""
+    md5 = name[:-4] if name.endswith(".gif") else name
+    if not isinstance(parser_data, dict):  # 旧版数据或尚未解析
+        return PickOneImgStat(md5, md5_to_base62(md5), 0, 0, 0, add_time)
+
+    return PickOneImgStat(
+        md5, md5_to_base62(md5),
+        int(parser_data.get('likes', 0) or 0),
+        len(parser_data.get('comments', []) or []),
+        int(parser_data.get('pickup_times', 0) or 0),
+        float(parser_data.get('add_time', 0) or 0)
+    )
+
+
+def get_category_stat(img_key: str) -> list[PickOneImgStat]:
+    """获取一个类别下所有表情包的统计信息
+
+    只读一次 parser.json：类别下图片可达数千张，逐张读盘会慢到不可用。
+    """
+    parser = get_img_parser(img_key)
+
+    imgs = []
+    for name, full_path in list_img(img_key):
+        parser_data = parser.get(name)
+        imgs.append(_build_img_stat(name, parser_data,
+                                    _fallback_add_time(full_path, parser_data)))
+
+    return imgs
+
+
+def pick_preview_imgs(imgs: list[PickOneImgStat], count: int) -> list[PickOneImgStat]:
+    """挑选若干张表情包作为预览，数量不足时有多少给多少"""
+    if len(imgs) <= count:
+        picked = list(imgs)
+        random.shuffle(picked)
+        return picked
+    return random.sample(imgs, count)
 
 
 def list_auditable() -> list[str]:

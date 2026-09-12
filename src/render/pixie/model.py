@@ -221,6 +221,11 @@ class SimpleCardRenderer(Renderer, abc.ABC):
     def _get_content_width(cls) -> int:
         return _CONTENT_WIDTH
 
+    @classmethod
+    def _get_column_padding(cls) -> int:
+        """内容列之间的间距，卡片本身较宽时可以调小一些"""
+        return _COLUMN_PADDING
+
     def _render_background_rect(self, img: pixie.Image, background_loc: Loc):
         draw_gradient_rect(img, background_loc, self._gradient_color,
                            GradientDirection.DIAGONAL_RIGHT_TO_LEFT, 96)
@@ -234,7 +239,8 @@ class SimpleCardRenderer(Renderer, abc.ABC):
         max_column = max(section.get_columns() for section in render_sections)
 
         width = ((_CONTAINER_PADDING + _SIDE_PADDING) * 2 +
-                 self._get_content_width() * max_column + _COLUMN_PADDING * (max_column - 1))
+                 self._get_content_width() * max_column +
+                 self._get_column_padding() * (max_column - 1))
         height = (_CONTAINER_PADDING * 2 + _TOP_PADDING + _BOTTOM_PADDING +
                   sum(section.get_height() for section in render_sections) +
                   _SECTION_PADDING * max(0, len(render_sections) - 1))

@@ -14,8 +14,10 @@ from src.core.constants import Constants
 from src.core.util.output_cache import get_cached_prefix
 from src.core.util.tools import read_image_with_opencv, base62_to_md5, md5_to_base62, png2jpg
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
-    get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit
-from src.render.pixie.render_pick_one import PickOneRenderer
+    get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit, \
+    get_category_stat, pick_preview_imgs
+from src.render.pixie.render_pick_one import (PickOneRenderer, PickOnePreviewRenderer,
+                                              _PREVIEW_COUNT)
 
 _MAX_COMMENT_LENGTH = 32
 
@@ -119,6 +121,33 @@ def _reply_pick_one_list(message: RobotMessage, data: PickOne):
 
     total_count = sum(count for _, count in data.ids)
     message.reply(f"[Pick-One] 目前可以来只（共 {len(data.ids)} 个类别，{total_count} 只表情包）",
+                  img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
+
+
+@command(tokens=["预览来只*", "看看来只*", "来只图鉴*", "preview*"])
+def reply_pick_one_preview(message: RobotMessage):
+    """以图片的形式回复某个类别的信息与预览图，不带参数时随机挑一个类别"""
+    data = get_pick_one_data()
+    if len(message.tokens) >= 2:
+        img_key = _decode_img_key(data, message.tokens[1].lower())
+        if img_key is None:  # 关键词没匹配上，退回图鉴
+            _reply_pick_one_list(message, data)
+            return
+    else:
+        # 不指定类别时从有内容的中挑，免得只看到空类别的占位提示
+        counts = dict(data.ids)  # data.ids 存的是展示名，要经 conf 映射回关键词
+        img_key = random.choice([key for key, conf in data.conf.items()
+                                 if counts.get(conf.id, 0) > 0])
+
+    imgs = get_category_stat(img_key)
+    preview_imgs = pick_preview_imgs(imgs, _PREVIEW_COUNT)
+    renderer = PickOnePreviewRenderer(data, img_key, preview_imgs)
+
+    cached_prefix = get_cached_prefix('Pick-One-Renderer')
+    renderer.render().write_file(f"{cached_prefix}.png")
+
+    message.reply(f"[Pick-One] {data.conf[img_key].id} 的预览"
+                  f"（共 {len(imgs)} 只表情包，这里随机展示 {len(preview_imgs)} 只）",
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
@@ -408,7 +437,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v5.5.0"
+    version="v5.6.0"
 )
 def register_module():
     pass

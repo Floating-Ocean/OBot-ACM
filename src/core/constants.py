@@ -166,6 +166,8 @@ class Constants:
             Help("/来只 [what] (tag) (index)",
                  "获取一个类别为 what 的随机表情包，可指定关键词 tag，并选择匹配度第 index 的候选."),
             Help("/随便来只", "获取一个随机类别的随机表情包."),
+            Help("/预览来只 (what)",
+                 "获取类别 what 的信息与预览图，含别名、数量与随机若干张预览，不指定 what 时随机挑一个类别."),
             Help("/like (what) (id)", "点赞上一个表情包，可指定类别 what 和 ID 来点赞指定表情."),
             Help("/reply (what) (id) [content]", "评论上一个表情包，可指定类别 what 和 ID 来评论指定表情."),
             Help("/添加 [what]", "添加类别为 what 的表情包，移动端可使用 \"全屏输入\"，需要管理员审核.")
