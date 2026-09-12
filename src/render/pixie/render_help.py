@@ -5,6 +5,7 @@ from easy_pixie import StyledString, calculate_height, draw_text, calculate_widt
     tuple_to_color, change_alpha, hex_to_color, lighten_color, draw_mask_rect, pick_gradient_color
 
 from src.core.constants import Constants, Help
+from src.core.util.tools import rgb_luminance
 from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
 
 _CONTENT_WIDTH = 916
@@ -328,7 +329,7 @@ class HelpRenderer(SimpleCardRenderer):
             accent_color = gradient_color.color_list[-1]
             if isinstance(accent_color, str):
                 accent_color = pixie.parse_color(accent_color)
-            luminance = 0.299 * accent_color.r + 0.587 * accent_color.g + 0.114 * accent_color.b
+            luminance = rgb_luminance(accent_color.r, accent_color.g, accent_color.b)
             if luminance <= 0.75:
                 return gradient_color
 

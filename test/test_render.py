@@ -90,9 +90,10 @@ class Render(unittest.TestCase):
     def test_pick_one_preview(self):
         data = get_pick_one_data()
 
-        # 挑一个有内容的、一个只有一张的、一个空的，覆盖三种分支
-        for img_key in ("capoo", "orzjh", "cyc"):
+        # 挑一个数量多的和一个只有一张的；空类别不再画图，由命令层文字回复
+        for img_key in ("capoo", "orzjh"):
             imgs = get_category_stat(img_key)
+            self.assertTrue(imgs, f"{img_key} 应当有表情包")
             renderer = PickOnePreviewRenderer(
                 data, img_key, pick_preview_imgs(imgs, _PREVIEW_COUNT))
 

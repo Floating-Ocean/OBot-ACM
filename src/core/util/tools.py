@@ -8,10 +8,12 @@ import ssl
 import string
 import subprocess
 import sys
+import tempfile
 import time
 
 import cv2
 import numpy as np
+import pixie
 import requests
 from PIL import Image
 from lxml import etree
@@ -242,6 +244,34 @@ def png2jpg(path: str, remove_origin: bool = True) -> str:
     if remove_origin:
         os.remove(path)
     return new_path
+
+
+def img_fit_in_bounds(img_path: str, bounds: tuple[int, int], max_scale: float) -> pixie.Image | None:
+    with Image.open(img_path) as raw:
+        raw.seek(0)  # 动图一律取首帧
+        frame = raw.convert("RGBA")
+
+        max_width, max_height = bounds
+        scale = min(max_width / frame.width, max_height / frame.height,
+                    max_scale)
+        size = (max(1, round(frame.width * scale)), max(1, round(frame.height * scale)))
+        if size != frame.size:
+            frame = frame.resize(size, Image.LANCZOS)
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            frame.save(tmp_path, format="PNG")
+            return pixie.read_image(tmp_path)
+        finally:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+
+def rgb_luminance(red: float, green: float, blue: float) -> float:
+    return 0.299 * red + 0.587 * green + 0.114 * blue
 
 
 def get_md5(path: str) -> str:

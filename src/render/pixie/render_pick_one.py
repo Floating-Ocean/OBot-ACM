@@ -1,15 +1,14 @@
 import colorsys
 import os
-import tempfile
 import time
 
 import pixie
 from easy_pixie import StyledString, calculate_height, calculate_width, change_alpha, \
     draw_img, draw_mask_rect, draw_text, tuple_to_color, Loc
-from PIL import Image
 from pypinyin import pinyin, Style
 
 from src.core.constants import Constants
+from src.core.util.tools import img_fit_in_bounds, rgb_luminance
 from src.data.data_pick_one import PickOne, PickOneImgStat, get_img_full_path
 from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
 
@@ -26,21 +25,17 @@ _ITEM_INNER_TOP_PADDING = 36
 _ITEM_INNER_BOTTOM_PADDING = 28  # 内容区与底边框之间的留白
 _ITEM_TITLE_GAP = 18
 
-# 数量进度条：作为卡片的下边框存在，占满整宽。
-# 注意 pixie 会把圆角半径钳制到高度的一半，所以条形统一画成方角，
-# 再用 _draw_corner_trim() 把卡片底角圆角之外的区域补回卡片底色来贴合边角。
 _BAR_HEIGHT = 12
 _BAR_TRACK_ALPHA = 40  # 条形底槽
 _BAR_FILL_ALPHA = 232  # 条形填充
-_BAR_FILL_MIN_WIDTH = 8  # 非零数量至少露出一点点，避免看起来是 0
-_BAR_EXPONENT = 0.5  # 数量 -> 条长的压缩指数，0.5 即开方
+_BAR_FILL_MIN_WIDTH = 8
+_BAR_EXPONENT = 0.5  # 数量 -> 条长的压缩指数
 _BAR_CORNER_SEGMENTS = 24  # 底角补集多边形的弧线分段数
 
-# 巨号数字：背景与信息之间的中间层，无单位，高度撑满卡片内容区
 _NUMBER_ALPHA = 10
 _NUMBER_HORIZONTAL_PADDING = 16
 _NUMBER_TOP_PADDING = 16  # 数字顶部与卡片顶边的留白
-_NUMBER_INK_HEIGHT_RATIO = 0.855  # 数字墨迹高度 / 字号（OPPOSans-H 实测）
+_NUMBER_INK_HEIGHT_RATIO = 0.855  # 数字墨迹高度 / 字号
 _NUMBER_INK_TOP_RATIO = 0.24  # 墨迹顶部相对绘制原点的偏移 / 字号
 
 _SUMMARY_CHIP_PADDING_HORIZONTAL = 34
@@ -49,8 +44,6 @@ _SUMMARY_CHIP_PADDING_VERTICAL = 12
 _TITLE_ICON_SIZE = 102
 _TITLE_ICON_GAP = 18
 
-# 类别预览卡片（/预览来只）：沿用图鉴的列网格与配色
-# 卡片比图鉴更宽、间距更小，但整块网格仍与图鉴等宽（_GRID_WIDTH），所以两张图一样宽
 _PREVIEW_GAP = 64
 _PREVIEW_ROWS = 2
 _PREVIEW_COUNT = _COLUMNS * _PREVIEW_ROWS
@@ -59,14 +52,13 @@ _PREVIEW_CARD_WIDTH = ((_GRID_WIDTH - _PREVIEW_GAP * (_COLUMNS - 1)) // _COLUMNS
 _PREVIEW_MEDIA_INSET = 16  # 预览底板与卡片边缘的留白
 _PREVIEW_MEDIA_WIDTH = _PREVIEW_CARD_WIDTH - _PREVIEW_MEDIA_INSET * 2
 _PREVIEW_MEDIA_HEIGHT = 464
-# 预览图的长宽上限分别取底板尺寸，横图与竖图都能各自占满可用空间
 _PREVIEW_MEDIA_BOX = (_PREVIEW_MEDIA_WIDTH, _PREVIEW_MEDIA_HEIGHT)
 _PREVIEW_MEDIA_PLATE_HEIGHT = _PREVIEW_MEDIA_HEIGHT + _PREVIEW_MEDIA_INSET * 2
 
-# 卡片底部信息区：ID 与互动情况两行，高度由实际字体尺寸推出，改字号时会自动跟随
-_PREVIEW_FOOTER_TOP_PADDING = 28
+# 卡片底部信息区
+_PREVIEW_FOOTER_TOP_PADDING = 18
 _PREVIEW_FOOTER_MIDDLE_PADDING = 14
-_PREVIEW_FOOTER_BOTTOM_PADDING = 28
+_PREVIEW_FOOTER_BOTTOM_PADDING = 36
 _PREVIEW_ID_FONT_SIZE = 30
 _PREVIEW_META_FONT_SIZE = 22
 _PREVIEW_FOOTER_PADDING = 36  # 文字与卡片左右边缘的留白
@@ -76,14 +68,14 @@ _PREVIEW_FOOTER_HEIGHT = (_PREVIEW_FOOTER_TOP_PADDING + _PREVIEW_ID_LINE_HEIGHT 
                           _PREVIEW_FOOTER_MIDDLE_PADDING + _PREVIEW_META_LINE_HEIGHT +
                           _PREVIEW_FOOTER_BOTTOM_PADDING)
 _PREVIEW_CARD_HEIGHT = _PREVIEW_MEDIA_PLATE_HEIGHT + _PREVIEW_FOOTER_HEIGHT
-_PREVIEW_MAX_UPSCALE = 2.5  # 预览图最多放大到原图的多少倍，避免小图被拉成糊块
-_PREVIEW_PLATE_COLOR = (255, 255, 255)  # 表情包多为白底，垫一层纯白才能与卡片底色区分开
+_PREVIEW_MAX_UPSCALE = 2.5  # 预览图最多放大到原图的多少倍
+_PREVIEW_CARD_TINT_ALPHA = 26  # 卡片底色的不透明度
 
 # 类别配色：色相从红扫到紫（彩虹渐变），每个类别固定取一个色相
 _SPECTRUM_START_HUE = 0.0  # 红
 _SPECTRUM_END_HUE = 285.0  # 紫
 _SPECTRUM_SATURATION = 0.76
-# 各色相的天然亮度差别很大（黄最亮、蓝紫最暗），把亮度收进区间才不会深浅突兀
+# 各色相的天然亮度差别很大（黄最亮、蓝紫最暗），把亮度收进区间
 _TINT_LUMINANCE_RANGE = (0.50, 0.66)  # 卡片底色
 _TEXT_LUMINANCE_RANGE = (0.26, 0.36)  # 类别名、条形与数量文字
 _SPECTRUM_DESCRIPTION = "Rainbow spectrum: red to purple"
@@ -93,11 +85,6 @@ _MILD_TEXT_COLOR = (0, 0, 0, 136)
 _ALIAS_TEXT_COLOR = (0, 0, 0, 150)
 _UNAVAILABLE_ALIAS_TEXT_COLOR = (0, 0, 0, 96)
 _CARD_COLOR = (242, 242, 242)
-
-
-def _relative_luminance(red: float, green: float, blue: float) -> float:
-    """估算颜色亮度，与 choose_text_color 保持一致"""
-    return 0.299 * red + 0.587 * green + 0.114 * blue
 
 
 def _draw_corner_trim(img: pixie.Image, corner_x: int, y_bottom: int, radius: int,
@@ -135,7 +122,7 @@ def _hue_color(ratio: float, luminance_range: tuple[float, float]) -> tuple[int,
     red, green, blue = colorsys.hsv_to_rgb(hue, _SPECTRUM_SATURATION, 1.0)
 
     luminance_low, luminance_high = luminance_range
-    luminance = _relative_luminance(red, green, blue)
+    luminance = rgb_luminance(red, green, blue)
     if luminance > luminance_high:  # 等比压暗，色相与饱和度不变
         scale = luminance_high / luminance
         red, green, blue = red * scale, green * scale, blue * scale
@@ -149,7 +136,7 @@ def _hue_color(ratio: float, luminance_range: tuple[float, float]) -> tuple[int,
 
 
 class _StickerItem:
-    """单个表情包类别的卡片：巨号数字铺在中间层，信息在其上，数量进度条作为卡片下边框"""
+    """单个表情包类别的卡片"""
 
     def __init__(self, sticker_id: str, count: int, aliases: list[str],
                  spectrum_ratio: float, max_count: int):
@@ -158,7 +145,6 @@ class _StickerItem:
         self._text_color = tuple_to_color(_hue_color(spectrum_ratio, _TEXT_LUMINANCE_RANGE))
 
         def _alpha(available_alpha: int, unavailable_alpha: int) -> int:
-            """数量为 0 的类别整体压淡，表示暂不可用"""
             return available_alpha if available else unavailable_alpha
 
         self.str_id = StyledString(
@@ -170,7 +156,7 @@ class _StickerItem:
         self._number_color = change_alpha(self._text_color, _alpha(_NUMBER_ALPHA, 6))
         self._bar_track_color = change_alpha(pixie_color, _alpha(_BAR_TRACK_ALPHA, 28))
         self._bar_fill_color = change_alpha(self._text_color, _alpha(_BAR_FILL_ALPHA, 96))
-        # 开方压缩：避免 3000 只把 3 只压成看不见
+        # 避免 3000 只把 3 只压成看不见
         self._bar_ratio = (count / max_count) ** _BAR_EXPONENT if max_count > 0 else 0.0
         self._title_line_height = self.str_id.height
 
@@ -188,7 +174,7 @@ class _StickerItem:
         return height
 
     def _render_count_number(self, img: pixie.Image, x: int, y: int, height: int):
-        """巨号数字：撑满卡片内容区（上下各留一点余地），半透明地压在信息层之下"""
+        """巨号数字"""
         ink_height = height - _BAR_HEIGHT - _NUMBER_TOP_PADDING
         font_size = round(ink_height / _NUMBER_INK_HEIGHT_RATIO)
         number = StyledString(f"{self._count}", 'H', font_size, font_color=self._number_color)
@@ -271,11 +257,11 @@ class _StickerSection(RenderableSection):
 
 
 class _TitleSection(RenderableSection):
-    """标题块：图标 + 大标题 + 副标题，右侧是概览胶囊"""
+    """标题块：图标 + 大标题 + 副标题，右侧概览"""
 
     def __init__(self, title: str, subtitle: str, summary: str):
         self.img_icon = Renderer.load_img_resource("Pick-One", _TEXT_COLOR)
-        self.str_title = StyledString(title, 'H', 96, padding_bottom=4, font_color=_TEXT_COLOR)
+        self.str_title = StyledString(title, 'H', 96, padding_bottom=4, font_color=_TEXT_COLOR, max_width=2048)
         self.str_subtitle = StyledString(subtitle, 'H', 28, font_color=_MILD_TEXT_COLOR)
         self.str_summary = StyledString(summary, 'H', 30, font_color=(0, 0, 0, 178))
         self._chip_color = (0, 0, 0, 16)
@@ -382,71 +368,26 @@ class PickOneRenderer(SimpleCardRenderer):
         return [section_title, section_stickers, section_tips]
 
 
-def _load_preview_img(img_path: str, box: tuple[int, int]) -> pixie.Image | None:
-    """读取表情包首帧，等比缩放至 box 限定的长宽以内并返回。
-
-    动图只取第一帧。pixie 读不了 GIF，所以先交给 Pillow 解码，
-    再经由临时 PNG 送进 pixie —— pixie 只接受文件路径，没有从内存读入的接口。
-    """
-    try:
-        with Image.open(img_path) as raw:
-            raw.seek(0)  # 动图一律取首帧
-            frame = raw.convert("RGBA")
-
-            # 缩放一次到位：算上放大倍数的上限，之后交给 pixie 时尺寸已经吻合
-            max_width, max_height = box
-            scale = min(max_width / frame.width, max_height / frame.height,
-                        _PREVIEW_MAX_UPSCALE)
-            size = (max(1, round(frame.width * scale)), max(1, round(frame.height * scale)))
-            if size != frame.size:
-                frame = frame.resize(size, Image.LANCZOS)
-
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                tmp_path = tmp.name
-            try:
-                frame.save(tmp_path, format="PNG")
-                return pixie.read_image(tmp_path)
-            finally:
-                try:
-                    os.remove(tmp_path)
-                except OSError:
-                    pass
-
-    except Exception as e:
-        Constants.log.warning(f"[render] 读取预览图 {os.path.basename(img_path)} 失败")
-        Constants.log.exception(f"[render] {e}")
-        return None
-
-
 def _describe_stat(stat: PickOneImgStat) -> str:
-    """一张表情包的说明。
-
-    互动数据大多还是 0，整行照实画出来只会是一排没信息量的 0，
-    因此没有互动时改显示添加时间，让它始终能读出点东西。
-    """
+    """一张表情包的说明"""
     if stat.likes or stat.comments or stat.pickup_times:
-        return f"{stat.likes} 赞 · {stat.comments} 评 · 被来 {stat.pickup_times} 次"
+        return f"{stat.likes} 赞 · {stat.comments} 评 · 提起 {stat.pickup_times} 次"
     if stat.add_time:
         return f"添加于 {time.strftime('%y/%m/%d', time.localtime(stat.add_time))}"
     return "暂无互动记录"
 
 
 class _PreviewCard:
-    """单张表情包：上方是等比居中的预览图，下方是 ID 与互动情况"""
+    """单张表情包"""
 
     def __init__(self, text_color: pixie.Color, media_color: pixie.Color,
-                 stat: PickOneImgStat, img_path: str, available: bool):
-        def _alpha(available_alpha: int, unavailable_alpha: int) -> int:
-            """数量为 0 的类别整体压淡，与图鉴的处理一致"""
-            return available_alpha if available else unavailable_alpha
-
+                 stat: PickOneImgStat, img_path: str):
         self._card_color = media_color
-        self.img_preview = (_load_preview_img(img_path, _PREVIEW_MEDIA_BOX)
+        self.img_preview = (img_fit_in_bounds(img_path, _PREVIEW_MEDIA_BOX, _PREVIEW_MAX_UPSCALE)
                             if os.path.exists(img_path) else None)
 
         self.str_hash_id = StyledString(
-            f"ID: {stat.hash_id}", 'H', _PREVIEW_ID_FONT_SIZE,
-            font_color=change_alpha(text_color, _alpha(255, 118)),
+            f"ID: {stat.hash_id}", 'H', _PREVIEW_ID_FONT_SIZE, font_color=text_color,
             max_width=_PREVIEW_CARD_WIDTH - _PREVIEW_FOOTER_PADDING * 2
         )
         self.str_meta = StyledString(
@@ -462,7 +403,7 @@ class _PreviewCard:
         media_x, media_y = x + _PREVIEW_MEDIA_INSET, y + _PREVIEW_MEDIA_INSET
         draw_mask_rect(img, Loc(media_x, media_y, _PREVIEW_MEDIA_WIDTH,
                                 _PREVIEW_MEDIA_HEIGHT),
-                       _PREVIEW_PLATE_COLOR, _ITEM_ROUND_SIZE - _PREVIEW_MEDIA_INSET)
+                       (255, 255, 255), _ITEM_ROUND_SIZE - _PREVIEW_MEDIA_INSET)
 
         if self.img_preview:
             width, height = self.img_preview.width, self.img_preview.height
@@ -481,9 +422,9 @@ class _PreviewSection(RenderableSection):
     """表情包预览网格"""
 
     def __init__(self, text_color: pixie.Color, media_color: pixie.Color,
-                 img_key: str, available: bool, imgs: list[PickOneImgStat]):
+                 img_key: str, imgs: list[PickOneImgStat]):
         cards = [_PreviewCard(text_color, media_color, stat,
-                              get_img_full_path(img_key, f"{stat.md5}.gif"), available)
+                              get_img_full_path(img_key, f"{stat.md5}.gif"))
                  for stat in imgs]
         self._rows = [cards[idx:idx + _COLUMNS]
                       for idx in range(0, len(cards), _COLUMNS)]
@@ -492,8 +433,6 @@ class _PreviewSection(RenderableSection):
         return _COLUMNS
 
     def get_height(self):
-        if not self._rows:
-            return 0
         return (len(self._rows) * _PREVIEW_CARD_HEIGHT +
                 _PREVIEW_GAP * (len(self._rows) - 1))
 
@@ -507,38 +446,11 @@ class _PreviewSection(RenderableSection):
         return current_y - _PREVIEW_GAP
 
 
-class _EmptySection(RenderableSection):
-    """类别下还没有表情包时的占位"""
-
-    def __init__(self, img_key: str):
-        self.str_hint = StyledString(
-            f"这个类别还没有表情包，发送 /添加来只 {img_key} 并附带图片就能添加上第一只.",
-            'B', 32, font_color=(0, 0, 0, 118), max_width=_GRID_WIDTH - 96 * 2
-        )
-        self._height = self.str_hint.height + 96 * 2
-
-    def get_columns(self):
-        return _COLUMNS
-
-    def get_height(self):
-        return self._height
-
-    def render(self, img: pixie.Image, x: int, y: int) -> int:
-        draw_mask_rect(img, Loc(x, y, _GRID_WIDTH, self._height), (0, 0, 0, 16), 48)
-        draw_text(img, self.str_hint, x + 96, y + 96)
-        return y + self._height
-
-
 class PickOnePreviewRenderer(SimpleCardRenderer):
-    """单个表情包类别的预览卡片
-
-    色相取自与图鉴同一份排序结果，因此同一类别在两张图里颜色一致。
-    imgs 是已经挑好的预览对象（由调用方随机抽样）。
-    """
+    """单个表情包类别的预览卡片"""
 
     def __init__(self, data: PickOne, img_key: str, imgs: list[PickOneImgStat]):
         super().__init__()
-        # 图鉴按下标在彩虹渐变上依次取色，这里定位到同一个下标即可拿到同一色相
         stickers = _collect_stickers(data)
         sticker_id = data.conf[img_key].id
         for idx, (sticker_id_of, count, _) in enumerate(stickers):
@@ -556,7 +468,7 @@ class PickOnePreviewRenderer(SimpleCardRenderer):
         self._text_color = tuple_to_color(_hue_color(spectrum_ratio, _TEXT_LUMINANCE_RANGE))
         self._media_color = change_alpha(
             tuple_to_color(_hue_color(spectrum_ratio, _TINT_LUMINANCE_RANGE)),
-            26 if count > 0 else 12)
+            _PREVIEW_CARD_TINT_ALPHA)
 
     @classmethod
     def _get_content_width(cls) -> int:
@@ -572,14 +484,11 @@ class PickOnePreviewRenderer(SimpleCardRenderer):
     def _get_render_sections(self) -> list[RenderableSection]:
         section_title = _TitleSection(f"表情包预览 - {self._sticker_id}",
                                       f"PickOne Preview - {self._sticker_id}",
-                                      f"{self._count} 只表情包")
-        section_preview = (_PreviewSection(self._text_color, self._media_color, self._img_key,
-                                           self._count > 0, self._imgs)
-                           if self._imgs else _EmptySection(self._img_key))
+                                      f"共 {self._count} 只")
+        section_preview = _PreviewSection(self._text_color, self._media_color,
+                                          self._img_key, self._imgs)
         section_tips = _TipsSection(
-            f"预览图是从这个类别里随机抽取的 {len(self._imgs)} 只，"
-            f"发送 /来只 {self._img_key} 可以随机获取一张，"
-            "发送 /随便来只 则从所有类别里随机.",
+            f"发送 /来只 {self._img_key} 获取本类别表情包.",
             "PickOne Preview")
 
         return [section_title, section_preview, section_tips]

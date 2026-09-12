@@ -115,39 +115,41 @@ def _decode_img_key(data: PickOne, what: str) -> str | None:
 
 
 def _reply_pick_one_list(message: RobotMessage, data: PickOne):
-    """以图片的形式回复可用的表情包类别"""
     cached_prefix = get_cached_prefix('Pick-One-Renderer')
     PickOneRenderer(data).render().write_file(f"{cached_prefix}.png")
 
     total_count = sum(count for _, count in data.ids)
-    message.reply(f"[Pick-One] 目前可以来只（共 {len(data.ids)} 个类别，{total_count} 只表情包）",
+    message.reply(f"[Pick-One] 目前可以来只...",
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
 @command(tokens=["预览来只*", "看看来只*", "来只图鉴*", "preview*"])
 def reply_pick_one_preview(message: RobotMessage):
-    """以图片的形式回复某个类别的信息与预览图，不带参数时随机挑一个类别"""
     data = get_pick_one_data()
     if len(message.tokens) >= 2:
         img_key = _decode_img_key(data, message.tokens[1].lower())
-        if img_key is None:  # 关键词没匹配上，退回图鉴
+        if img_key is None:
             _reply_pick_one_list(message, data)
             return
     else:
-        # 不指定类别时从有内容的中挑，免得只看到空类别的占位提示
-        counts = dict(data.ids)  # data.ids 存的是展示名，要经 conf 映射回关键词
+        # 不指定类别时从有内容的中挑
+        counts = dict(data.ids)
         img_key = random.choice([key for key, conf in data.conf.items()
                                  if counts.get(conf.id, 0) > 0])
 
     imgs = get_category_stat(img_key)
+    if not imgs:
+        message.reply(f"[Pick-One] 这个类别还没有表情包哦，"
+                      f"发送 /添加来只 {img_key} 并附带图片即可添加.", modal_words=False)
+        return
+
     preview_imgs = pick_preview_imgs(imgs, _PREVIEW_COUNT)
     renderer = PickOnePreviewRenderer(data, img_key, preview_imgs)
 
     cached_prefix = get_cached_prefix('Pick-One-Renderer')
     renderer.render().write_file(f"{cached_prefix}.png")
 
-    message.reply(f"[Pick-One] {data.conf[img_key].id} 的预览"
-                  f"（共 {len(imgs)} 只表情包，这里随机展示 {len(preview_imgs)} 只）",
+    message.reply(f"[Pick-One] {data.conf[img_key].id} 预览图",
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
@@ -391,25 +393,6 @@ def reply_comment_one_specific(message: RobotMessage):
         return
 
     _reply_comment_one(message, img_key, message.tokens[2].strip(), message.tokens[3].strip())
-
-
-@command(tokens=["数数来只*", "多少只*", "有多少只*", "count*", "cnt*"])
-def reply_count_one(message: RobotMessage):
-    data = get_pick_one_data()
-    what = message.tokens[1].lower() if len(message.tokens) >= 2 else None
-
-    img_key = _decode_img_key(data, what)
-    if img_key is None:
-        _reply_pick_one_list(message, data)
-        return
-
-    img_cnt = 0
-    for _id, _len in data.ids:
-        if _id == data.conf[img_key].id:
-            img_cnt = _len
-            break
-
-    message.reply(f"[Pick-One] 目前共有 {img_cnt} 只 {data.conf[img_key].id}", modal_words=False)
 
 
 @command(tokens=["审核来只", "同意来只", "accept", "audit", "ac"], permission_level=PermissionLevel.MOD)
