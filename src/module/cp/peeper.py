@@ -316,7 +316,7 @@ def send_yesterday_board(message: RobotMessage):
 
 
 @command(tokens=['往期总榜', '往日总榜', 'history'])
-def send_yesterday_board(message: RobotMessage):
+def send_history_board(message: RobotMessage):
     if len(message.tokens) < 2:
         message.reply("请指定日期，格式为 YYYY-MM-DD，如 2026-09-11", modal_words=False)
         return
