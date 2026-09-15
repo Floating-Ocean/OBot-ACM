@@ -172,7 +172,7 @@ def _reply_pick_one_list(message: RobotMessage, data: PickOne):
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
-@command(tokens=["预览来只*", "看看来只*", "来只图鉴*", "preview*"])
+@command(tokens=["预览来只*", "看看来只*", "preview*"])
 def reply_pick_one_preview(message: RobotMessage):
     data = get_pick_one_data()
     if len(message.tokens) >= 2:
@@ -216,7 +216,7 @@ def reply_pick_one_preview(message: RobotMessage):
     renderer.render().write_file(f"{cached_prefix}.png")
 
     message.reply(f"[Pick-One] {data.conf[img_key].id} 预览图\n\n"
-                  f"发送 /预览来只 {img_key} 加 ID 前缀可直接获取对应表情包",
+                  f"发送 /{message.tokens[0]} {img_key} 加 ID 前缀可直接获取对应表情包",
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
@@ -273,7 +273,8 @@ def reply_save_one(message: RobotMessage):
         cnt, ok, duplicate = accept_attachment(img_key, need_audit, message.attachments)
 
         if cnt == 0:
-            message.reply("[Pick-One] 未识别到图片，请将图片和指令发送在同一条消息中")
+            message.reply("[Pick-One] 未识别到图片，请将图片和指令发送在同一条消息中\n\n"
+                          "移动端设备可长按编辑框进入全屏输入模式以附加图片")
         else:
             _parse_img(img_key)
             failed_info = ""
