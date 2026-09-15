@@ -55,6 +55,9 @@ def add_qrcode(target_path: str, color: Colors, paste_coord: tuple[int, int]):
 def reply_color_rand(message: RobotMessage):
     chosen_type = "chinese_traditional"
     content = message.tokens
+    if message.tokens[0] == "/rand":  # 支持从 /rand color 调用
+        content = message.tokens[1:]
+
     if len(content) > 1:
         arg = content[1].strip().lower().replace("_", "-")
         if arg in ["chi", "chinese", "zh", "chinese-traditional",

@@ -460,7 +460,7 @@ def reply_cf_request(message: RobotMessage):
             send_user_last_submit(message, content[2], int(content[3]) if len(content) == 4 else 5)
 
         elif func == "pick" or func == "prob" or func == "problem" or (
-                content[0] == "/rand" and func == "cf"):  # 让此处能被 /rand 模块调用
+                content[0] == "/rand"):  # 支持从 /rand cf 调用
             if len(content) < 3 or not send_prob_filter_tag(
                     message=message,
                     prob_info=ProbInfo(
@@ -471,7 +471,7 @@ def reply_cf_request(message: RobotMessage):
                     )
             ):
                 func_prefix = f"/cf {func}"
-                if func == "cf":
+                if content[0] == "/rand":
                     func_prefix = "/rand cf"
                 send_prob_pick_help(message, func_prefix)
 

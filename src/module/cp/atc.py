@@ -109,14 +109,14 @@ def reply_atc_request(message: RobotMessage):
             send_user_info(message, content[2])
 
         elif func == "pick" or func == "prob" or func == "problem" or (
-                content[0] == "/rand" and func == "atc"):  # 让此处能被 /rand 模块调用
+                content[0] == "/rand"):  # 支持从 /rand atc 调用
             if len(content) < 3 or not send_prob_filter_tag(
                     message=message,
                     contest_type=content[2],
                     limit=content[3] if len(content) >= 4 else None
             ):
                 func_prefix = f"/atc {func}"
-                if func == "atc":
+                if content[0] == "/rand":
                     func_prefix = "/rand atc"
                 message.reply("请输入正确的指令格式，题目标签不要带有空格，如:\n\n"
                               f"{func_prefix} common\n"
