@@ -143,6 +143,30 @@ def pick_preview_imgs(imgs: list[PickOneImgStat], count: int) -> list[PickOneImg
     return random.sample(imgs, count)
 
 
+def match_hash_id_prefix(preview_ids: list[str], category_ids: list[str],
+                         prefix: str) -> list[str]:
+    """按前缀匹配展示用 ID，优先匹配上一次预览展示过的图片，其次匹配整个类别
+
+    匹配到多张时交由调用方提示前缀过短；大小写没对上时放宽一次。
+    """
+    if not prefix:
+        return []
+
+    for candidates in (preview_ids, category_ids):
+        matched = [hash_id for hash_id in candidates if hash_id.startswith(prefix)]
+        if not matched:
+            lowered = prefix.lower()
+            matched = [hash_id for hash_id in candidates if hash_id.lower().startswith(lowered)]
+        if matched:
+            return matched
+    return []
+
+
+def list_parser_hash_ids(img_parser: dict) -> list[str]:
+    """列出 parser 中所有表情包的展示用 ID"""
+    return [md5_to_base62(name[:-4]) for name in img_parser if name.endswith(".gif")]
+
+
 def list_auditable() -> list[str]:
     audit_dir_path = _get_img_dir_path("__AUDIT__")
     return [key for key in os.listdir(audit_dir_path)

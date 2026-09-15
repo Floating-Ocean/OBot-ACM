@@ -15,7 +15,7 @@ from src.core.util.output_cache import get_cached_prefix
 from src.core.util.tools import read_image_with_opencv, base62_to_md5, md5_to_base62, png2jpg
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit, \
-    get_category_stat, pick_preview_imgs
+    get_category_stat, pick_preview_imgs, match_hash_id_prefix, list_parser_hash_ids
 from src.render.pixie.render_pick_one import (PickOneRenderer, PickOnePreviewRenderer,
                                               _PREVIEW_COUNT)
 
@@ -30,6 +30,8 @@ _parser_locks: dict[str, threading.Lock] = {}
 _locks_dict_lock = threading.Lock()
 
 _last_pick_img: dict[str, tuple[float, str, str]] = {}  # 指定对话场景上一次提起的图片
+# 指定对话场景、指定类别上一次预览展示过的图片
+_last_preview_ids: dict[str, dict[str, list[str]]] = {}
 
 
 def _get_parser_lock(img_key: str) -> threading.Lock:
@@ -114,6 +116,53 @@ def _decode_img_key(data: PickOne, what: str) -> str | None:
     return img_key
 
 
+def _resolve_img_id(message: RobotMessage, img_key: str, prefix: str,
+                    category_ids: list[str]) -> str | None:
+    """把 ID 前缀解析成完整 ID；匹配不唯一或匹配不到时直接回复提示"""
+    matched = match_hash_id_prefix(
+        _last_preview_ids.get(message.uuid, {}).get(img_key, []),
+        category_ids, prefix.strip())
+    if len(matched) == 1:
+        return matched[0]
+
+    if matched:
+        message.reply(f"[Pick-One] 存在多个匹配，请提供更长的 ID 前缀")
+        return None
+
+    message.reply(f"[Pick-One] 没有找到 ID 前缀为 {prefix} 的表情包，请检查后重试")
+    return None
+
+
+def _reply_picked_img(message: RobotMessage, data: PickOne, img_key: str, img_parser: dict,
+                      picked: str, query_tag: str, query_more_tip: str = ""):
+    """回复单张表情包，并记为该对话场景上一次提起的图片"""
+    hash_id = md5_to_base62(picked.rsplit('.', 1)[0])
+    parse_info = img_parser[picked]
+    comments = (
+        "" if not parse_info['comments'] else
+        ("评论: \n" + ('\n'.join(f"{idx + 1}. {content}" for idx, content in
+                                 enumerate(parse_info['comments']))) + "\n")
+    )
+    add_time = time.strftime('%y/%m/%d %H:%M:%S',
+                             time.localtime(parse_info['add_time']))
+
+    # 记录提起次数
+    parse_info['pickup_times'] += 1
+    img_parser[picked] = parse_info
+    save_img_parser(img_key, img_parser)
+
+    if query_more_tip:
+        query_more_tip = f"\n{query_more_tip}"
+    message.reply(f"[Pick-One] 来了只{query_tag}{data.conf[img_key].id}\n\n"
+                  f"ID: {hash_id}\n"
+                  f"点赞: {parse_info['likes']} 次\n{comments}"
+                  f"提起次数: {parse_info['pickup_times']} 次\n"
+                  f"添加时间: {add_time}{query_more_tip}",
+                  img_path=get_img_full_path(img_key, picked), modal_words=False)
+
+    _last_pick_img[message.uuid] = time.time(), img_key, hash_id
+
+
 def _reply_pick_one_list(message: RobotMessage, data: PickOne):
     cached_prefix = get_cached_prefix('Pick-One-Renderer')
     PickOneRenderer(data).render().write_file(f"{cached_prefix}.png")
@@ -143,13 +192,31 @@ def reply_pick_one_preview(message: RobotMessage):
                       f"发送 /添加来只 {img_key} 并附带图片即可添加.", modal_words=False)
         return
 
+    if len(message.tokens) >= 3:  # 指定 ID 前缀时直接给出对应的表情包
+        hash_id = _resolve_img_id(message, img_key, message.tokens[2],
+                                  [stat.hash_id for stat in imgs])
+        if hash_id is None:
+            return
+
+        with _get_parser_lock(img_key):
+            img_parser = _get_specified_img_parser(message, img_key, hash_id)
+            if img_parser is None:
+                return
+
+            _reply_picked_img(message, data, img_key, img_parser,
+                              f"{base62_to_md5(hash_id)}.gif", "指定的")
+        return
+
     preview_imgs = pick_preview_imgs(imgs, _PREVIEW_COUNT)
+    _last_preview_ids.setdefault(message.uuid, {})[img_key] = \
+        [stat.hash_id for stat in preview_imgs]
     renderer = PickOnePreviewRenderer(data, img_key, preview_imgs)
 
     cached_prefix = get_cached_prefix('Pick-One-Renderer')
     renderer.render().write_file(f"{cached_prefix}.png")
 
-    message.reply(f"[Pick-One] {data.conf[img_key].id} 预览图",
+    message.reply(f"[Pick-One] {data.conf[img_key].id} 预览图\n\n"
+                  f"发送 /预览来只 {img_key} 加 ID 前缀可直接获取对应表情包",
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
@@ -173,31 +240,8 @@ def reply_pick_one(message: RobotMessage):
 
         def reply_ok(query_tag: str, query_more_tip: str, picked: str):
             """回复模糊匹配的表情包"""
-            hash_id = md5_to_base62(picked.rsplit('.', 1)[0])
-            parse_info = img_parser[picked]
-            comments = (
-                "" if not parse_info['comments'] else
-                ("评论: \n" + ('\n'.join(f"{idx + 1}. {content}" for idx, content in
-                                         enumerate(parse_info['comments']))) + "\n")
-            )
-            add_time = time.strftime('%y/%m/%d %H:%M:%S',
-                                     time.localtime(parse_info['add_time']))
-
-            # 记录提起次数
-            parse_info['pickup_times'] += 1
-            img_parser[picked] = parse_info
-            save_img_parser(img_key, img_parser)
-
-            if query_more_tip:
-                query_more_tip = f"\n{query_more_tip}"
-            message.reply(f"[Pick-One] 来了只{query_tag}{current_config.id}\n\n"
-                          f"ID: {hash_id}\n"
-                          f"点赞: {parse_info['likes']} 次\n{comments}"
-                          f"提起次数: {parse_info['pickup_times']} 次\n"
-                          f"添加时间: {add_time}{query_more_tip}",
-                          img_path=get_img_full_path(img_key, picked), modal_words=False)
-
-            _last_pick_img[message.uuid] = time.time(), img_key, hash_id
+            _reply_picked_img(message, data, img_key, img_parser, picked,
+                              query_tag, query_more_tip)
 
         reply_fuzzy_matching(message, img_parser, f"{current_config.id} 的图片", 2, reply_ok)
 
@@ -306,6 +350,11 @@ def _check_last_picked(message: RobotMessage, command_help: str) -> bool:
 
 def _reply_like_one(message: RobotMessage, img_key: str, hash_id_b62: str):
     with _get_parser_lock(img_key):
+        hash_id_b62 = _resolve_img_id(message, img_key, hash_id_b62,
+                                      list_parser_hash_ids(get_img_parser(img_key)))
+        if hash_id_b62 is None:
+            return
+
         img_parser = _get_specified_img_parser(message, img_key, hash_id_b62)
         if img_parser is None:
             return
@@ -343,6 +392,11 @@ def reply_like_one_specific(message: RobotMessage):
 
 def _reply_comment_one(message: RobotMessage, img_key: str, hash_id_b62: str, comment: str):
     with _get_parser_lock(img_key):
+        hash_id_b62 = _resolve_img_id(message, img_key, hash_id_b62,
+                                      list_parser_hash_ids(get_img_parser(img_key)))
+        if hash_id_b62 is None:
+            return
+
         img_parser = _get_specified_img_parser(message, img_key, hash_id_b62)
         if img_parser is None:
             return
@@ -420,7 +474,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v5.6.0"
+    version="v5.7.0"
 )
 def register_module():
     pass

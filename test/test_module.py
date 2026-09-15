@@ -10,8 +10,9 @@ from botpy.errors import ServerError
 
 from src.core.util.exception import handle_exception, UnauthorizedError, ModuleRuntimeError
 from src.core.util.img_transform import ImgSymmetric, make_img_sym
-from src.core.util.tools import decode_range
-from src.data.data_pick_one import get_pick_one_data, get_img_parser, get_img_full_path
+from src.core.util.tools import decode_range, md5_to_base62
+from src.data.data_pick_one import (get_pick_one_data, get_img_parser, get_img_full_path,
+                                    list_parser_hash_ids, match_hash_id_prefix)
 from src.platform.collect.cpcfinder import CPCFinder
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
@@ -127,6 +128,24 @@ class Module(unittest.TestCase):
         for sym in ImgSymmetric:
             img_test_path = get_output_path(f'module_img_trans_{sym.value}')
             _ = make_img_sym(img_path, sym, img_test_path)
+
+    def test_pick_one_id_prefix(self):
+        category = ["aBc123", "xYz789"]
+        self.assertEqual(["aBc123"], match_hash_id_prefix([], category, "aB"))
+        self.assertEqual(["aBc123"], match_hash_id_prefix([], category, "aBc123"))
+        self.assertEqual(["aBc123"], match_hash_id_prefix([], category, "ab"))  # 大小写放宽
+        self.assertEqual([], match_hash_id_prefix([], category, "zZ"))
+        self.assertEqual([], match_hash_id_prefix([], category, ""))
+
+    def test_pick_one_id_prefix_preview_first(self):
+        category = ["aBc123", "aBx999"]
+        self.assertEqual(["aBc123"], match_hash_id_prefix(["aBc123"], category, "aB"))
+        self.assertEqual(category, match_hash_id_prefix(category, ["aBc123"], "aB"))
+        self.assertEqual(category, match_hash_id_prefix(["zZz999"], category, "aB"))
+
+    def test_pick_one_parser_hash_ids(self):
+        parser = {"0" * 32 + ".gif": {}, "0" * 32 + ".png": {}}
+        self.assertEqual([md5_to_base62("0" * 32)], list_parser_hash_ids(parser))
 
 
 if __name__ == '__main__':
