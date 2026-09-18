@@ -77,7 +77,8 @@ class _HelpItem(RenderableSection):
                                              font_color=(255, 222, 170)) if self._restriction_text
                                 else None)
         self._restriction_chip_height = (_RESTRICTION_CHIP_PADDING_VERTICAL * 2 +
-                                         (self.str_restriction.height if self.str_restriction else 0))
+                                         (self.str_restriction.height
+                                          if self.str_restriction else 0))
         self._restriction_chip_width = (_RESTRICTION_CHIP_PADDING_HORIZONTAL * 2 +
                                         int(calculate_width(self.str_restriction))
                                         if self.str_restriction else 0)
@@ -180,7 +181,8 @@ class _HelpCategory(RenderableSection):
 
         self.str_title = StyledString(category_name, 'H', 36, font_color=accent_light_color)
         self._chip_height = self.str_title.height + _CATEGORY_CHIP_PADDING_VERTICAL * 2
-        self._chip_width = int(calculate_width(self.str_title)) + _CATEGORY_CHIP_PADDING_HORIZONTAL * 2
+        self._chip_width = (int(calculate_width(self.str_title)) +
+                            _CATEGORY_CHIP_PADDING_HORIZONTAL * 2)
         self._chip_color = accent_light_color_tran
         # 标题右侧的分隔线
         self._line_color = change_alpha(accent_light_color, _LINE_ALPHA)

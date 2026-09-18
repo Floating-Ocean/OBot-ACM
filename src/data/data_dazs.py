@@ -7,7 +7,7 @@ _lib_path = Constants.modules_conf.get_lib_path("Dazs")
 
 
 def get_dazs_resource() -> list[str]:
-    resource_path = os.path.join(_lib_path, f"dazs_ans.json")
+    resource_path = os.path.join(_lib_path, "dazs_ans.json")
     if not os.path.isfile(resource_path):
         raise FileNotFoundError(resource_path)
 

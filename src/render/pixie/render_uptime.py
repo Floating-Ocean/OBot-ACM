@@ -5,7 +5,8 @@ from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_img,
     draw_mask_rect, hex_to_color, calculate_width, darken_color
 
 from src.core.constants import Constants
-from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection, SimpleCardRenderer
+from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection, \
+    SimpleCardRenderer
 from src.render.svg.render_uptime_status import render_uptime_status, get_percentile_color
 
 _CONTENT_WIDTH = 1472

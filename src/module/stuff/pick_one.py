@@ -16,8 +16,7 @@ from src.core.util.tools import read_image_with_opencv, base62_to_md5, md5_to_ba
 from src.data.data_pick_one import get_pick_one_data, get_img_parser, save_img_parser, list_img, \
     get_img_full_path, accept_attachment, list_auditable, PickOne, accept_audit, \
     get_category_stat, pick_preview_imgs, match_hash_id_prefix, list_parser_hash_ids
-from src.render.pixie.render_pick_one import (PickOneRenderer, PickOnePreviewRenderer,
-                                              _PREVIEW_COUNT)
+from src.render.pixie.render_pick_one import PickOneRenderer, PickOnePreviewRenderer
 
 _MAX_COMMENT_LENGTH = 32
 
@@ -165,9 +164,9 @@ def _reply_picked_img(message: RobotMessage, data: PickOne, img_key: str, img_pa
 
 def _reply_pick_one_list(message: RobotMessage, data: PickOne):
     cached_prefix = get_cached_prefix('Pick-One-Renderer')
-    PickOneRenderer(data).render().write_file(f"{cached_prefix}.png")
+    list_img = PickOneRenderer(data).render()
+    list_img.write_file(f"{cached_prefix}.png")
 
-    total_count = sum(count for _, count in data.ids)
     message.reply(f"[Pick-One] 目前可以来只...",
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
@@ -207,13 +206,13 @@ def reply_pick_one_preview(message: RobotMessage):
                               f"{base62_to_md5(hash_id)}.gif", "指定的")
         return
 
-    preview_imgs = pick_preview_imgs(imgs, _PREVIEW_COUNT)
+    preview_imgs = pick_preview_imgs(imgs)
     _last_preview_ids.setdefault(message.uuid, {})[img_key] = \
         [stat.hash_id for stat in preview_imgs]
-    renderer = PickOnePreviewRenderer(data, img_key, preview_imgs)
 
     cached_prefix = get_cached_prefix('Pick-One-Renderer')
-    renderer.render().write_file(f"{cached_prefix}.png")
+    preview_img = PickOnePreviewRenderer(data, img_key, preview_imgs).render()
+    preview_img.write_file(f"{cached_prefix}.png")
 
     message.reply(f"[Pick-One] {data.conf[img_key].id} 预览图\n\n"
                   f"发送 /{message.tokens[0]} {img_key} 加 ID 前缀可直接获取对应表情包",

@@ -45,8 +45,6 @@ _TITLE_ICON_SIZE = 102
 _TITLE_ICON_GAP = 18
 
 _PREVIEW_GAP = 64
-_PREVIEW_ROWS = 2
-_PREVIEW_COUNT = _COLUMNS * _PREVIEW_ROWS
 _PREVIEW_CARD_WIDTH = ((_GRID_WIDTH - _PREVIEW_GAP * (_COLUMNS - 1)) // _COLUMNS)
 
 _PREVIEW_MEDIA_INSET = 16  # 预览底板与卡片边缘的留白
@@ -261,7 +259,8 @@ class _TitleSection(RenderableSection):
 
     def __init__(self, title: str, subtitle: str, summary: str):
         self.img_icon = Renderer.load_img_resource("Pick-One", _TEXT_COLOR)
-        self.str_title = StyledString(title, 'H', 96, padding_bottom=4, font_color=_TEXT_COLOR, max_width=2048)
+        self.str_title = StyledString(title, 'H', 96, padding_bottom=4, font_color=_TEXT_COLOR,
+                                      max_width=2048)
         self.str_subtitle = StyledString(subtitle, 'H', 28, font_color=_MILD_TEXT_COLOR)
         self.str_summary = StyledString(summary, 'H', 30, font_color=(0, 0, 0, 178))
         self._chip_color = (0, 0, 0, 16)

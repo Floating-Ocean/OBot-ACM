@@ -8,7 +8,8 @@ from typing import Callable
 from apscheduler.triggers.cron import CronTrigger
 
 from src.core.bot.decorator import __commands__, __scheduled_jobs__
-from src.core.bot.interact import reply_key_words, no_reply, reply_command_not_found, reply_specified
+from src.core.bot.interact import reply_key_words, no_reply, reply_command_not_found, \
+    reply_specified
 from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
@@ -18,8 +19,8 @@ _count_queue: dict[str, queue.Queue] = {}
 _work_thread_life: dict[str, int] = {"default.manual": -1}
 
 _terminate_lock = threading.Lock()
-_terminate_signal = False
 
+_TERMINATE_SIGNAL = False
 _MAINTAINING_SIGNAL = False
 
 
@@ -54,31 +55,34 @@ def get_message_id(message: RobotMessage) -> MessageID:
 
         denied_reply = None
         func = content[0].lower()
+
         for module in __commands__:
             module_commands = __commands__[module]
+
             for cmd in module_commands:
                 starts_with = cmd[-1] == '*' and func.startswith(cmd[:-1])
-                if starts_with or cmd == func:
-                    original_command, _, is_command, multi_thread, scope = module_commands[cmd]
+                if not starts_with and cmd != func:
+                    continue
 
-                    if not is_command and (message.is_guild_public() or message.is_group_public()):
-                        # 对频道/群聊无at消息的过滤，避免spam
-                        continue
+                _, _, is_command, multi_thread, scope = module_commands[cmd]
+                if not is_command and (message.is_guild_public() or message.is_group_public()):
+                    # 对频道/群聊无at消息的过滤，避免spam
+                    continue
 
-                    if scope and message.message_type not in scope.types:
-                        # 指令限定了对话场景，记录失配回复后继续尝试下一条指令
-                        if denied_reply is None:
-                            denied_reply = scope.denied_reply
-                        continue
+                if scope and message.message_type not in scope.types:
+                    # 指令限定了对话场景，记录失配回复后继续尝试下一条指令
+                    if denied_reply is None:
+                        denied_reply = scope.denied_reply
+                    continue
 
-                    if multi_thread:
-                        # 多线程时，同一上下文一个线程
-                        worker_id = f"{module}_{message.uuid}"
-                        _work_thread_life[worker_id] = 60 * 60  # 一小时生命周期
-                        return MessageID(module, cmd, True)
+                if multi_thread:
+                    # 多线程时，同一上下文一个线程
+                    worker_id = f"{module}_{message.uuid}"
+                    _work_thread_life[worker_id] = 60 * 60  # 一小时生命周期
+                    return MessageID(module, cmd, True)
 
-                    _work_thread_life[module] = -1
-                    return MessageID(module, cmd)
+                _work_thread_life[module] = -1
+                return MessageID(module, cmd)
 
         # 命中了受限指令但场景失配，按自定义内容回复而不是静默忽略
         if denied_reply is not None:
@@ -91,8 +95,8 @@ def get_message_id(message: RobotMessage) -> MessageID:
 
         if func.startswith('/'):
             return MessageID("default.manual", "reply_not_implemented")
-        else:
-            return MessageID("default.manual", "reply_key_words_func")
+
+        return MessageID("default.manual", "reply_key_words_func")
 
     except Exception as e:
         message.report_exception('Core.Transit', e)
@@ -137,7 +141,7 @@ def handle_message(message: RobotMessage, message_id: MessageID):
     """
     try:
         if Constants.inst_paused and message_id != MessageID("robot", "/resume_inst"):
-            Constants.log.warning(f"[obot-core] 实例被暂停，弃置消息")
+            Constants.log.warning("[obot-core] 实例被暂停，弃置消息")
             return
 
         fixed_handlers = {
@@ -149,7 +153,8 @@ def handle_message(message: RobotMessage, message_id: MessageID):
             ),
             MessageID("default.manual", "reply_not_implemented"): (
                 reply_command_not_found,
-                {"message": message, "content": "" if len(message.tokens) == 0 else message.tokens[0].lower()}
+                {"message": message,
+                 "content": "" if len(message.tokens) == 0 else message.tokens[0].lower()}
             ),
             MessageID("default.manual", "reply_key_words_empty"): (
                 reply_key_words,
@@ -157,7 +162,8 @@ def handle_message(message: RobotMessage, message_id: MessageID):
             ),
             MessageID("default.manual", "reply_key_words_func"): (
                 reply_key_words,
-                {"message": message, "content": "" if len(message.tokens) == 0 else message.tokens[0].lower()}
+                {"message": message,
+                 "content": "" if len(message.tokens) == 0 else message.tokens[0].lower()}
             ),
         }
 
@@ -168,7 +174,8 @@ def handle_message(message: RobotMessage, message_id: MessageID):
 
         func = message.tokens[0].lower()
 
-        (original_command, execute_level, _, _, _) = __commands__[message_id.module][message_id.command]
+        cmd_props = __commands__[message_id.module][message_id.command]
+        (original_command, execute_level, _, _, _) = cmd_props
 
         _check_permission(execute_level, func, message, message_id)
 
@@ -209,14 +216,14 @@ def _check_permission(execute_level, func, message, message_id):
 
 def clear_message_queue():
     Constants.log.info("[obot-core] 正在清空消息队列")
-    global _terminate_signal
+    global _TERMINATE_SIGNAL
     with _terminate_lock:
-        _terminate_signal = True
-    for module, module_query_queue in _query_queue.items():
+        _TERMINATE_SIGNAL = True
+    for _, module_query_queue in _query_queue.items():
         while not module_query_queue.empty():
             try:
                 queued_message: tuple[RobotMessage, MessageID] = module_query_queue.get_nowait()
-                message, message_id = queued_message
+                message, _ = queued_message
                 message.reply("O宝被爆了！等待一段时间后再试试")
             except queue.Empty:
                 break
@@ -227,13 +234,14 @@ def _make_scheduled_wrapper(func: Callable, message_type: MessageType | None,
     """为定时任务创建闭包，message_type 为 None 时作为纯定时任务（无 message 参数）"""
 
     if message_type is None:
-        def wrapper():
+        def wrapper_empty():
             try:
                 func()
             except Exception as e:
                 Constants.log.warning(f"[obot-sched] 定时任务 {func.__name__} 执行失败")
                 Constants.log.exception(f"[obot-sched] {e}")
-        return wrapper
+
+        return wrapper_empty
 
     setup_map = {
         MessageType.GUILD: lambda rm: rm.setup_active_guild_message(loop, target),
@@ -287,15 +295,13 @@ def queue_up_handler(worker_id: str):
     life = _work_thread_life[worker_id]
     terminate_time = time.time() + life if life >= 0 else -1
 
-    global _terminate_signal
-
     while True:
         if terminate_time != -1 and time.time() >= terminate_time:
             # 生命周期时间到的自动退出
             break
 
         with _terminate_lock:
-            is_terminate = _terminate_signal
+            is_terminate = _TERMINATE_SIGNAL
         if is_terminate:
             # 机器人重启时的强制退出
             break

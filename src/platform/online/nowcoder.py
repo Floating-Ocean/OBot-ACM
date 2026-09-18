@@ -8,8 +8,8 @@ from urllib.parse import quote_plus
 import pixie
 from lxml.etree import Element
 
-from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, check_intersect, \
-    get_today_timestamp_range, format_timestamp, format_seconds, check_is_int
+from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, \
+    check_intersect, get_today_timestamp_range, format_timestamp, format_seconds, check_is_int
 from src.platform.model import CompetitivePlatform, Contest
 from src.render.pixie.render_user_card import UserCardRenderer
 
@@ -35,8 +35,8 @@ class NowCoder(CompetitivePlatform):
         '#红': '#ff020a'
     }
     contest_category = {
-        (13, -1): '牛客系列赛',
-        (14, -1): '高校比赛',
+        13: '牛客系列赛',
+        14: '高校比赛',
     }
 
     @classmethod
@@ -105,7 +105,8 @@ class NowCoder(CompetitivePlatform):
 
     @classmethod
     def _decode_contest_time_set(cls, contest: Element) -> list[str]:
-        return re.split(r' {4}|\n ', contest.xpath(".//li[@class='match-time-icon']/text()")[0])
+        return re.split(r' {4}|\n ',
+                        contest.xpath(".//li[@class='match-time-icon']/text()")[0])
 
     @classmethod
     def _decode_rated(cls, contest: Element) -> str:
@@ -174,8 +175,10 @@ class NowCoder(CompetitivePlatform):
     @classmethod
     def _format_social_info(cls, html: Element, i18n: str = "来自") -> list[str]:
         social_info = []
-        edu_span = html.xpath('//a[contains(@class, "edu-item")]//span[@class="coder-edu-txt"]/text()')
-        coll_span = html.xpath('//a[contains(@class, "coll-item")]//span[@class="coder-edu-txt"]/text()')
+        edu_span = html.xpath('//a[contains(@class, "edu-item")]'
+                              '//span[@class="coder-edu-txt"]/text()')
+        coll_span = html.xpath('//a[contains(@class, "coll-item")]'
+                               '//span[@class="coder-edu-txt"]/text()')
         edu_text = f"{i18n} {edu_span[0]}" if len(edu_span) > 0 else None
         coll_text = f"{coll_span[0]}er" if len(coll_span) > 0 else None
         edu_info = [edu_txt for edu_txt in [coll_text, edu_text] if edu_txt is not None]
@@ -210,23 +213,30 @@ class NowCoder(CompetitivePlatform):
                 supplement=cls._decode_rated(contest)
             )
 
-        for category, category_name in cls.contest_category.items():
-            top_category_id, category_id = category
+        for top_category_id, category_name in cls.contest_category.items():
             html = fetch_url_element("https://ac.nowcoder.com/acm/contest/vip-index?"
-                                     f"topCategoryFilter={top_category_id}&"
-                                     f"categoryFilter={category_id}")
-            js_current = html.xpath("//div[@class='platform-mod js-current']//div[@class='platform-item-cont']")
-            js_end = html.xpath("//div[@class='platform-mod js-end']//div[@class='platform-item-cont']")
+                                     f"topCategoryFilter={top_category_id}")
+            js_current = html.xpath("//div[@class='platform-mod js-current']"
+                                    "//div[@class='platform-item-cont']")
+            js_end = html.xpath("//div[@class='platform-mod js-end']"
+                                "//div[@class='platform-item-cont']")
             running_contests.extend([
                 _pack_contest(contest, '正在比赛中', category_name) for contest in js_current
-                if contest.xpath(".//span[contains(@class, 'match-status')]/text()")[0].strip() == '比赛中'])
+                if contest.xpath(".//span[contains(@class, 'match-status')]"
+                                 "/text()")[0].strip() == '比赛中'
+            ])
             upcoming_contests.extend([
                 _pack_contest(contest, '即将开始', category_name) for contest in js_current
-                if contest.xpath(".//span[contains(@class, 'match-status')]/text()")[0].strip() == '报名中'])
+                if contest.xpath(".//span[contains(@class, 'match-status')]"
+                                 "/text()")[0].strip() == '报名中'
+            ])
             finished_contests_today.extend([
                 _pack_contest(contest, '已结束', category_name) for contest in js_end if
-                check_intersect(range1=get_today_timestamp_range(),
-                                range2=cls._merge_timestamp_range(cls._decode_contest_time_set(contest)))])
+                check_intersect(
+                    range1=get_today_timestamp_range(),
+                    range2=cls._merge_timestamp_range(cls._decode_contest_time_set(contest))
+                )
+            ])
             if len(js_current) > 0:
                 finished_contests_last.append(_pack_contest(js_end[0], '已结束', category_name))
 
@@ -245,9 +255,10 @@ class NowCoder(CompetitivePlatform):
     def _get_specified_contest(cls, search_name: str) -> tuple[int, str] | None:
         search_name = quote_plus(str(search_name).strip())
         chosen_contest = []
-        for category, _ in cls.contest_category.items():
+        for top_category_id, _ in cls.contest_category.items():
             html = fetch_url_element("https://ac.nowcoder.com/acm-heavy/acm/contest/search-detail?"
-                                        f"searchName={search_name}&topCategoryFilter=13")
+                                     f"searchName={search_name}&"
+                                     f"topCategoryFilter={top_category_id}")
             tr_elements = html.xpath('//tr[@class="js-nc-wrap-link js-item"]')
             if not tr_elements:
                 continue
@@ -260,17 +271,17 @@ class NowCoder(CompetitivePlatform):
             if check_is_int(search_name) and int(search_name) == candidates[0]['contestId']:
                 chosen_contest = [candidates[0]]
                 break
-            else:
-                # pending 不会太多，直接暴力算了
-                contest = None
-                for candidate in candidates:
-                    if time.time() >= candidate['contestStartTime'] / 1000:
-                        contest = candidate
-                        break
-                if contest is None:
-                    # 只有 pending 那就 pending 吧
-                    contest = candidates[0]
-                chosen_contest.append(contest)
+
+            # pending 不会太多，直接暴力算了
+            contest = None
+            for candidate in candidates:
+                if time.time() >= candidate['contestStartTime'] / 1000:
+                    contest = candidate
+                    break
+            if contest is None:
+                # 只有 pending 那就 pending 吧
+                contest = candidates[0]
+            chosen_contest.append(contest)
 
         if len(chosen_contest) == 0:
             return None
@@ -319,8 +330,10 @@ class NowCoder(CompetitivePlatform):
 
         rating = int(html.xpath("//div[contains(@class, 'state-num rate-score')]/text()")[0])
         rank = next((rk for (l, r), rk in cls.rated_rks.items() if l <= rating < r), '#灰')
-        return UserCardRenderer(handle=html.xpath("//a[contains(@class, 'coder-name')]/text()")[0].strip(),
-                                social=social, rank=rank, rank_alias=rank, rating=rating, platform=cls).render()
+        return UserCardRenderer(handle=html.xpath("//a[contains(@class, 'coder-name')]"
+                                                  "/text()")[0].strip(),
+                                social=social, rank=rank, rank_alias=rank, rating=rating,
+                                platform=cls).render()
 
     @classmethod
     def get_user_info(cls, handle: str) -> tuple[str, str] | None:
@@ -349,9 +362,12 @@ class NowCoder(CompetitivePlatform):
         platform = []
         rating = int(html.xpath("//div[contains(@class, 'state-num rate-score')]/text()")[0])
         platform.append(f"比赛Rating: {cls._format_rating(rating)}")
-        rating_rank = html.xpath('//div[@class="profile-status-box"]//a[contains(@href, "/rating-index")]/text()')
-        following = html.xpath('//div[@class="profile-status-box"]//a[contains(@href, "/following")]/text()')
-        followers = html.xpath('//div[@class="profile-status-box"]//a[contains(@href, "/followers")]/text()')
+        rating_rank = html.xpath('//div[@class="profile-status-box"]'
+                                 '//a[contains(@href, "/rating-index")]/text()')
+        following = html.xpath('//div[@class="profile-status-box"]'
+                               '//a[contains(@href, "/following")]/text()')
+        followers = html.xpath('//div[@class="profile-status-box"]'
+                               '//a[contains(@href, "/followers")]/text()')
         if len(rating_rank) > 0:
             platform.append(f"位次: {rating_rank[0]}")
         if len(following) > 0:
@@ -376,7 +392,8 @@ class NowCoder(CompetitivePlatform):
         if contest_count == 0:
             return "还未参加过 Rated 比赛"
 
-        group_contest_count = len([contest for contest in rated_contests if contest['isTeamSignUp']])
+        group_contest_count = len([contest for contest in rated_contests
+                                   if contest['isTeamSignUp']])
         if group_contest_count > 0:
             contest_count = f"{contest_count}，包含团队赛 {group_contest_count} 场"
 
@@ -390,7 +407,8 @@ class NowCoder(CompetitivePlatform):
         return info
 
     @classmethod
-    def get_user_contest_standings(cls, search_name: str, contest_name: str) -> tuple[str, list[str]] | None:
+    def get_user_contest_standings(cls, search_name: str,
+                                   contest_name: str) -> tuple[str, list[str]] | None:
         contest = cls._get_specified_contest(contest_name)
         if not contest:
             return None

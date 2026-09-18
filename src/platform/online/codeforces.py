@@ -8,8 +8,9 @@ import pixie
 from thefuzz import process
 
 from src.core.lib.cf_rating_calc import PredictResult, Contestant, predict
-from src.core.util.tools import fetch_url_json, format_timestamp, get_week_start_timestamp, get_today_start_timestamp, \
-    format_timestamp_diff, format_seconds, format_int_delta, decode_range, check_intersect, get_today_timestamp_range
+from src.core.util.tools import fetch_url_json, format_timestamp, get_week_start_timestamp, \
+    get_today_start_timestamp, format_timestamp_diff, format_seconds, format_int_delta, \
+    decode_range, check_intersect, get_today_timestamp_range
 from src.platform.model import CompetitivePlatform, Contest
 from src.render.pixie.render_user_card import UserCardRenderer
 
@@ -83,14 +84,13 @@ class Codeforces(CompetitivePlatform):
         verdict = verdict.replace("_", " ").capitalize()
         if verdict == "Ok":
             return "Accepted"
-        elif verdict == "Skipped" or verdict == "Compilation error":
+        if verdict in ("Skipped", "Compilation error"):
             return verdict
-        elif verdict == "Challenged":
+        if verdict == "Challenged":
             return "Hacked"
-        elif verdict == "Testing":
+        if verdict == "Testing":
             return f"Running on test {passed_count + 1}"
-        else:
-            return f"{verdict} on test {passed_count + 1}"
+        return f"{verdict} on test {passed_count + 1}"
 
     @classmethod
     def _format_contest_name(cls, name: str) -> str:
@@ -99,12 +99,13 @@ class Codeforces(CompetitivePlatform):
 
     @classmethod
     def _format_rank_delta(cls, old_rating: int, delta: int) -> str:
-        old_rk = next((rk for (l, r), rk in cls.rated_rks.items() if l <= old_rating < r), 'N')
-        new_rk = next((rk for (l, r), rk in cls.rated_rks.items() if l <= old_rating + delta < r), 'N')
+        old_rk = next((rk for (l, r), rk in cls.rated_rks.items()
+                       if l <= old_rating < r), 'N')
+        new_rk = next((rk for (l, r), rk in cls.rated_rks.items()
+                       if l <= old_rating + delta < r), 'N')
         if old_rk == new_rk:
             return "段位无变化"
-        else:
-            return f"段位变化 {old_rk}->{new_rk}"
+        return f"段位变化 {old_rk}->{new_rk}"
 
     @classmethod
     def _format_standing(cls, standing: dict, contest_id: str) -> str:
@@ -122,21 +123,27 @@ class Codeforces(CompetitivePlatform):
         if standing['party']['ghost']:
             member_info += " (Ghost)"
 
-        accepted_prob_count = len([prob for prob in standing['problemResults'] if 'bestSubmissionTimeSeconds' in prob])
-        rejected_attempt_count = sum(prob['rejectedAttemptCount'] for prob in standing['problemResults'])
+        accepted_prob_count = len([prob for prob in standing['problemResults']
+                                   if 'bestSubmissionTimeSeconds' in prob])
+        rejected_attempt_count = sum(prob['rejectedAttemptCount']
+                                     for prob in standing['problemResults'])
         submission_info = f"通过 {accepted_prob_count} 题" if accepted_prob_count > 0 else "暂无题目通过"
-        submission_info += f"，包含 {rejected_attempt_count} 次失败尝试" if rejected_attempt_count > 0 else "，无失败尝试"
+        submission_info += (f"，包含 {rejected_attempt_count} 次失败尝试"
+                            if rejected_attempt_count > 0 else "，无失败尝试")
 
         real_rank = standing['rank']
         contestant_predictions = ""
         if standing['party']['participantType'] == 'CONTESTANT':
             all_predictions = cls._fetch_contest_predict(contest_id)
-            if not isinstance(all_predictions, int) and (standing['party']['members'][0]['handle'] in all_predictions):
+            if (not isinstance(all_predictions, int) and
+                    (standing['party']['members'][0]['handle'] in all_predictions)):
                 prediction = all_predictions[standing['party']['members'][0]['handle']]
                 real_rank = prediction.rank
-                contestant_predictions = (f'\n表现分 {prediction.performance}，'
-                                          f'预测变化 {format_int_delta(prediction.delta)}，'
-                                          f'{cls._format_rank_delta(prediction.rating, prediction.delta)}')
+                contestant_predictions = (
+                    f'\n表现分 {prediction.performance}，'
+                    f'预测变化 {format_int_delta(prediction.delta)}，'
+                    f'{cls._format_rank_delta(prediction.rating, prediction.delta)}'
+                )
 
         striped_points = f"{standing['points']}".rstrip('0').rstrip('.')
         contestant_info = f"位次 {real_rank}，总分 {striped_points}，总罚时 {standing['penalty']}"
@@ -168,8 +175,7 @@ class Codeforces(CompetitivePlatform):
         }
         if phase in formatter:
             return formatter[phase]
-        else:
-            raise ValueError(f'Invalid phase: {phase}')
+        raise ValueError(f'Invalid phase: {phase}')
 
     @classmethod
     def _format_contest(cls, contest: dict) -> str:
@@ -197,13 +203,13 @@ class Codeforces(CompetitivePlatform):
             return {change['handle']: {'oldRating': change['oldRating'],
                                        'realChange': (change['oldRating'], change['newRating'])}
                     for change in rating_changes}
-        else:
-            def _adjust(old: int) -> int:
-                return 1400 if old == 0 else old  # NEW_DEFAULT_RATING
 
-            return {change['handle']: {'oldRating': _adjust(change['oldRating']),
-                                       'realChange': (change['oldRating'], change['newRating'])}
-                    for change in rating_changes}
+        def _adjust(old: int) -> int:
+            return 1400 if old == 0 else old  # NEW_DEFAULT_RATING
+
+        return {change['handle']: {'oldRating': _adjust(change['oldRating']),
+                                   'realChange': (change['oldRating'], change['newRating'])}
+                for change in rating_changes}
 
     @classmethod
     def _is_old_contest(cls, contest: dict) -> bool:
@@ -211,8 +217,10 @@ class Codeforces(CompetitivePlatform):
         Adapted from carrot at
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/cache/contests-complete.js
         """
-        days_since_contest_end = ((time.time() - contest['startTimeSeconds'] - contest['durationSeconds'])
-                                  / (60 * 60 * 24))
+        days_since_contest_end = (
+                (time.time() - contest['startTimeSeconds'] - contest['durationSeconds'])
+                / (60 * 60 * 24)
+        )
         return days_since_contest_end > 3  # RATING_PENDING_MAX_DAYS
 
     @classmethod
@@ -221,13 +229,15 @@ class Codeforces(CompetitivePlatform):
         Adapted from carrot at
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/cache/contests-complete.js
         """
-        ratings = cls._api('user.ratedList', activeOnly=False, contestId=standings['contest']['id'])
+        ratings = cls._api('user.ratedList', activeOnly=False,
+                           contestId=standings['contest']['id'])
         ratings = {user['handle']: user['rating'] for user in ratings}
 
         is_edu_round = 'educational' in standings['contest']['name'].lower()
         rows = standings['rows']
         if is_edu_round:
-            # For educational rounds, standings include contestants for whom the contest is not rated.
+            # For educational rounds,
+            # standings include contestants for whom the contest is not rated.
             rows = [row for row in standings['rows'] if
                     row['party']['members'][0]['handle'] in ratings and
                     row['party']['members'][0]['handle'] < 2100]  # EDU_ROUND_RATED_THRESHOLD
@@ -243,7 +253,8 @@ class Codeforces(CompetitivePlatform):
         return predict(contestants, True)
 
     @classmethod
-    def _get_final_prefs(cls, standings: dict, old_ratings: dict) -> dict[str, PredictResult] | None:
+    def _get_final_prefs(cls, standings: dict,
+                         old_ratings: dict) -> dict[str, PredictResult] | None:
         """
         Adapted from carrot at
         https://github.com/meooow25/carrot/blob/master/carrot/src/background/cache/contests-complete.js
@@ -350,16 +361,23 @@ class Codeforces(CompetitivePlatform):
                 supplement=f"{contest['type']} 赛制"
             )
 
-        running_contests = [_pack_contest(contest) for contest in contest_list
-                            if contest['phase'] not in ['BEFORE', 'FINISHED']
-                            and contest['startTimeSeconds'] + contest['durationSeconds']
-                            >= get_today_start_timestamp() - 7 * 24 * 60 * 60]  # 不考虑结束后一周还不重测的比赛
-        upcoming_contests = [_pack_contest(contest) for contest in contest_list if contest['phase'] == 'BEFORE']
-        finished_contests = [_pack_contest(contest) for contest in contest_list if contest['phase'] == 'FINISHED'
-                             and check_intersect(range1=get_today_timestamp_range(),
-                                                 range2=(contest['startTimeSeconds'],
-                                                         contest['startTimeSeconds'] + contest['durationSeconds']))
-                             ]  # 所有和今天有交集的已结束比赛
+        running_contests = [
+            _pack_contest(contest) for contest in contest_list
+            if contest['phase'] not in ['BEFORE', 'FINISHED']
+               and contest['startTimeSeconds'] + contest['durationSeconds']
+               >= get_today_start_timestamp() - 7 * 24 * 60 * 60  # 不考虑结束后一周还不重测的比赛
+        ]
+        upcoming_contests = [
+            _pack_contest(contest) for contest in contest_list if contest['phase'] == 'BEFORE'
+        ]
+        finished_contests = [
+            _pack_contest(contest) for contest in contest_list
+            if contest['phase'] == 'FINISHED' and check_intersect(
+                range1=get_today_timestamp_range(),
+                range2=(contest['startTimeSeconds'],
+                        contest['startTimeSeconds'] + contest['durationSeconds'])
+            )
+        ]  # 所有和今天有交集的已结束比赛
 
         if len(finished_contests) == 0:
             last_finished = next((c for c in contest_list if c['phase'] == 'FINISHED'), None)
@@ -379,7 +397,8 @@ class Codeforces(CompetitivePlatform):
         return tags
 
     @classmethod
-    def get_prob_filtered(cls, prob_info: ProbInfo, excludes: set[str] | None = None) -> dict | None:
+    def get_prob_filtered(cls, prob_info: ProbInfo,
+                          excludes: set[str] | None = None) -> dict | None:
         """
         根据tag、是否非远古题、难度范围和排除题目进行随机选题
         excludes 列表项格式为 contestId + index
@@ -445,8 +464,9 @@ class Codeforces(CompetitivePlatform):
         if not info or len(info) == 0:
             return None
         info = info[-1]
-        return (f"{info['rating']} "
-                f"{next((rk for (l, r), rk in cls.rated_rks.items() if l <= info['rating'] < r), 'N')}")
+        rank_alias = next((rk for (l, r), rk in cls.rated_rks.items()
+                           if l <= info['rating'] < r), 'N')
+        return f"{info['rating']} {rank_alias}"
 
     @classmethod
     def get_user_rating(cls, handle: str) -> int | None:
@@ -474,7 +494,8 @@ class Codeforces(CompetitivePlatform):
 
         rank_alias = next((rk for (l, r), rk in cls.rated_rks.items() if l <= rating < r), 'N')
         return UserCardRenderer(handle=info['handle'], social=social,
-                                rank=rank, rank_alias=rank_alias, rating=rating, platform=cls).render()
+                                rank=rank, rank_alias=rank_alias, rating=rating,
+                                platform=cls).render()
 
     @classmethod
     def get_user_info(cls, handle: str) -> tuple[str, str] | None:
@@ -530,12 +551,15 @@ class Codeforces(CompetitivePlatform):
         for submit in status:
             verdict = (cls._format_verdict(submit['verdict'], submit['passedTestCount'])
                        if 'verdict' in submit else "In queue")
-            points = f" *{int(submit['problem']['rating'])}" if 'rating' in submit['problem'] else ""
-            time_consumed = f" {submit['timeConsumedMillis']}ms" if 'timeConsumedMillis' in submit else ""
+            points = (f" *{int(submit['problem']['rating'])}"
+                      if 'rating' in submit['problem'] else "")
+            time_consumed = (f" {submit['timeConsumedMillis']}ms"
+                             if 'timeConsumedMillis' in submit else "")
             time_formatted = format_timestamp(submit['creationTimeSeconds'],
                                               chinese_weekday_format=False)
             info += (f"\n[{submit['id']}] {verdict} "
-                     f"P{submit['problem']['contestId']}{submit['problem']['index']}{points}{time_consumed} "
+                     f"P{submit['problem']['contestId']}"
+                     f"{submit['problem']['index']}{points}{time_consumed} "
                      f"{time_formatted}")
 
         return info
@@ -572,14 +596,16 @@ class Codeforces(CompetitivePlatform):
         return set(prob_id)
 
     @classmethod
-    def get_user_contest_standings(cls, handle: str, contest_id: str) -> tuple[str, list[str]] | None:
+    def get_user_contest_standings(cls, handle: str,
+                                   contest_id: str) -> tuple[str, list[str]] | None:
         standings = cls._api_with_check('contest.standings',
                                         handles=handle, contestId=contest_id, showUnofficial=True)
         if not standings:
             return None
 
         contest_info = cls._format_contest(standings['contest'])
-        standings_info = [cls._format_standing(standing, contest_id) for standing in standings['rows']]
+        standings_info = [cls._format_standing(standing, contest_id)
+                          for standing in standings['rows']]
 
         return contest_info, standings_info
 
@@ -600,7 +626,8 @@ class Codeforces(CompetitivePlatform):
                 last_submission['verdict'] != 'COMPILATION_ERROR'):
             return False
 
-        if not establish_time <= last_submission['creationTimeSeconds'] <= establish_time + 10 * 60:
+        create_time = last_submission['creationTimeSeconds']
+        if not establish_time <= create_time <= establish_time + 10 * 60:
             return False
 
         return True
@@ -623,7 +650,7 @@ class Codeforces(CompetitivePlatform):
                     on_tag_chosen(f"标签最佳匹配: {prob_info.tag}")
 
         if prob_info.limit is not None:
-            min_point, max_point = decode_range(prob_info.limit, length=(3, 4))
+            min_point, _ = decode_range(prob_info.limit, length=(3, 4))
             if min_point in [-2, -3]:
                 return False
 

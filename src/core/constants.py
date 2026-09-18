@@ -42,6 +42,7 @@ class GitCommit:
 
 class InvalidGitCommit(GitCommit):
     def __init__(self, invalid_message: str):
+        super().__init__("", "", "", "", "", "")
         self.hash_short = invalid_message
 
 

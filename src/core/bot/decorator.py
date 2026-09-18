@@ -94,8 +94,11 @@ def module(name: str,
         __modules__[name] = version
         return func
 
-    logging.getLogger("entry").debug(f'[obot-init] 载入模块 {name} '
-                                     f'{version if isinstance(version, str) else "v_dynamic"}')
+    logging.getLogger("entry").debug(
+        '[obot-init] 载入模块 %s %s',
+        name,
+        version if isinstance(version, str) else "v_dynamic"
+    )
 
     return decorator
 

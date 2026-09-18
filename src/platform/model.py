@@ -6,8 +6,8 @@ from enum import Enum
 
 import pixie
 
-from src.core.util.tools import format_timestamp_diff, format_seconds, format_timestamp, check_intersect, \
-    get_a_month_timestamp_range
+from src.core.util.tools import format_timestamp_diff, format_seconds, format_timestamp, \
+    check_intersect, get_a_month_timestamp_range
 
 
 @dataclass
@@ -50,18 +50,20 @@ class DynamicContest(Contest):
         start_tick, end_tick = self.start_time, self.start_time + self.duration
         if current_tick < start_tick:
             return DynamicContestPhase.UPCOMING
-        elif current_tick > end_tick:
+        if current_tick > end_tick:
             return DynamicContestPhase.ENDED
-        else:
-            return DynamicContestPhase.RUNNING
+        return DynamicContestPhase.RUNNING
 
     def __init__(self, **kwargs):
-        self.platform = kwargs['platform']
-        self.abbr = kwargs['abbr']
-        self.name = kwargs['name']
-        self.start_time = kwargs['start_time']
-        self.duration = kwargs['duration']
-        self.supplement = kwargs['supplement']
+        super().__init__(
+            platform=kwargs['platform'],
+            abbr=kwargs['abbr'],
+            name=kwargs['name'],
+            phase="",
+            start_time=kwargs['start_time'],
+            duration=kwargs['duration'],
+            supplement=kwargs['supplement']
+        )
         current_phase = self.get_phase()
         if current_phase != DynamicContestPhase.RUNNING:
             current_tick = int(datetime.now().timestamp())
@@ -83,7 +85,6 @@ class CompetitivePlatform(abc.ABC):
         其中，已结束的比赛为 上一个已结束的比赛 与 当天所有已结束的比赛 的并集
         :return: tuple[正在进行的比赛, 待举行的比赛，已结束的比赛]
         """
-        pass
 
     @classmethod
     def get_contest_list(cls) -> tuple[list[Contest], list[Contest], list[Contest]]:
@@ -95,12 +96,16 @@ class CompetitivePlatform(abc.ABC):
         contests = cls._get_contest_list()
 
         running_full_contests, upcoming_full_contests, finished_full_contests = contests
-        running_contests = [contest for contest in running_full_contests
-                            if check_intersect((contest.start_time, contest.start_time + contest.duration),
-                                               get_a_month_timestamp_range())]
-        upcoming_contests = [contest for contest in upcoming_full_contests
-                             if check_intersect((contest.start_time, contest.start_time + contest.duration),
-                                                get_a_month_timestamp_range())]
+        running_contests = [
+            contest for contest in running_full_contests
+            if check_intersect((contest.start_time, contest.start_time + contest.duration),
+                               get_a_month_timestamp_range())
+        ]
+        upcoming_contests = [
+            contest for contest in upcoming_full_contests
+            if check_intersect((contest.start_time, contest.start_time + contest.duration),
+                               get_a_month_timestamp_range())
+        ]
         finished_contests = finished_full_contests
 
         running_contests.sort(key=lambda c: c.start_time)
@@ -116,7 +121,6 @@ class CompetitivePlatform(abc.ABC):
         获取指定用户的基础信息卡片
         :return: 绘制完成的图片对象 | None
         """
-        pass
 
     @classmethod
     @abc.abstractmethod
@@ -125,4 +129,3 @@ class CompetitivePlatform(abc.ABC):
         获取指定用户的详细信息
         :return: tuple[信息, 头像url] | None
         """
-        pass

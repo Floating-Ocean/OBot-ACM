@@ -134,7 +134,7 @@ def get_category_stat(img_key: str) -> list[PickOneImgStat]:
     return imgs
 
 
-def pick_preview_imgs(imgs: list[PickOneImgStat], count: int) -> list[PickOneImgStat]:
+def pick_preview_imgs(imgs: list[PickOneImgStat], count: int = 8) -> list[PickOneImgStat]:
     """挑选若干张表情包作为预览，数量不足时有多少给多少"""
     if len(imgs) <= count:
         picked = list(imgs)
@@ -190,7 +190,8 @@ def accept_audit(img_key: str, ok_status: dict[str, int]) -> int:
     return cnt
 
 
-def accept_attachment(img_key: str, need_audit: bool, attachments: list[str]) -> tuple[int, int, int]:
+def accept_attachment(img_key: str, need_audit: bool,
+                      attachments: list[str]) -> tuple[int, int, int]:
     dir_path = _get_img_dir_path(img_key, need_audit)
     real_dir_path = _get_img_dir_path(img_key, audit=False)
     cnt, ok, duplicate = len(attachments), 0, 0

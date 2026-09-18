@@ -19,8 +19,7 @@ from src.render.pixie.render_about import AboutRenderer
 from src.render.pixie.render_color_card import ColorCardRenderer, COLOR_QRCODE_COORD
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
-from src.render.pixie.render_pick_one import (PickOneRenderer, PickOnePreviewRenderer,
-                                              _PREVIEW_COUNT)
+from src.render.pixie.render_pick_one import PickOneRenderer, PickOnePreviewRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 from src.render.pixie.render_uptime import UptimeRenderer
 from test.file_output import get_output_path
@@ -95,7 +94,7 @@ class Render(unittest.TestCase):
             imgs = get_category_stat(img_key)
             self.assertTrue(imgs, f"{img_key} 应当有表情包")
             renderer = PickOnePreviewRenderer(
-                data, img_key, pick_preview_imgs(imgs, _PREVIEW_COUNT))
+                data, img_key, pick_preview_imgs(imgs))
 
             preview_img = renderer.render()
             self.assertIsNotNone(preview_img)

@@ -53,11 +53,11 @@ class ManualPlatform(CompetitivePlatform):
         return running_contests, upcoming_contests, finished_contests
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+    def get_user_id_card(cls, _: str) -> pixie.Image | None:
         """非比赛平台，不支持获取用户信息"""
         return None
 
     @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
+    def get_user_info(cls, _: str) -> tuple[str, str] | None:
         """非比赛平台，不支持获取用户信息"""
         return None

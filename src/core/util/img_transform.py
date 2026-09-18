@@ -37,7 +37,7 @@ def _sym_img(img: Image.Image, way: ImgSymmetric) -> Image.Image:
         new_img.paste(r_part, (img.width // 2, 0))
         return new_img.crop((0, 0, img.width // 2 * 2, img.height))
 
-    elif way in (ImgSymmetric.TOP, ImgSymmetric.BOTTOM):
+    if way in (ImgSymmetric.TOP, ImgSymmetric.BOTTOM):
         mirrored = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         if way == ImgSymmetric.TOP:
             t_part = img.crop((0, 0, img.width, img.height // 2))
@@ -50,8 +50,7 @@ def _sym_img(img: Image.Image, way: ImgSymmetric) -> Image.Image:
         new_img.paste(b_part, (0, img.height // 2))
         return new_img.crop((0, 0, img.width, img.height // 2 * 2))
 
-    else:
-        return img
+    return img
 
 
 def make_img_sym(img_path: str, way: ImgSymmetric, output_prefix: str) -> str:
@@ -110,9 +109,9 @@ def patch_img_transform(author: str, img_path: str) -> str:
 
     if way == ImgSymmetric.INHERIT:
         return img_path
-    else:
-        cached_prefix = get_cached_prefix('Img-Transform')
-        return make_img_sym(img_path, way, cached_prefix)
+
+    cached_prefix = get_cached_prefix('Img-Transform')
+    return make_img_sym(img_path, way, cached_prefix)
 
 
 def apply_transform(author: str, way: ImgSymmetric, cnt: int):

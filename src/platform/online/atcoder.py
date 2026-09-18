@@ -5,8 +5,8 @@ from urllib.parse import quote_plus
 import pixie
 from lxml.etree import Element
 
-from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, patch_https_url, decode_range, \
-    check_intersect, get_today_timestamp_range
+from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, \
+    patch_https_url, decode_range, check_intersect, get_today_timestamp_range
 from src.platform.collect.clist import Clist
 from src.platform.model import CompetitivePlatform, Contest
 from src.platform.online.codeforces import Codeforces
@@ -58,8 +58,8 @@ class AtCoder(CompetitivePlatform):
         return f"为 {rating_str} 计分"
 
     @classmethod
-    def _format_social_info(cls, info: dict, i18n: tuple[str, str, str] = ("国家/地区", "出生年份", "来自")) -> list[
-        str]:
+    def _format_social_info(cls, info: dict,
+                            i18n: tuple[str, str, str] = ("国家/地区", "出生年份", "来自")) -> list[str]:
         social_info = []
         tag_trans = {
             "Country/Region": i18n[0],
@@ -121,8 +121,8 @@ class AtCoder(CompetitivePlatform):
                 return -1
             if min_point == -3:
                 return 0
-            filtered_data = Clist.api("problem", resource_id=93, rating__gte=min_point, rating__lte=max_point,
-                                      url__regex=filter_regex)
+            filtered_data = Clist.api("problem", resource_id=93, rating__gte=min_point,
+                                      rating__lte=max_point, url__regex=filter_regex)
         else:
             filtered_data = Clist.api("problem", resource_id=93, url__regex=filter_regex)
 
@@ -137,19 +137,23 @@ class AtCoder(CompetitivePlatform):
             return None
 
         info_table = html.xpath("//table[@class='dl-table']//tr")
-        info_dict = {row.xpath('.//th/text()')[0]: row.xpath('.//td//text()')[0].strip() for row in info_table}
+        info_dict = {row.xpath('.//th/text()')[0]:
+                         row.xpath('.//td//text()')[0].strip() for row in info_table}
 
         social = '. '.join(cls._format_social_info(info_dict, ('', 'Born in', 'From'))).lstrip()
         if len(social) > 0:
             social = f"{social}."
 
-        rated_table = html.xpath("//div[h3[text()='Contest Status']]")[0].xpath(".//table")[0].xpath(".//tr")
-        rated_dict = {row.xpath('.//th/text()')[0].strip(): row.xpath('.//td//text()') for row in rated_table}
+        rated_table = (html.xpath("//div[h3[text()='Contest Status']]")[0].xpath(".//table")[0]
+                       .xpath(".//tr"))
+        rated_dict = {row.xpath('.//th/text()')[0].strip():
+                          row.xpath('.//td//text()') for row in rated_table}
 
         rating = rated_dict['Rating'][0]
         rank = rated_dict['Highest Rating'][4]
         return UserCardRenderer(handle=html.xpath("//a[@class='username']//text()")[0],
-                                social=social, rank=rank, rank_alias=rank, rating=rating, platform=cls).render()
+                                social=social, rank=rank, rank_alias=rank, rating=rating,
+                                platform=cls).render()
 
     @classmethod
     def get_user_info(cls, handle: str) -> tuple[str, str] | None:
@@ -162,7 +166,8 @@ class AtCoder(CompetitivePlatform):
         sections = []
 
         info_table = html.xpath("//table[@class='dl-table']//tr")
-        info_dict = {row.xpath('.//th/text()')[0]: row.xpath('.//td//text()')[0].strip() for row in info_table}
+        info_dict = {row.xpath('.//th/text()')[0]:
+                         row.xpath('.//td//text()')[0].strip() for row in info_table}
 
         social = cls._format_social_info(info_dict)
         if len(social) > 0:
@@ -179,9 +184,12 @@ class AtCoder(CompetitivePlatform):
         if len(linked) > 1:
             sections.append('\n'.join(linked))
 
-        rated_table = html.xpath("//div[h3[text()='Contest Status']]")[0].xpath(".//table")[0].xpath(".//tr")
-        rated_dict = {row.xpath('.//th/text()')[0].strip(): row.xpath('.//td//text()') for row in rated_table}
-        rated_dict['Highest Rating'][0] = rated_dict['Highest Rating'][0].replace(' Kyu', '级').replace(' Dan', '段')
+        rated_table = (html.xpath("//div[h3[text()='Contest Status']]")[0].xpath(".//table")[0]
+                       .xpath(".//tr"))
+        rated_dict = {row.xpath('.//th/text()')[0].strip():
+                          row.xpath('.//td//text()') for row in rated_table}
+        rated_dict['Highest Rating'][0] = (
+            rated_dict['Highest Rating'][0].replace(' Kyu', '级').replace(' Dan', '段'))
         platform = [
             f"位次: {rated_dict['Rank'][0]}" if 'Rank' in rated_dict else "近两年未参加比赛",
             f"比赛Rating: {rated_dict['Rating'][0]}",
@@ -198,7 +206,7 @@ class AtCoder(CompetitivePlatform):
         url = f"https://atcoder.jp/users/{handle}/history/json"
         json_data = fetch_url_json(url, method='get')
 
-        rated_contests = list([contest for contest in json_data if contest['IsRated']])
+        rated_contests = [contest for contest in json_data if contest['IsRated']]
         contest_count = len(rated_contests)
         if contest_count == 0:
             return "还未参加过 Rated 比赛"

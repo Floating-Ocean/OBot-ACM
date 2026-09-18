@@ -1,6 +1,6 @@
 import pixie
-from easy_pixie import draw_rect, Loc, choose_text_color, StyledString, draw_text, calculate_width, \
-    draw_full, hex_to_color
+from easy_pixie import draw_rect, Loc, choose_text_color, StyledString, draw_text, \
+    calculate_width, draw_full, hex_to_color
 
 from src.data.data_color import Colors
 from src.render.pixie.model import Renderer

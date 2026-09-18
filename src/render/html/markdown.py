@@ -66,7 +66,8 @@ def md_to_html(markdown_path: str, css_path: str, extra_body: str = "", **kwargs
     return _fill_in_html(html_body, html_css, extra_body)
 
 
-def render_md_html(markdown_path: str, css_path: str, output_path: str, extra_body: str = "", **kwargs):
+def render_md_html(markdown_path: str, css_path: str, output_path: str,
+                   extra_body: str = "", **kwargs):
     md_html = md_to_html(markdown_path, css_path, extra_body, **kwargs)
     options = {
         'enable-local-file-access': None,  # 允许本地文件访问

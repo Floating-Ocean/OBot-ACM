@@ -1,6 +1,6 @@
 import pixie
-from easy_pixie import draw_gradient_rect, GradientColor, Loc, GradientDirection, draw_mask_rect, darken_color, \
-    draw_img, StyledString, draw_text, hex_to_color, draw_full
+from easy_pixie import draw_gradient_rect, GradientColor, Loc, GradientDirection, draw_mask_rect, \
+    darken_color, draw_img, StyledString, draw_text, hex_to_color, draw_full
 
 from src.platform.model import CompetitivePlatform
 from src.render.pixie.model import Renderer

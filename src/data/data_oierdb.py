@@ -37,8 +37,8 @@ class OIer:
         self.name = name
         self.records = records
         self.gender = records[0].gender if records else ""
-        self.schools = list(set([r.school for r in records if r.school]))
-        self.provinces = list(set([r.province for r in records if r.province]))
+        self.schools = list({r.school for r in records if r.school})
+        self.provinces = list({r.province for r in records if r.province})
 
         # 计算CCF评级
         self.ccf_score, self.ccf_level = self._calculate_ccf_level()
@@ -83,7 +83,7 @@ class OIer:
                 elif "三等奖" in record.level:
                     level = max(level, 3)
                     score += 50
-                    
+
             elif record.contest_type in ["WC", "CTS", "APIO"]:
                 # 高级比赛
                 if "金牌" in record.level or "Au" == record.level:
@@ -148,8 +148,8 @@ class OIerDB:
         # contests.json 等配置文件在 static/ 文件夹
         if filename in ["raw.txt", "school.txt"]:
             return os.path.join(project_root, "lib", "OIerDb", "data", filename)
-        else:
-            return os.path.join(project_root, "lib", "OIerDb", "static", filename)
+
+        return os.path.join(project_root, "lib", "OIerDb", "static", filename)
 
     def _parse_contest_info(self, contest_name: str) -> Dict[str, Any]:
         """解析比赛名称，提取比赛类型和年份"""

@@ -40,7 +40,8 @@ RATING_RANGE_LEN: int = MAX_RATING_LIMIT - MIN_RATING_LIMIT
 
 # The probability of contestant with rating x winning versus contestant with rating y
 # is given by ELO_WIN_PROB[y - x].
-ELO_WIN_PROB = np.roll(1 / (1 + np.power(10, np.arange(-RATING_RANGE_LEN, RATING_RANGE_LEN) / 400)), -RATING_RANGE_LEN)
+ELO_WIN_PROB = 1 / (1 + np.power(10, np.arange(-RATING_RANGE_LEN, RATING_RANGE_LEN) / 400))
+ELO_WIN_PROB = np.roll(ELO_WIN_PROB, -RATING_RANGE_LEN)
 
 
 def binary_search(low, high, condition):
@@ -141,15 +142,21 @@ class RatingCalculator:
             if c.rank == 1:
                 c.performance = float('inf')  # Rank 1 always gains rating
             else:
-                c.performance = binary_search(MIN_RATING_LIMIT, MAX_RATING_LIMIT,
-                                              lambda x: self.calc_delta(c, x) + self.adjustment <= 0)
+                c.performance = binary_search(
+                    MIN_RATING_LIMIT, MAX_RATING_LIMIT,
+                    lambda x, co=c: self.calc_delta(co, x) + self.adjustment <= 0
+                )
 
 
 def predict(contestants: list[Contestant], calc_perfs: bool = False) -> dict[str, PredictResult]:
     calculator = RatingCalculator(contestants)
     calculator.calculate_deltas(calc_perfs)
-    return {c.handle: PredictResult(c.rank,
-                                    c.real_change[0] if c.real_change is not None else c.rating,
-                                    c.real_change[1] - c.real_change[0] if c.real_change is not None else c.delta,
-                                    c.performance)
-            for c in contestants}
+    return {
+        c.handle: PredictResult(
+            c.rank,
+            c.real_change[0] if c.real_change is not None else c.rating,
+            c.real_change[1] - c.real_change[0] if c.real_change is not None else c.delta,
+            c.performance
+        )
+        for c in contestants
+    }

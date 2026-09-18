@@ -92,7 +92,8 @@ def fetch_url(url: str, inject_headers: dict = None, payload: dict = None,
 
     try:
         headers = {
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/91.0.4472.77 Safari/537.36",
             'Connection': 'close'
         }
@@ -188,7 +189,8 @@ def format_seconds(seconds: int) -> str:
         ['秒', 60, 1]
     ]
     return ''.join([f" {seconds % u_mod // u_div} {name}"
-                    for name, u_mod, u_div in units_in_seconds if seconds % u_mod // u_div > 0]).strip()
+                    for name, u_mod, u_div in units_in_seconds
+                    if seconds % u_mod // u_div > 0]).strip()
 
 
 def escape_mail_url(content: str) -> str:
@@ -214,15 +216,16 @@ def check_is_float(value: str) -> bool:
 
 def download_img(url: str, file_path: str) -> bool:
     headers = {
-        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
                       "Chrome/91.0.4472.77 Safari/537.36"
     }
     url = patch_https_url(url)
 
     sess = requests.session()
-    sess.mount("https://", SSLAdapter())  # 将上面定义的SSLAdapter 应用起来
+    sess.mount("https://", SSLAdapter())  # 将上面定义的 SSLAdapter 应用起来
 
-    response = sess.get(url, headers=headers, verify=False)  # 阻止ssl验证
+    response = sess.get(url, headers=headers, verify=False)  # 阻止 ssl 验证
 
     if response.status_code == 200:
         parent_path = os.path.dirname(file_path)
@@ -246,7 +249,8 @@ def png2jpg(path: str, remove_origin: bool = True) -> str:
     return new_path
 
 
-def img_fit_in_bounds(img_path: str, bounds: tuple[int, int], max_scale: float) -> pixie.Image | None:
+def img_fit_in_bounds(img_path: str, bounds: tuple[int, int],
+                      max_scale: float) -> pixie.Image | None:
     with Image.open(img_path) as raw:
         raw.seek(0)  # 动图一律取首帧
         frame = raw.convert("RGBA")
@@ -256,7 +260,7 @@ def img_fit_in_bounds(img_path: str, bounds: tuple[int, int], max_scale: float) 
                     max_scale)
         size = (max(1, round(frame.width * scale)), max(1, round(frame.height * scale)))
         if size != frame.size:
-            frame = frame.resize(size, Image.LANCZOS)
+            frame = frame.resize(size, Image.Resampling.LANCZOS)
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
             tmp_path = tmp.name
@@ -354,8 +358,8 @@ def get_simple_qrcode(content: str) -> Image:
 def format_int_delta(delta: int) -> str:
     if delta >= 0:
         return f"+{delta}"
-    else:
-        return f"{delta}"
+
+    return f"{delta}"
 
 
 def decode_range(range_str: str, length: tuple[int, int]) -> tuple[int, int]:

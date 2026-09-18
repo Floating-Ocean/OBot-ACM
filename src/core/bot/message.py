@@ -138,12 +138,16 @@ class RobotMessage:
         self.author_id = openid  # C2C 使用 author_id 存储 openid
         self.uuid = f"c2c_{openid}"
 
-    def reply(self, content: str, img_path: str = None, img_url: str = None, modal_words: bool = True):
+    def reply(self, content: str, img_path: str = None, img_url: str = None,
+              modal_words: bool = True):
         """异步发送回复的入口方法"""
         if not self.loop:
             raise RuntimeError("Event loop not initialized")
 
-        friendly_content = content + random.choice(Constants.modal_words) if modal_words else content
+        friendly_content = content
+        if modal_words:
+            friendly_content += random.choice(Constants.modal_words)
+
         friendly_content = reverse_text_on_41(friendly_content)
 
         with self.seq_lock:
@@ -268,8 +272,8 @@ class RobotMessage:
         received_media = await method_map[self.message_type](**common_args)
         if received_media:
             return {'status': 'ok', 'data': received_media}
-        else:
-            return {'status': 'error', 'data': None}
+
+        return {'status': 'error', 'data': None}
 
     async def _pack_message_params(self, content: str, msg_seq: int,
                                    media: Optional[dict]) -> Optional[dict]:

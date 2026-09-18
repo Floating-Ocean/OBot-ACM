@@ -3,8 +3,8 @@ import os
 from datetime import datetime
 
 import pixie
-from easy_pixie import load_img, apply_tint, change_img_alpha, draw_img, Loc, tuple_to_color, pick_gradient_color, \
-    GradientDirection, draw_gradient_rect, draw_mask_rect
+from easy_pixie import load_img, apply_tint, change_img_alpha, draw_img, Loc, tuple_to_color, \
+    pick_gradient_color, GradientDirection, draw_gradient_rect, draw_mask_rect
 
 from src.core.constants import Constants
 
@@ -123,11 +123,11 @@ class RenderableSection(abc.ABC):
 
     @abc.abstractmethod
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        pass
+        """渲染逻辑"""
 
     @abc.abstractmethod
     def get_height(self):
-        pass
+        """计算图片高度"""
 
 
 class RenderableSvgSection(RenderableSection, abc.ABC):
@@ -135,18 +135,16 @@ class RenderableSvgSection(RenderableSection, abc.ABC):
     @abc.abstractmethod
     def _generate_svg(self) -> tuple[str, int, int]:
         """渲染 svg，获取文本，宽度，高度"""
-        pass
 
     @abc.abstractmethod
     def _get_max_width(self) -> int:
         """获取可伸展最大宽度"""
-        pass
 
     def __init__(self, svg_ts_path: str, width: int = -1, height: int = -1):
         svg_ts_path = f'{svg_ts_path}.svg'  # 此处默认路径唯一，不会导致资源竞争
         svg, self._original_width, self._original_height = self._generate_svg()
         try:
-            with open(svg_ts_path, 'w') as f:
+            with open(svg_ts_path, 'w', encoding='utf-8') as f:
                 f.write(svg)
             self.img_svg = pixie.read_image(svg_ts_path)
         finally:
@@ -207,7 +205,7 @@ class SimpleCardRenderer(Renderer, abc.ABC):
 
     @abc.abstractmethod
     def _get_render_sections(self) -> list[RenderableSection]:
-        pass
+        """需要渲染的内容"""
 
     @classmethod
     def _get_background_color(cls) -> pixie.Color:

@@ -6,7 +6,8 @@ from easy_pixie import StyledString, calculate_height, draw_text, calculate_widt
     darken_color, change_alpha, hex_to_color, draw_mask_rect
 
 from src.core.constants import Constants
-from src.core.util.tools import format_timestamp, format_timestamp_diff, format_seconds, coord_x_centralize
+from src.core.util.tools import format_timestamp, format_timestamp_diff, format_seconds, \
+    coord_x_centralize
 from src.platform.model import Contest
 from src.render.pixie.model import Renderer, RenderableSection, SimpleCardRenderer
 
@@ -29,7 +30,8 @@ class _ContestItem(RenderableSection):
             _status = format_timestamp_diff(_time_elapsed)
 
         if self._is_running:
-            self._elapsed_ratio = min(self._contest.duration, _time_elapsed) / self._contest.duration
+            self._elapsed_ratio = min(self._contest.duration,
+                                      _time_elapsed) / self._contest.duration
             self.str_ratio = StyledString(
                 f"{int(self._elapsed_ratio * 100)}% ET", 'H', 24, font_color=(0, 0, 0, 60)
             )
@@ -147,8 +149,10 @@ class _ContestsSection(RenderableSection):
         mild_ext_color = (0, 0, 0, 192)
         self.section_running = [_ContestItem(contest, idx, is_running=True)
                                 for idx, contest in enumerate(running_contests)]
-        self.section_upcoming = [_ContestItem(contest, idx) for idx, contest in enumerate(upcoming_contests)]
-        self.section_finished = [_ContestItem(contest, idx) for idx, contest in enumerate(finished_contests)]
+        self.section_upcoming = [_ContestItem(contest, idx)
+                                 for idx, contest in enumerate(upcoming_contests)]
+        self.section_finished = [_ContestItem(contest, idx)
+                                 for idx, contest in enumerate(finished_contests)]
         self.img_running = Renderer.load_img_resource("Running", mild_ext_color, 1, 192 / 255)
         self.img_pending = Renderer.load_img_resource("Pending", mild_ext_color, 1, 192 / 255)
         self.img_ended = Renderer.load_img_resource("Ended", mild_ext_color, 1, 192 / 255)
@@ -216,7 +220,8 @@ class _ContestsSection(RenderableSection):
 
     def get_height(self):
         height = 0
-        if max(len(self.section_upcoming), len(self.section_running), len(self.section_finished)) == 0:
+        if max(len(self.section_upcoming), len(self.section_running),
+               len(self.section_finished)) == 0:
             height += calculate_height(self.str_none_title)
         else:
             height -= _TYPE_PADDING

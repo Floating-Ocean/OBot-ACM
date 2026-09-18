@@ -15,7 +15,6 @@ def no_reply():
     """
     无回复
     """
-    pass
 
 
 def reply_specified(message: RobotMessage, content: str):
@@ -55,8 +54,8 @@ def reply_key_words(message: RobotMessage, content: str):
     message.reply(reply)
 
 
-def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name: str, query_idx: int,
-                         reply_ok: Callable[[str, str, str], None]):
+def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name: str,
+                         query_idx: int, reply_ok: Callable[[str, str, str], None]):
     """
     模糊匹配，支持下标查询
 
@@ -75,9 +74,11 @@ def reply_fuzzy_matching(message: RobotMessage, target: list | dict, target_name
             match_results = process.extract(message.tokens[query_idx], target, limit=5)
             if isinstance(target, dict):
                 # 传递 dict 时会返回 tuple(value, ratio, key)
-                picked_tuple = [(result[2], result[1]) for result in match_results if result[1] >= 20]  # 相似度至少 20%
+                picked_tuple = [(result[2], result[1])
+                                for result in match_results if result[1] >= 20]  # 相似度至少 20%
             else:
-                picked_tuple = [(result[0], result[1]) for result in match_results if result[1] >= 20]
+                picked_tuple = [(result[0], result[1])
+                                for result in match_results if result[1] >= 20]
             if len(picked_tuple) == 0:
                 message.reply(f"这里还没有满足条件的 {target_name}")
                 return
