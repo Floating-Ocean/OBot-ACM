@@ -488,7 +488,7 @@ class PickOnePreviewRenderer(SimpleCardRenderer):
                                           self._img_key, self._imgs)
         section_tips = _TipsSection(
             f"发送 /来只 {self._img_key} 获取本类别表情包，"
-            f"/预览来只 {self._img_key} 加 ID 前缀可直接获取指定表情包.",
+            f"/预览 {self._img_key} 加 ID 前缀可直接获取指定表情包.",
             "PickOne Preview")
 
         return [section_title, section_preview, section_tips]

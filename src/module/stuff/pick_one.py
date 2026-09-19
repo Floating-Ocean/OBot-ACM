@@ -171,7 +171,7 @@ def _reply_pick_one_list(message: RobotMessage, data: PickOne):
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
-@command(tokens=["预览来只*", "看看来只*", "preview*"])
+@command(tokens=["预览来只*", "预览*", "preview*"])
 def reply_pick_one_preview(message: RobotMessage):
     data = get_pick_one_data()
     if len(message.tokens) >= 2:
@@ -273,7 +273,7 @@ def reply_save_one(message: RobotMessage):
 
         if cnt == 0:
             message.reply("[Pick-One] 未识别到图片，请将图片和指令发送在同一条消息中\n\n"
-                          "移动端设备可长按编辑框进入全屏输入模式以附加图片")
+                          "移动端可长按编辑框进入全屏输入模式以附加图片")
         else:
             _parse_img(img_key)
             failed_info = ""

@@ -104,7 +104,7 @@ class Constants:
     log = logging.get_logger()
     botpy_conf, role_conf, modules_conf = (_load_conf(os.path.join(_project_dir, "config.json")))
 
-    core_version = "v5.0.0-beta.8"
+    core_version = "v5.0.0"
     git_commit = _get_git_commit()
 
     inst_id = secrets.token_hex(16)
@@ -113,11 +113,11 @@ class Constants:
     key_words = [
         [["沙壁", "纸张", "挠蚕", "sb", "老缠", "nt", "矛兵"], [
             "谢谢夸奖", "反弹", "可能还真被你说对了", "嗯", "好的", "哼，你才是", "哈哈", "你可能说对了，你可能没说对",
-            "干什么", "你干嘛害哎呦", "那我问你"
+            "干什么", "你干嘛害哎呦", "那我问你", "吓哭了"
         ]],
         [["性别"], ["盲猜我的性别是武装直升机", "我也不知道我的性别是啥", "那我问你"]],
         [["干嘛", "干什么"], ["how", "what", "which", "why", "whether", "when"]],
-        [["谢谢", "thank"], ["qaq", "不用谢qaq", "qwq"]],
+        [["谢谢", "thank", "tku"], ["qaq", "不用谢qaq", "qwq"]],
         [["qaq", "qwq"], ["qwq"]],
         [["你是谁", "你谁"], ["猜猜我是谁", "我也不知道", "你是谁", "那我问你"]],
         [["省"], ["妈妈生的", "一眼丁真"]],
@@ -166,14 +166,12 @@ class Constants:
         'pick_one': [
             Help("/来只 [what] (tag) (index)",
                  "获取一个类别为 what 的随机表情包，可指定关键词 tag，并选择匹配度第 index 的候选."),
-            Help("/随便来只", "获取一个随机类别的随机表情包."),
-            Help("/预览来只 (what) (id)",
-                 "获取类别 what 的信息与预览图，含别名、数量与随机若干张预览；"
-                 "指定 id 时直接获取该表情包，id 支持前缀，不指定 what 时随机挑一个类别."),
+            Help("/预览 (what) (id)",
+                 "获取类别 what 的信息与预览图，指定 id（支持前缀）时可获取对应表情包."),
+            Help("/添加 [what]", "添加类别为 what 的表情包，移动端可使用 \"全屏输入\"，需要管理员审核."),
             Help("/like (what) (id)", "点赞上一个表情包，可指定类别 what 和 ID（支持前缀）来点赞指定表情."),
             Help("/reply (what) (id) [content]",
-                 "评论上一个表情包，可指定类别 what 和 ID（支持前缀）来评论指定表情."),
-            Help("/添加 [what]", "添加类别为 what 的表情包，移动端可使用 \"全屏输入\"，需要管理员审核.")
+                 "评论上一个表情包，可指定类别 what 和 id（支持前缀）来评论指定表情.")
         ],
         'codeforces': [
             Help("/cf bind [handle]", "绑定用户名为 handle 的 Codeforces 账号."),
