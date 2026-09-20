@@ -1,6 +1,8 @@
 import os
 import random
+import re
 import unittest
+from datetime import date, timedelta
 
 from src.core.bot.decorator import get_all_modules_info
 from src.core.constants import Constants
@@ -22,6 +24,9 @@ from src.render.pixie.render_help import HelpRenderer
 from src.render.pixie.render_pick_one import PickOneRenderer, PickOnePreviewRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 from src.render.pixie.render_uptime import UptimeRenderer
+from src.render.svg.render_uptime_status import (render_uptime_status, get_percentile_color,
+                                                 BAR_HEIGHT, BAR_RADIUS, BAR_SPACING,
+                                                 BAR_WIDTH)
 from test.file_output import get_output_path
 
 
@@ -131,6 +136,80 @@ class Render(unittest.TestCase):
         uptime_img = UptimeRenderer(status, get_output_path("render_uptime_monitor")).render()
         self.assertIsNotNone(uptime_img)
         uptime_img.write_file(get_output_path("render_uptime.png"))
+
+    _MOCK_UPTIME_DAYS = 90  # 与线上接口一致，保证 mock 出来的卡片列数和真实的一致
+
+    @classmethod
+    def _mock_daily_ratios(cls, ratios: list) -> list[dict]:
+        """构造 UptimeRobot 的 dailyRatios 字段，None 表示当天无数据"""
+        first_day = date(2026, 1, 1)
+        return [{"date": str(first_day + timedelta(days=day)),
+                 "ratio": "0.000" if ratio is None else f"{ratio:.3f}",
+                 "label": "black" if ratio is None else "poor"}
+                for day, ratio in enumerate(ratios)]
+
+    @classmethod
+    def _mock_uptime_status(cls) -> dict:
+        """模拟一份 UptimeRobot 返回：一个正常、一个异常、一个暂停"""
+        days = cls._MOCK_UPTIME_DAYS
+        return {
+            "statistics": {"counts": {"up": 1, "down": 1, "paused": 1, "total": 3}},
+            "psp": {"monitors": [
+                {"name": "AtCoder", "statusClass": "success",
+                 "dailyRatios": cls._mock_daily_ratios([100] * days)},
+                # 中间一段掉线，其中一天完全不可用
+                {"name": "Codeforces", "statusClass": "danger",
+                 "dailyRatios": cls._mock_daily_ratios(
+                     [100] * 60 + [99.2, 97.5, 88.2, 61.4, 0] + [100] * (days - 65))},
+                {"name": "Luogu", "statusClass": "paused",
+                 "dailyRatios": cls._mock_daily_ratios([None] * 6 + [100] * (days - 6))},
+            ]},
+        }
+
+    def test_uptime_mock_some_down(self):
+        """不联网的 mock 渲染：存在异常服务时标题为“部分服务异常”，该监控项显示红色“异常”"""
+        status = self._mock_uptime_status()
+        self.assertGreater(status["statistics"]["counts"]["down"], 0)
+        for monitor in status["psp"]["monitors"]:
+            self.assertEqual(len(monitor["dailyRatios"]), self._MOCK_UPTIME_DAYS)
+
+        uptime_img = UptimeRenderer(status, get_output_path("render_uptime_mock")).render()
+        self.assertIsNotNone(uptime_img)
+        uptime_img.write_file(get_output_path("render_uptime_mock.png"))
+
+        # 异常监控项的柱子按当天可用性着色，停摆当天（0%）为红色
+        danger_monitor = status["psp"]["monitors"][1]
+        self.assertEqual(danger_monitor["statusClass"], "danger")
+        svg, _, _ = render_uptime_status(danger_monitor["dailyRatios"])
+        self.assertIn(f'fill="{get_percentile_color(0)}"', svg)
+
+    def test_uptime_status_bar_height(self):
+        """竖条为进度条：可用性越低柱子越矮，且高可用区间的差距被拉开；无数据当天为灰色满高占位条"""
+        status = [{"ratio": ratio, "label": "poor"}
+                  for ratio in ("100.000", "99.000", "95.000", "50.000", "0.000")]
+        status.append({"ratio": "0.000", "label": "black"})
+
+        svg, width, height = render_uptime_status(status)
+        self.assertEqual(height, BAR_HEIGHT)
+        self.assertEqual(width, (len(status) - 1) * (BAR_WIDTH + BAR_SPACING) + BAR_WIDTH)
+
+        bars = sorted(
+            (float(bar_x), float(bar_height), bar_color)
+            for bar_x, bar_height, bar_color in re.findall(
+                r'<rect x="([\d.]+)" y="[\d.]+" width="[\d.]+" height="([\d.]+)"'
+                r'[^>]*fill="(#[0-9a-f]{6})"', svg)
+        )
+        self.assertEqual(len(bars), len(status))
+
+        heights = [bar_height for _, bar_height, _ in bars]
+        self.assertEqual(heights[0], BAR_HEIGHT)  # 100% 铺满整根柱子
+        self.assertEqual(heights[:5], sorted(heights[:5], reverse=True))  # 可用性越低越矮
+        # 高可用区间被拉开：99% 与 100% 的高度差远大于线性映射下的 1%
+        self.assertGreater(BAR_HEIGHT - heights[1], BAR_HEIGHT * 0.03)
+        # 极低可用性仍保留一个圆头的高度，不会缩成一条线
+        self.assertGreaterEqual(heights[4], BAR_RADIUS)
+        # 无数据当天是满高的灰色占位条
+        self.assertEqual(heights[5], BAR_HEIGHT)
 
     def test_about(self):
         about_img = AboutRenderer(

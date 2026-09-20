@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pixie
 from easy_pixie import StyledString, calculate_height, draw_text, Loc, draw_img, \
-    draw_mask_rect, hex_to_color, calculate_width, darken_color
+    draw_mask_rect, hex_to_color, calculate_width, darken_color, lighten_color
 
 from src.core.constants import Constants
 from src.render.pixie.model import Renderer, RenderableSection, RenderableSvgSection, \
@@ -11,6 +11,14 @@ from src.render.svg.render_uptime_status import render_uptime_status, get_percen
 
 _CONTENT_WIDTH = 1472
 _UPTIME_SECTION_PADDING = 96
+_STATUS_TEXT_DARKEN = 0.66
+
+_STATUS_FONT_SIZE = 28
+_BADGE_HEIGHT = 52
+_BADGE_PADDING = 20
+_BADGE_DOT_SIZE = 28
+_BADGE_GAP = 14
+_BADGE_TINT = 0.85
 
 
 class _TitleSection(RenderableSection):
@@ -22,7 +30,7 @@ class _TitleSection(RenderableSection):
 
         self.img_dot = Renderer.load_img_resource(
             "Dot",
-            hex_to_color(get_percentile_color(100 if down_count == 0 else 98)[0])
+            hex_to_color(get_percentile_color(100 if down_count == 0 else 98))
         )
         self.str_title = StyledString(
             status_text, 'H', 96, padding_bottom=4
@@ -33,10 +41,10 @@ class _TitleSection(RenderableSection):
         )
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        draw_img(img, self.img_dot, Loc(106, 181, 102, 102))
+        draw_img(img, self.img_dot, Loc(120, 181, 102, 102))
 
         current_x, current_y = x, y
-        current_y = draw_text(img, self.str_title, 232, current_y)
+        current_y = draw_text(img, self.str_title, 242, current_y)
         current_y = draw_text(img, self.str_subtitle, current_x, current_y)
 
         return current_y
@@ -90,37 +98,48 @@ class _UptimeMonitorItem(RenderableSection):
         raw_status = monitor_status["statusClass"]
         status_color = darken_color(
             hex_to_color(get_percentile_color(100 if raw_status == "success" else
-                                              0 if raw_status == "danger" else 98)[0]),
-            0.66
+                                              0 if raw_status == "danger" else 98)),
+            _STATUS_TEXT_DARKEN
         )
         status_info = ("正常" if raw_status == "success" else
                        "异常" if raw_status == "danger" else "暂停")
 
+        # 正常时是淡底彩字，出问题时文字/圆点与底色对调，靠实心色块顶出来
+        soft_color = lighten_color(status_color, _BADGE_TINT)
+        badge_fg_color = status_color if raw_status == "success" else soft_color
+        self._badge_color = soft_color if raw_status == "success" else status_color
+
         self.str_name = StyledString(
-            monitor_status["name"], 'H', 40, padding_bottom=16
+            monitor_status["name"], 'H', 40, padding_bottom=18
         )
         self.str_status = StyledString(
-            status_info, 'H', 40, padding_bottom=16, font_color=status_color
+            status_info, 'H', _STATUS_FONT_SIZE, font_color=badge_fg_color
         )
+        self._badge_width = (_BADGE_PADDING * 2 + _BADGE_DOT_SIZE + _BADGE_GAP +
+                             int(calculate_width(self.str_status)))
         self.section_status = _UptimeStatusSection(monitor_status["dailyRatios"], svg_ts_path)
-        self.img_dot = Renderer.load_img_resource("Dot", status_color)
+        self.img_dot = Renderer.load_img_resource("Dot", badge_fg_color)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
-        current_x, current_y = x, y
-        status_text_width = calculate_width(self.str_status)
+        draw_text(img, self.str_name, x, y)
 
-        draw_text(img, self.str_name, current_x, current_y)
-        current_x = current_x + _CONTENT_WIDTH - status_text_width
-        draw_img(img, self.img_dot, Loc(current_x - 48, current_y + 6, 40, 40))
-        current_y = draw_text(img, self.str_status, current_x, current_y)
+        badge_x = x + _CONTENT_WIDTH - self._badge_width
+        badge_y = y + (self.str_name.height - self.str_name.padding_bottom -
+                       _BADGE_HEIGHT) // 2
+        draw_mask_rect(img, Loc(badge_x, badge_y, self._badge_width, _BADGE_HEIGHT),
+                       self._badge_color, _BADGE_HEIGHT // 2)
+        draw_img(img, self.img_dot, Loc(badge_x + _BADGE_PADDING,
+                                        badge_y + (_BADGE_HEIGHT - _BADGE_DOT_SIZE) // 2,
+                                        _BADGE_DOT_SIZE, _BADGE_DOT_SIZE))
+        draw_text(img, self.str_status,
+                  badge_x + _BADGE_PADDING + _BADGE_DOT_SIZE + _BADGE_GAP,
+                  badge_y + (_BADGE_HEIGHT - self.str_status.height) // 2)
 
-        current_x = x
-        current_y = self.section_status.render(img, current_x, current_y)
-
-        return current_y
+        return self.section_status.render(img, x, y + self.str_name.height)
 
     def get_height(self):
-        return calculate_height(self.str_status) + self.section_status.get_height()
+        return (max(self.str_name.height, _BADGE_HEIGHT) +
+                self.section_status.get_height())
 
 
 class _UptimeMonitorSection(RenderableSection):
