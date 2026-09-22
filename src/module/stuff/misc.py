@@ -2,8 +2,9 @@ import os
 import random
 import re
 import shutil
+from datetime import datetime
 
-from src.core.bot.decorator import command, get_all_modules_info, module
+from src.core.bot.decorator import command, get_all_modules_info, module, scheduled, parse_uuid
 from src.core.bot.interact import reply_fuzzy_matching
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
@@ -15,6 +16,7 @@ from src.core.util.output_cache import get_cached_prefix
 from src.data.data_dazs import get_dazs_resource
 from src.module.stuff.mc import reply_mc_sleep
 from src.platform.manual.manual import ManualPlatform
+from src.platform.model import Contest
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces
 from src.platform.online.nowcoder import NowCoder
@@ -39,13 +41,13 @@ def reply_fixed(message: RobotMessage):
     message.reply(_FIXED_REPLY.get(message.tokens[0][1:], ""), modal_words=False)
 
 
-@command(tokens=['contest', 'contests', '比赛', '近日比赛', '最近的比赛', '今天比赛', '今天的比赛', '今日比赛',
-                 '今日的比赛'])
-def reply_recent_contests(message: RobotMessage):
-    query_today = message.tokens[0] in ['/今天比赛', '/今天的比赛', '/今日比赛', '/今日的比赛']
-    tip_time_range = '今日' if query_today else '近期'
-    message.reply(f"正在查询{tip_time_range}比赛，请稍等")
+def _collect_contests(query_today: bool = False) -> tuple[list[Contest], list[Contest], list[Contest]]:
+    """
+    汇总各平台的比赛列表
 
+    :param query_today: 为真时只保留与今日有时间交集的比赛
+    :return: tuple[正在进行的比赛, 待举行的比赛, 已结束的比赛]
+    """
     running_contests, upcoming_contests, finished_contests = [], [], []
     for platform in [AtCoder, Codeforces, NowCoder, ManualPlatform]:
         running, upcoming, finished = platform.get_contest_list()
@@ -53,23 +55,36 @@ def reply_recent_contests(message: RobotMessage):
         upcoming_contests.extend(upcoming)
         finished_contests.extend(finished)
 
+    if query_today:
+        today_range = get_today_timestamp_range()
+        running_contests = [contest for contest in running_contests if check_intersect(
+            range1=today_range,
+            range2=(contest.start_time, contest.start_time + contest.duration)
+        )]
+        upcoming_contests = [contest for contest in upcoming_contests if check_intersect(
+            range1=today_range,
+            range2=(contest.start_time, contest.start_time + contest.duration)
+        )]
+        finished_contests = [contest for contest in finished_contests if check_intersect(
+            range1=today_range,
+            range2=(contest.start_time, contest.start_time + contest.duration)
+        )]
+
     running_contests.sort(key=lambda c: c.start_time)
     upcoming_contests.sort(key=lambda c: c.start_time)
     finished_contests.sort(key=lambda c: c.start_time)
 
-    if query_today:
-        running_contests = [contest for contest in running_contests if check_intersect(
-            range1=get_today_timestamp_range(),
-            range2=(contest.start_time, contest.start_time + contest.duration)
-        )]
-        upcoming_contests = [contest for contest in upcoming_contests if check_intersect(
-            range1=get_today_timestamp_range(),
-            range2=(contest.start_time, contest.start_time + contest.duration)
-        )]
-        finished_contests = [contest for contest in finished_contests if check_intersect(
-            range1=get_today_timestamp_range(),
-            range2=(contest.start_time, contest.start_time + contest.duration)
-        )]
+    return running_contests, upcoming_contests, finished_contests
+
+
+@command(tokens=['contest', 'contests', '比赛', '近日比赛', '最近的比赛', '今天比赛', '今天的比赛', '今日比赛',
+                 '今日的比赛'])
+def reply_recent_contests(message: RobotMessage):
+    query_today = message.tokens[0] in ['/今天比赛', '/今天的比赛', '/今日比赛', '/今日的比赛']
+    tip_time_range = '今日' if query_today else '近日'
+    message.reply(f"正在查询{tip_time_range}比赛，请稍等")
+
+    running_contests, upcoming_contests, finished_contests = _collect_contests(query_today)
 
     if len(message.tokens) >= 2:
         # 去除了重复逻辑，查询特定平台需 /平台 contests
@@ -84,10 +99,41 @@ def reply_recent_contests(message: RobotMessage):
 
     else:
         cached_prefix = get_cached_prefix('Contest-List-Renderer')
-        contest_list_img = ContestListRenderer(running_contests, upcoming_contests, finished_contests).render()
+        contest_list_img = ContestListRenderer(running_contests, upcoming_contests,
+                                               finished_contests, query_today).render()
         contest_list_img.write_file(f"{cached_prefix}.png")
 
         message.reply(f"{tip_time_range}比赛", png2jpg(f"{cached_prefix}.png"))
+
+
+def _collect_contest_push_targets() -> list[str]:
+    """从配置中收集今日比赛主动推送的目标 uuid"""
+    push_to = Constants.modules_conf.contest.get("push_to", [])
+    for i, _uuid in enumerate(push_to):
+        if not isinstance(_uuid, str) or not _uuid:
+            raise RuntimeError(f"`push_to[{i}]` must be a non-empty string in contest config")
+        try:
+            parse_uuid(_uuid)
+        except ValueError as e:
+            raise RuntimeError(f"Invalid uuid in `push_to[{i}]` of contest config") from e
+
+    return push_to
+
+
+@scheduled(cron="0 9 * * *", targets=_collect_contest_push_targets())
+def push_today_contests(message: RobotMessage):
+    """定时主动推送今日比赛，无比赛时不推送"""
+    running_contests, upcoming_contests, finished_contests = _collect_contests(query_today=True)
+    if not (running_contests or upcoming_contests or finished_contests):
+        return
+
+    cached_prefix = get_cached_prefix('Contest-List-Renderer')
+    contest_list_img = ContestListRenderer(running_contests, upcoming_contests,
+                                           finished_contests).render()
+    contest_list_img.write_file(f"{cached_prefix}.png")
+
+    message.reply(f"{datetime.now().strftime('%Y/%m/%d')} 今日比赛",
+                  png2jpg(f"{cached_prefix}.png"))
 
 
 @command(tokens=["qr", "qrcode", "二维码", "码"])

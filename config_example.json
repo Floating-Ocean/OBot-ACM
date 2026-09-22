@@ -31,6 +31,11 @@
         "<Chat-Scene-ID-To-Turn-Off-Game-Feature>": "<Reply-Content-Of-Reasons-For-Turning-Off>"
       }
     },
+    "contest": {
+      "_comment_1": "1. push_to 用于指定每日 9:00 自动推送今日比赛的目标对话场景列表；",
+      "_comment_2": "2. 今日无比赛时不推送；留空列表则不推送。",
+      "push_to": ["<Chat-Scene-ID-1>", "<Chat-Scene-ID-2>"]
+    },
     "peeper": {
       "exclude_id": ["<Chat-Scene-ID-To-Turn-Off-PBG-Feature>"],
       "configs": [

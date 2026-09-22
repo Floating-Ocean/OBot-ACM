@@ -53,7 +53,8 @@ class Render(unittest.TestCase):
 
     def test_contest_list(self):
         running_contests, upcoming_contests, finished_contests = [], [], []
-        for platform in [Codeforces, AtCoder, NowCoder, ManualPlatform]:
+        test_platforms = [Codeforces, AtCoder, NowCoder, ManualPlatform]
+        for platform in test_platforms:
             running, upcoming, finished = platform.get_contest_list()
             running_contests.extend(running)
             upcoming_contests.extend(upcoming)

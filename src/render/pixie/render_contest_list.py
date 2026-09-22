@@ -116,13 +116,14 @@ class _ContestItem(RenderableSection):
 
 class _TitleSection(RenderableSection):
 
-    def __init__(self, accent_color: str):
+    def __init__(self, accent_color: str, is_today: bool):
         accent_dark_color = darken_color(hex_to_color(accent_color), 0.3)
         accent_dark_color_tran = change_alpha(accent_dark_color, 136)
         self.img_contest = Renderer.load_img_resource("Contest", accent_dark_color)
 
         self.str_title = StyledString(
-            "近日算法竞赛", 'H', 96, padding_bottom=4, font_color=accent_dark_color
+            f'{"今" if is_today else "近"}日算法竞赛', 'H', 96,
+            padding_bottom=4, font_color=accent_dark_color
         )
         self.str_subtitle = StyledString(
             "Recent Competitive Programming Competitions", 'H', 28,
@@ -276,14 +277,15 @@ class ContestListRenderer(SimpleCardRenderer):
     """渲染比赛列表"""
 
     def __init__(self, running_contests: list[Contest], upcoming_contests: list[Contest],
-                 finished_contests: list[Contest]):
+                 finished_contests: list[Contest], is_today: bool = False):
         super().__init__()
         self._running_contests = running_contests
         self._upcoming_contests = upcoming_contests
         self._finished_contests = finished_contests
+        self._is_today = is_today
 
     def _get_render_sections(self) -> list[RenderableSection]:
-        section_title = _TitleSection(self._gradient_color.color_list[-1])
+        section_title = _TitleSection(self._gradient_color.color_list[-1], self._is_today)
         section_contests = _ContestsSection(self._running_contests,
                                             self._upcoming_contests, self._finished_contests)
         section_copyright = _CopyrightSection(self._gradient_color.name)
