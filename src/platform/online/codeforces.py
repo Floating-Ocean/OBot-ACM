@@ -521,7 +521,9 @@ class Codeforces(CompetitivePlatform):
                     f"粉丝: {info['friendOfCount']}")
         sections.append(platform)
 
-        return '\n\n'.join(sections), info.get('titlePhoto')
+        photo_url = info.get('titlePhoto').replace("https://userpic.codeforces.org",
+                                                   "https://codeforces.com/userpic.codeforces.org")
+        return '\n\n'.join(sections), photo_url
 
     @classmethod
     def get_user_last_contest(cls, handle: str) -> str:
