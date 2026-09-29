@@ -164,6 +164,26 @@ class Constants:
             Help("/cpcfinder [name] [school]", "获取名为 name 且学校为 school 的 XCPC 大学生程序设计竞赛选手获奖信息."),
             Help("/oierdb [name]", "获取名为 name 的 OI 信息学奥赛选手获奖信息，支持批量查询."),
         ],
+        'misc1': [
+            Help("/来道菜 (dish)", "获取一道 How-to-Cook 开源项目里的菜谱，可指定菜谱名进行查询."),
+            Help("/dazs [content]", "查询答案之书，获取一个建议 (仅供娱乐)."),
+            Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
+            Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
+            Help("/hzys [content]", "基于文本 content 合成电棍语音，活字乱刷.")
+        ],
+        'codeforces': [
+            Help("/cf bind [handle]", "绑定用户名为 handle 的 Codeforces 账号."),
+            Help("/cf duel", "Codeforces 对战模块."),
+            Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 信息名片."),
+            Help("/cf recent [handle] (count)",
+                 "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
+            Help("/cf pick [标签 | all] (难度) (new)",
+                 "从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
+                 "末尾加上 new 参数则会忽视 P1000A 以前的题."),
+            Help("/cf tags", "用于列出 Codeforces 平台的 tags (辅助 pick)."),
+            Help("/cf stand [handle] [id]",
+                 "获取 Codeforces 上编号为 id 的比赛中用户名为 handle 的用户的榜单信息，支持预测分数变化.")
+        ],
         'pick_one': [
             Help("/来只 [what] (tag) (index)",
                  "获取一个类别为 what 的随机表情包，可指定关键词 tag，并选择匹配度第 index 的候选."),
@@ -174,27 +194,6 @@ class Constants:
             Help("/reply (what) (id) [content]",
                  "评论上一个表情包，可指定类别 what 和 id（支持前缀）来评论指定表情.")
         ],
-        'codeforces': [
-            Help("/cf bind [handle]", "绑定用户名为 handle 的 Codeforces 账号."),
-            Help("/cf duel", "Codeforces 对战模块."),
-            Help("/cf id [handle]", "获取用户名为 handle 的 Codeforces 基础用户信息卡片."),
-            Help("/cf info [handle]", "获取用户名为 handle 的 Codeforces 详细用户信息."),
-            Help("/cf recent [handle] (count)",
-                 "获取用户名为 handle 的 Codeforces 最近 count 发提交，count 默认为 5."),
-            Help("/cf pick [标签 | all] (难度) (new)",
-                 "从 Codeforces 上随机选题. 标签中间不能有空格，支持模糊匹配. 难度为整数或一个区间，格式为 xxx-xxx. "
-                 "末尾加上 new 参数则会忽视 P1000A 以前的题."),
-            Help("/cf tags", "用于列出 Codeforces 平台的 tags (辅助 pick)."),
-            Help("/cf stand [handle] [id]",
-                 "获取 Codeforces 上编号为 id 的比赛中用户名为 handle 的用户的榜单信息，支持预测分数变化.")
-        ],
-        'misc1': [
-            Help("/来道菜 (dish)", "获取一道 How-to-Cook 开源项目里的菜谱，可指定菜谱名进行查询."),
-            Help("/dazs [content]", "查询答案之书，获取一个建议 (仅供娱乐)."),
-            Help("/hitokoto", "获取一条一言. 指令别名：/一言，/来(一)句(话)."),
-            Help("/qrcode [content]", "生成一个内容为 content 的二维码."),
-            Help("/hzys [content]", "基于文本 content 合成电棍语音，活字乱刷.")
-        ],
         'mc': [
             Help("/kill", "抽取 Minecraft 死亡信息."),
             Help("/gamemode [mode]", "模拟 Minecraft 游戏模式切换."),
@@ -204,15 +203,13 @@ class Constants:
                  "为 joking 时只包含幽默睡觉失败信息、留空时两者都包含."),
         ],
         'atcoder': [
-            Help("/atc id [handle]", "获取用户名为 handle 的 AtCoder 基础用户信息卡片."),
-            Help("/atc info [handle]", "获取用户名为 handle 的 AtCoder 详细用户信息."),
+            Help("/atc id [handle]", "获取用户名为 handle 的 AtCoder 信息名片."),
             Help("/atc pick [比赛类型 | all] (难度)",
                  "从 AtCoder 上随机选题，基于 Clist API. 比赛类型可选参数为 [abc, arc, agc, ahc, common, sp, all]，"
                  "其中 common 涵盖前四个类型，而 sp 则是排除前四个类型. 难度为整数或一个区间，格式为xxx-xxx.")
         ],
         'nowcoder': [
-            Help("/nk id [handle]", "获取用户名为 handle 的 NowCoder 基础用户信息卡片."),
-            Help("/nk info [handle]", "获取用户名为 handle 的 NowCoder 详细用户信息."),
+            Help("/nk id [handle]", "获取用户名为 handle 的 NowCoder 信息名片."),
             Help("/nk stand [name] [contest]",
                  "获取 NowCoder 上名称匹配 contest 的比赛中，用户名或学校名匹配 name 的用户的榜单信息.")
         ],
@@ -220,6 +217,14 @@ class Constants:
             Help("/rand [num / int] [min] [max]", "在 [min, max] 中选择一个随机数，值域 [-1e9, 1e9]."),
             Help("/rand seq [max]", "获取一个 1, 2, ..., max 的随机排列，值域 [1, 500]."),
             Help("/rand color", "获取一个色卡.")
+        ],
+        'tetris': [
+            Help("/tetris (col)", "开始 24 * col 大小的俄罗斯方块游戏，col 为列数，留空时默认为 24."),
+            Help("/tetris [rotate_cnt] [left_col]",
+                 "放置方块下落。方块顺时针旋转 rotate_cnt 次，左上角位于 left_col 列，从 1 开始编号."),
+            Help("/tetris undo", "回退上一次操作，最多连续被执行一次."),
+            Help("/tetris now", "查看当前俄罗斯方块游戏状态."),
+            Help("/tetris stop", "结束本轮俄罗斯方块游戏.")
         ],
         'guess-interval': [
             Help("/guess", "开始区间猜数字."),
@@ -230,14 +235,6 @@ class Constants:
             Help("/1a2b", "开始 1a2b 游戏."),
             Help("/1a2b [num]", "猜测数字为 num."),
             Help("/1a2b stop", "结束本轮 1a2b 游戏.")
-        ],
-        'tetris': [
-            Help("/tetris (col)", "开始 24 * col 大小的俄罗斯方块游戏，col 为列数，留空时默认为 24."),
-            Help("/tetris [rotate_cnt] [left_col]",
-                 "放置方块下落。方块顺时针旋转 rotate_cnt 次，左上角位于 left_col 列，从 1 开始编号."),
-            Help("/tetris undo", "回退上一次操作，最多连续被执行一次."),
-            Help("/tetris now", "查看当前俄罗斯方块游戏状态."),
-            Help("/tetris stop", "结束本轮俄罗斯方块游戏.")
         ],
         'git-cmd': [
             Help("/git status", "获取当前本项目指向的提交信息，需要管理员权限."),

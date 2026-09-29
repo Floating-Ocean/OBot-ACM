@@ -1,6 +1,6 @@
 import abc
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
@@ -8,6 +8,15 @@ import pixie
 
 from src.core.util.tools import format_timestamp_diff, format_seconds, format_timestamp, \
     check_intersect, get_a_month_timestamp_range
+
+
+@dataclass
+class UserLastContest:
+    """用户最近一次 Rated 比赛的信息"""
+    name: str
+    details: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    rated_count: int = 0
 
 
 @dataclass
@@ -116,16 +125,16 @@ class CompetitivePlatform(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+    def get_user_card(cls, handle: str) -> pixie.Image | None:
         """
-        获取指定用户的基础信息卡片
+        获取指定用户的完整信息名片
         :return: 绘制完成的图片对象 | None
         """
 
     @classmethod
     @abc.abstractmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
+    def get_user_last_contest(cls, handle: str) -> UserLastContest | None:
         """
-        获取指定用户的详细信息
-        :return: tuple[信息, 头像url] | None
+        获取指定用户最近一次 Rated 比赛的信息
+        :return: 最近一次比赛 | None
         """

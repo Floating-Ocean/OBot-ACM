@@ -6,11 +6,11 @@ import pixie
 from lxml.etree import Element
 
 from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, \
-    patch_https_url, decode_range, check_intersect, get_today_timestamp_range
+    patch_https_url, decode_range, check_intersect, get_today_timestamp_range, check_is_int
 from src.platform.collect.clist import Clist
-from src.platform.model import CompetitivePlatform, Contest
+from src.platform.model import CompetitivePlatform, Contest, UserLastContest
 from src.platform.online.codeforces import Codeforces
-from src.render.pixie.render_user_card import UserCardRenderer
+from src.render.pixie.render_user_card import UserCardInfo, UserCardRenderer, UserCardSection
 
 
 class AtCoder(CompetitivePlatform):
@@ -129,7 +129,8 @@ class AtCoder(CompetitivePlatform):
         return random.choice(filtered_data) if len(filtered_data) > 0 else 0
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+    def _fetch_user_profile(cls, handle: str) -> tuple[Element, dict, dict] | None:
+        """获取用户主页，返回 (html, 资料表, 比赛状态表)"""
         handle = quote_plus(str(handle).strip())
         html = fetch_url_element(f"https://atcoder.jp/users/{handle}",
                                  accept_codes=[200, 404])
@@ -140,68 +141,100 @@ class AtCoder(CompetitivePlatform):
         info_dict = {row.xpath('.//th/text()')[0]:
                          row.xpath('.//td//text()')[0].strip() for row in info_table}
 
-        social = '. '.join(cls._format_social_info(info_dict, ('', 'Born in', 'From'))).lstrip()
-        if len(social) > 0:
-            social = f"{social}."
+        rated_dict = {}
+        rated_div = html.xpath("//div[h3[text()='Contest Status']]")
+        if len(rated_div) > 0:
+            rated_table = rated_div[0].xpath(".//table")[0].xpath(".//tr")
+            rated_dict = {row.xpath('.//th/text()')[0].strip():
+                              row.xpath('.//td//text()') for row in rated_table}
 
-        rated_table = (html.xpath("//div[h3[text()='Contest Status']]")[0].xpath(".//table")[0]
-                       .xpath(".//tr"))
-        rated_dict = {row.xpath('.//th/text()')[0].strip():
-                          row.xpath('.//td//text()') for row in rated_table}
-
-        rating = rated_dict['Rating'][0]
-        rank = rated_dict['Highest Rating'][4]
-        return UserCardRenderer(handle=html.xpath("//a[@class='username']//text()")[0],
-                                social=social, rank=rank, rank_alias=rank, rating=rating,
-                                platform=cls).render()
+        return html, info_dict, rated_dict
 
     @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
-        handle = quote_plus(str(handle).strip())
-        html = fetch_url_element(f"https://atcoder.jp/users/{handle}",
-                                 accept_codes=[200, 404])
-        if html.xpath('//text()[contains(., "404 Not Found")]'):
+    def _extract_rank_alias(cls, rated_dict: dict) -> str:
+        """从 Highest Rating 一行里挑出段位，形如 6 Kyu / 3 Dan / King"""
+        for token in [token.strip() for token in rated_dict.get('Highest Rating', [])]:
+            if token in cls.rks_color:
+                return token
+        # 从未参加过比赛时没有段位，按最低段位配色
+        return '10 Kyu'
+
+    @classmethod
+    def get_user_card(cls, handle: str) -> pixie.Image | None:
+        profile = cls._fetch_user_profile(handle)
+        if profile is None:
             return None
+        html, info_dict, rated_dict = profile
+
+        rating = 0
+        if len(rated_dict.get('Rating', [])) > 0 and check_is_int(rated_dict['Rating'][0]):
+            rating = int(rated_dict['Rating'][0])
+        rank_alias = cls._extract_rank_alias(rated_dict)
+
+        social = []
+        for tag, prefix in [("Country/Region", ""), ("Birth Year", "生于"),
+                            ("Affiliation", "来自")]:
+            if tag in info_dict:
+                social.append(f"{prefix} {info_dict[tag]}".strip())
+
+        rating_note = ""
+        ratings = [token.strip() for token in rated_dict.get('Highest Rating', [])
+                   if token.strip()]
+        promote = next((token for token in ratings if 'to promote' in token), None)
+        if promote is not None:
+            rating_note = promote.strip('()')
+
+        metrics = []
+        if len(rated_dict.get('Rated Matches', [])) > 0:
+            metrics.append(("Rated 比赛数", rated_dict['Rated Matches'][0].strip()))
+        if len(rated_dict.get('Rank', [])) > 0:
+            metrics.append(("位次", rated_dict['Rank'][0].strip()))
+        if len(ratings) > 0:
+            metrics.append(("最高 Rating", ratings[0]))
+
+        # 日期过长，放在身份区的补充信息里而不是指标格
+        timeline = []
+        if len(rated_dict.get('Last Competed', [])) > 0:
+            timeline.append(f"最近参赛 {rated_dict['Last Competed'][0].strip()}")
 
         sections = []
-
-        info_table = html.xpath("//table[@class='dl-table']//tr")
-        info_dict = {row.xpath('.//th/text()')[0]:
-                         row.xpath('.//td//text()')[0].strip() for row in info_table}
-
-        social = cls._format_social_info(info_dict)
-        if len(social) > 0:
-            sections.append('\n'.join(social))
-
-        linked = ["关联账号"]
+        linked = []
         for tag in ["Twitter ID", "TopCoder ID", "Codeforces ID"]:
-            if tag in info_dict:
-                if tag == "Codeforces ID":
-                    cf_rank = Codeforces.get_user_rank(info_dict[tag])
-                    if cf_rank:
-                        info_dict[tag] += f" ({cf_rank})"
-                linked.append(f"{tag[:-3]}: {info_dict[tag]}")
-        if len(linked) > 1:
-            sections.append('\n'.join(linked))
+            if tag not in info_dict:
+                continue
+            account = info_dict[tag]
+            if tag == "Codeforces ID":
+                cf_rank = Codeforces.get_user_rank(account)
+                if cf_rank:
+                    account = f"{account} ({cf_rank})"
+            linked.append(f"{tag[:-3]}: {account}")
+        if len(linked) > 0:
+            sections.append(UserCardSection("关联账号", linked))
 
-        rated_table = (html.xpath("//div[h3[text()='Contest Status']]")[0].xpath(".//table")[0]
-                       .xpath(".//tr"))
-        rated_dict = {row.xpath('.//th/text()')[0].strip():
-                          row.xpath('.//td//text()') for row in rated_table}
-        rated_dict['Highest Rating'][0] = (
-            rated_dict['Highest Rating'][0].replace(' Kyu', '级').replace(' Dan', '段'))
-        platform = [
-            f"位次: {rated_dict['Rank'][0]}" if 'Rank' in rated_dict else "近两年未参加比赛",
-            f"比赛Rating: {rated_dict['Rating'][0]}",
-            f"最高Rating: {rated_dict['Highest Rating'][0]}"
-            f" {rated_dict['Highest Rating'][4]} {rated_dict['Highest Rating'][6]}"
-        ]
-        sections.append('\n'.join(platform))
+        last_contest = cls.get_user_last_contest(handle)
+        if last_contest:
+            contest_lines = [last_contest.name]
+            if len(last_contest.details) > 0:
+                contest_lines.append(' · '.join(last_contest.details))
+            sections.append(UserCardSection("最近比赛", contest_lines))
 
-        return '\n\n'.join(sections), patch_https_url(html.xpath("//img[@class='avatar']/@src")[0])
+        card_info = UserCardInfo(
+            platform_name=cls.platform_name,
+            handle=html.xpath("//a[@class='username']//text()")[0],
+            accent_color=cls.rks_color.get(rank_alias, '#808080'),
+            rating=f"{rating}" if rating > 0 else "Unrated",
+            rank=rank_alias,
+            rating_note=rating_note,
+            avatar_url=patch_https_url(html.xpath("//img[@class='avatar']/@src")[0]),
+            social=social,
+            timeline=timeline,
+            metrics=metrics,
+            sections=sections
+        )
+        return UserCardRenderer(card_info).render()
 
     @classmethod
-    def get_user_last_contest(cls, handle: str) -> str:
+    def get_user_last_contest(cls, handle: str) -> UserLastContest | None:
         handle = quote_plus(str(handle).strip())
         url = f"https://atcoder.jp/users/{handle}/history/json"
         json_data = fetch_url_json(url, method='get')
@@ -209,13 +242,13 @@ class AtCoder(CompetitivePlatform):
         rated_contests = [contest for contest in json_data if contest['IsRated']]
         contest_count = len(rated_contests)
         if contest_count == 0:
-            return "还未参加过 Rated 比赛"
+            return UserLastContest("还未参加过 Rated 比赛")
 
         last = rated_contests[-1]
-        info = (f"Rated 比赛数: {contest_count}\n"
-                f"最近一次比赛: {last['ContestName']}\n"
-                f"位次: {last['Place']}\n"
-                f"表现分: {last['Performance']} ({last['InnerPerformance']})\n"
-                f"Rating 变化: {format_int_delta(last['NewRating'] - last['OldRating'])}")
-
-        return info
+        return UserLastContest(
+            name=last['ContestName'],
+            details=[f"位次 {last['Place']}",
+                     f"表现分 {last['Performance']} ({last['InnerPerformance']})",
+                     f"Rating {format_int_delta(last['NewRating'] - last['OldRating'])}"],
+            rated_count=contest_count
+        )

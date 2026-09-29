@@ -11,8 +11,8 @@ from src.core.lib.cf_rating_calc import PredictResult, Contestant, predict
 from src.core.util.tools import fetch_url_json, format_timestamp, get_week_start_timestamp, \
     get_today_start_timestamp, format_timestamp_diff, format_seconds, format_int_delta, \
     decode_range, check_intersect, get_today_timestamp_range
-from src.platform.model import CompetitivePlatform, Contest
-from src.render.pixie.render_user_card import UserCardRenderer
+from src.platform.model import CompetitivePlatform, Contest, UserLastContest
+from src.render.pixie.render_user_card import UserCardInfo, UserCardRenderer, UserCardSection
 
 
 @dataclass
@@ -50,6 +50,19 @@ class Codeforces(CompetitivePlatform):
         'IGM': '#ff0000',
         'LGM': '#ff0000',
         'T': '#ff0000'
+    }
+    rank_abbr = {
+        "newbie": "N",
+        "pupil": "P",
+        "specialist": "S",
+        "expert": "E",
+        "candidate master": "CM",
+        "master": "M",
+        "international master": "IM",
+        "grandmaster": "GM",
+        "international grandmaster": "IGM",
+        "legendary grandmaster": "LGM",
+        "the ones who reach 4000": "T"
     }
 
     @classmethod
@@ -98,11 +111,13 @@ class Codeforces(CompetitivePlatform):
         return re.sub(r'(\w+)\.(\w+)', lambda m: m.group(1) + m.group(2).capitalize(), name)
 
     @classmethod
+    def _format_rank_alias(cls, rating: int) -> str:
+        return next((rk for (l, r), rk in cls.rated_rks.items() if l <= rating < r), 'N')
+
+    @classmethod
     def _format_rank_delta(cls, old_rating: int, delta: int) -> str:
-        old_rk = next((rk for (l, r), rk in cls.rated_rks.items()
-                       if l <= old_rating < r), 'N')
-        new_rk = next((rk for (l, r), rk in cls.rated_rks.items()
-                       if l <= old_rating + delta < r), 'N')
+        old_rk = cls._format_rank_alias(old_rating)
+        new_rk = cls._format_rank_alias(old_rating + delta)
         if old_rk == new_rk:
             return "段位无变化"
         return f"段位变化 {old_rk}->{new_rk}"
@@ -464,8 +479,7 @@ class Codeforces(CompetitivePlatform):
         if not info or len(info) == 0:
             return None
         info = info[-1]
-        rank_alias = next((rk for (l, r), rk in cls.rated_rks.items()
-                           if l <= info['rating'] < r), 'N')
+        rank_alias = cls._format_rank_alias(info['rating'])
         return f"{info['rating']} {rank_alias}"
 
     @classmethod
@@ -476,71 +490,117 @@ class Codeforces(CompetitivePlatform):
         return info[-1]['rating']
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+    def check_user_exists(cls, handle: str) -> bool:
+        """仅判断用户是否存在，避免拉取完整信息"""
+        info = cls._api_with_check('user.info', handles=handle)
+        return bool(info) and len(info) > 0
+
+    @classmethod
+    def _format_submit_line(cls, submit: dict) -> str:
+        """格式化单条提交记录，用于信息名片"""
+        verdict = (cls._format_verdict(submit['verdict'], submit['passedTestCount'])
+                   if 'verdict' in submit else "In queue")
+        points = (f" *{int(submit['problem']['rating'])}"
+                  if 'rating' in submit['problem'] else "")
+        time_consumed = (f" · {submit['timeConsumedMillis']}ms"
+                         if 'timeConsumedMillis' in submit else "")
+        time_formatted = format_timestamp(submit['creationTimeSeconds'],
+                                          chinese_weekday_format=False)
+        return (f"P{submit['problem']['contestId']}{submit['problem']['index']}{points} · "
+                f"{verdict}{time_consumed} · {time_formatted}")
+
+    @classmethod
+    def get_user_card(cls, handle: str) -> pixie.Image | None:
         info = cls._api_with_check('user.info', handles=handle)
         if not info or len(info) == 0:
             return None
         info = info[-1]
+        user_handle = info['handle']
 
-        social = '. '.join(cls._format_social_info(info, ('From', 'Earth')))
-        if len(social) > 0:
-            social = f"{social}."
-
-        rating = 0
-        rank = "Unrated"
+        rating, rank = 0, "Unrated"
         if 'rating' in info:
             rating = info['rating']
             rank = info['rank'].title()
 
-        rank_alias = next((rk for (l, r), rk in cls.rated_rks.items() if l <= rating < r), 'N')
-        return UserCardRenderer(handle=info['handle'], social=social,
-                                rank=rank, rank_alias=rank_alias, rating=rating,
-                                platform=cls).render()
+        rank_alias = cls._format_rank_alias(rating)
 
-    @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
-        info = cls._api_with_check('user.info', handles=handle)
-        if not info or len(info) == 0:
-            return None
+        timeline = []
+        if 'registrationTimeSeconds' in info:
+            register_time = time.strftime('%Y/%m/%d',
+                                          time.localtime(info['registrationTimeSeconds']))
+            timeline.append(f"注册于 {register_time}")
+        if 'lastOnlineTimeSeconds' in info:
+            online_diff = int(time.time()) - info['lastOnlineTimeSeconds']
+            timeline.append(f"{format_timestamp_diff(online_diff)}在线")
 
-        info = info[-1]
+        rating_note = ""
+        if 'maxRating' in info:
+            max_rating = info['maxRating']
+            max_rank_alias = cls._format_rank_alias(max_rating)
+            rating_note = f"最高 Rating {max_rating} {max_rank_alias}"
+
+        last_contest = cls.get_user_last_contest(user_handle)
+        status = cls.get_user_submits(user_handle)
+        total_sums, weekly_sums, daily_sums = cls._count_user_solved(status)
+
+        metrics = [
+            ("通过题数", f"{total_sums}"),
+            ("Rated 比赛数", f"{last_contest.rated_count if last_contest else 0}"),
+            ("今日过题", f"{daily_sums}"),
+            ("本周过题", f"{weekly_sums}"),
+            ("贡献", f"{info['contribution']}"),
+            ("粉丝", f"{info['friendOfCount']}")
+        ]
+
         sections = []
+        if last_contest:
+            contest_lines = [last_contest.name]
+            if len(last_contest.details) > 0:
+                contest_lines.append(' · '.join(last_contest.details))
+            sections.append(UserCardSection("最近比赛", contest_lines))
+        last_submits = [cls._format_submit_line(submit) for submit in status[:3]]
+        if len(last_submits) > 0:
+            sections.append(UserCardSection("最近提交", last_submits))
 
-        # 社交信息
-        social = cls._format_social_info(info)
-        if len(social) > 0:
-            sections.append('\n'.join(social))
-
-        # 平台上的信息
-        rating = "0 Unrated"
-        if 'rating' in info:
-            rating = (f"{info['rating']} {info['rank'].title()} "
-                      f"(max. {info['maxRating']} {info['maxRank']})")
-        platform = (f"比赛Rating: {rating}\n"
-                    f"贡献: {info['contribution']}\n"
-                    f"粉丝: {info['friendOfCount']}")
-        sections.append(platform)
-
-        photo_url = info.get('titlePhoto').replace("https://userpic.codeforces.org",
-                                                   "https://codeforces.com/userpic.codeforces.org")
-        return '\n\n'.join(sections), photo_url
+        card_info = UserCardInfo(
+            platform_name=cls.platform_name,
+            handle=user_handle,
+            accent_color=cls.rks_color[rank_alias],
+            rating=f"{rating}",
+            rank=rank,
+            rating_note=rating_note,
+            avatar_url=cls._decode_avatar_url(info.get('titlePhoto')),
+            social=cls._format_social_info(info, ('From', 'Earth')),
+            timeline=timeline,
+            metrics=metrics,
+            sections=sections
+        )
+        return UserCardRenderer(card_info).render()
 
     @classmethod
-    def get_user_last_contest(cls, handle: str) -> str:
+    def _decode_avatar_url(cls, url: str | None) -> str | None:
+        """https://userpic.codeforces.org 已不可用，需要换成 codeforces.com 的镜像"""
+        if not url:
+            return None
+        return url.replace("https://userpic.codeforces.org",
+                           "https://codeforces.com/userpic.codeforces.org")
+
+    @classmethod
+    def get_user_last_contest(cls, handle: str) -> UserLastContest | None:
         rating = cls._api('user.rating', handle=handle)
         rated_contests = list(rating)
         contest_count = len(rated_contests)
         if contest_count == 0:
-            return "还未参加过 Rated 比赛"
+            return UserLastContest("还未参加过 Rated 比赛")
 
         last = rated_contests[-1]
-        info = (f"Rated 比赛数: {contest_count}\n"
-                f"最近一次比赛: {cls._format_contest_name(last['contestName'])}\n"
-                f"比赛编号: {last['contestId']}\n"
-                f"位次: {last['rank']}\n"
-                f"Rating 变化: {format_int_delta(last['newRating'] - last['oldRating'])}")
-
-        return info
+        return UserLastContest(
+            name=cls._format_contest_name(last['contestName']),
+            details=[f"位次 {last['rank']}",
+                     f"比赛编号 {last['contestId']}",
+                     f"Rating {format_int_delta(last['newRating'] - last['oldRating'])}"],
+            rated_count=contest_count
+        )
 
     @classmethod
     def get_user_last_submit(cls, handle: str, count: int = 5) -> str:
@@ -551,33 +611,20 @@ class Codeforces(CompetitivePlatform):
 
         info = f"最近{count}发提交:"
         for submit in status:
-            verdict = (cls._format_verdict(submit['verdict'], submit['passedTestCount'])
-                       if 'verdict' in submit else "In queue")
-            points = (f" *{int(submit['problem']['rating'])}"
-                      if 'rating' in submit['problem'] else "")
-            time_consumed = (f" {submit['timeConsumedMillis']}ms"
-                             if 'timeConsumedMillis' in submit else "")
-            time_formatted = format_timestamp(submit['creationTimeSeconds'],
-                                              chinese_weekday_format=False)
-            info += (f"\n[{submit['id']}] {verdict} "
-                     f"P{submit['problem']['contestId']}"
-                     f"{submit['problem']['index']}{points}{time_consumed} "
-                     f"{time_formatted}")
+            info += f"\n[{submit['id']}] {cls._format_submit_line(submit)}"
 
         return info
 
     @classmethod
-    def get_user_submit_counts(cls, handle: str) -> tuple[int, int, int]:
-        status = cls._api('user.status', handle=handle)
-        status = list(status)
-        submit_len = len(status)
-        if submit_len == 0:
+    def _count_user_solved(cls, status: list[dict]) -> tuple[int, int, int]:
+        """统计已去重的通过题数（总 / 本周 / 今日）"""
+        if len(status) == 0:
             return 0, 0, 0
 
         total_set, weekly_set, daily_set = set(), set(), set()
         week_start_time, today_start_time = get_week_start_timestamp(), get_today_start_timestamp()
         for submit in status:
-            if submit['verdict'] != "OK":
+            if submit.get('verdict') != "OK":
                 continue
             current_prob = f"{submit['problem'].get('contestId')}-{submit['problem'].get('index')}"
             total_set.add(current_prob)
@@ -587,6 +634,10 @@ class Codeforces(CompetitivePlatform):
                 daily_set.add(current_prob)
 
         return len(total_set), len(weekly_set), len(daily_set)
+
+    @classmethod
+    def get_user_submits(cls, handle: str) -> list[dict]:
+        return list(cls._api('user.status', handle=handle))
 
     @classmethod
     def get_user_submit_prob_id(cls, handle: str) -> set[str]:

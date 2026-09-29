@@ -5,7 +5,8 @@ import pixie
 from src.core.constants import Constants
 from src.core.util.tools import check_intersect, get_today_timestamp_range
 from src.data.data_contest_manual import get_contests
-from src.platform.model import CompetitivePlatform, Contest, DynamicContest, DynamicContestPhase
+from src.platform.model import CompetitivePlatform, Contest, DynamicContest, DynamicContestPhase, \
+    UserLastContest
 
 
 class ManualPlatform(CompetitivePlatform):
@@ -53,11 +54,11 @@ class ManualPlatform(CompetitivePlatform):
         return running_contests, upcoming_contests, finished_contests
 
     @classmethod
-    def get_user_id_card(cls, _: str) -> pixie.Image | None:
+    def get_user_card(cls, _: str) -> pixie.Image | None:
         """非比赛平台，不支持获取用户信息"""
         return None
 
     @classmethod
-    def get_user_info(cls, _: str) -> tuple[str, str] | None:
+    def get_user_last_contest(cls, _: str) -> UserLastContest | None:
         """非比赛平台，不支持获取用户信息"""
         return None

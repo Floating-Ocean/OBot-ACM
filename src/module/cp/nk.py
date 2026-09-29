@@ -9,36 +9,17 @@ from src.render.pixie.render_contest_list import ContestListRenderer
 _NK_HELP = '\n'.join(HelpStrList(Constants.help_contents["nowcoder"]))
 
 
-def send_user_id_card(message: RobotMessage, handle: str):
-    message.reply(f"正在查询 {handle} 的 NowCoder 基础信息，请稍等")
+def send_user_card(message: RobotMessage, handle: str):
+    message.reply(f"正在查询 {handle} 的 NowCoder 信息，请稍等")
 
-    id_card = NowCoder.get_user_id_card(handle)
-    if not id_card:
-        content = (f"[NowCoder ID] {handle}\n\n"
-                   "用户不存在")
-        message.reply(content, modal_words=False)
-    else:
-        cached_prefix = get_cached_prefix('Platform-ID')
-        id_card.write_file(f"{cached_prefix}.png")
-        message.reply(f"[NowCoder] {handle}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
+    user_card = NowCoder.get_user_card(handle)
+    if not user_card:
+        message.reply(f"[NowCoder] {handle}\n\n用户不存在", modal_words=False)
+        return
 
-
-def send_user_info(message: RobotMessage, handle: str):
-    message.reply(f"正在查询 {handle} 的 NowCoder 平台信息，请稍等")
-
-    user = NowCoder.get_user_info(handle)
-    if not user:
-        content = (f"[NowCoder] {handle}\n\n"
-                   "用户不存在")
-        avatar = None
-    else:
-        info, avatar = user
-        last_contest = NowCoder.get_user_last_contest(handle)
-        content = (f"[NowCoder] {handle}\n\n"
-                   f"{info}\n\n"
-                   f"{last_contest}")
-
-    message.reply(content, img_url=avatar, modal_words=False)
+    cached_prefix = get_cached_prefix('Platform-ID')
+    user_card.write_file(f"{cached_prefix}.png")
+    message.reply(f"[NowCoder] {handle}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
 def send_contest(message: RobotMessage):
@@ -83,7 +64,7 @@ def reply_nk_request(message: RobotMessage):
 
         func = content[1]
 
-        if func == "identity" or func == "id" or func == "card":
+        if func in ["identity", "id", "card", "info", "user"]:
             if len(content) != 3:
                 message.reply(f"请输入正确的指令格式，如\"/nk {func} 329687984\"")
                 return
@@ -92,18 +73,7 @@ def reply_nk_request(message: RobotMessage):
                 message.reply("暂不支持使用昵称检索用户，请使用uid")
                 return
 
-            send_user_id_card(message, content[2])
-
-        elif func == "info" or func == "user":
-            if len(content) != 3:
-                message.reply(f"请输入正确的指令格式，如\"/nk {func} 329687984\"")
-                return
-
-            if not check_is_int(content[2]):
-                message.reply("暂不支持使用昵称检索用户，请使用uid")
-                return
-
-            send_user_info(message, content[2])
+            send_user_card(message, content[2])
 
         elif func == "contest" or func == "contests":
             send_contest(message)
@@ -124,7 +94,7 @@ def reply_nk_request(message: RobotMessage):
 
 @module(
     name="NowCoder",
-    version="v1.3.0"
+    version="v1.4.0"
 )
 def register_module():
     pass

@@ -2,6 +2,7 @@ import os
 import random
 import re
 import unittest
+from dataclasses import replace
 from datetime import date, timedelta
 
 from src.core.bot.decorator import get_all_modules_info
@@ -24,6 +25,7 @@ from src.render.pixie.render_help import HelpRenderer
 from src.render.pixie.render_pick_one import PickOneRenderer, PickOnePreviewRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 from src.render.pixie.render_uptime import UptimeRenderer
+from src.render.pixie.render_user_card import UserCardInfo, UserCardRenderer, UserCardSection
 from src.render.svg.render_uptime_status import (render_uptime_status, get_percentile_color,
                                                  BAR_HEIGHT, BAR_RADIUS, BAR_SPACING,
                                                  BAR_WIDTH)
@@ -219,6 +221,39 @@ class Render(unittest.TestCase):
         ).render()
         self.assertIsNotNone(about_img)
         about_img.write_file(get_output_path("render_about.png"))
+
+    def test_user_card(self):
+        """不联网的 mock 渲染：缺少头像/补充信息也能排版，分块越多图片越高"""
+        basic_info = UserCardInfo(
+            platform_name="Codeforces",
+            handle="Mock_User",
+            accent_color="#0000ff",
+            rating="1900",
+            rank="Expert",
+            rating_note="最高 Rating 2100 CM",
+            social=["Mock Name", "Mock City, Mock Country"],
+            timeline=["注册于 2020/01/01", "1天前在线"],
+            metrics=[("通过题数", "512"), ("Rated 比赛数", "24")]
+        )
+        basic_card = UserCardRenderer(basic_info).render()
+        self.assertIsNotNone(basic_card)
+        basic_card.write_file(get_output_path("render_user_card_basic.png"))
+
+        full_info = replace(basic_info,
+                            metrics=basic_info.metrics + [("最近参赛", "2026/09/27")],
+                            sections=[
+                                UserCardSection("最近比赛",
+                                                ["Codeforces Round 1000 (Div. 1)",
+                                                 "位次 123 · Rating +20"]),
+                                UserCardSection("最近提交",
+                                                ["P1A *800 · Accepted · 15ms · 26/01/01 12:00:00"])
+                            ])
+        full_card = UserCardRenderer(full_info).render()
+        self.assertIsNotNone(full_card)
+        full_card.write_file(get_output_path("render_user_card_full.png"))
+
+        self.assertEqual(basic_card.width, full_card.width)
+        self.assertGreater(full_card.height, basic_card.height)
 
 if __name__ == '__main__':
     unittest.main()

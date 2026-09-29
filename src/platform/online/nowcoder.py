@@ -10,8 +10,8 @@ from lxml.etree import Element
 
 from src.core.util.tools import fetch_url_element, fetch_url_json, format_int_delta, \
     check_intersect, get_today_timestamp_range, format_timestamp, format_seconds, check_is_int
-from src.platform.model import CompetitivePlatform, Contest
-from src.render.pixie.render_user_card import UserCardRenderer
+from src.platform.model import CompetitivePlatform, Contest, UserLastContest
+from src.render.pixie.render_user_card import UserCardInfo, UserCardRenderer, UserCardSection
 
 
 class NowCoder(CompetitivePlatform):
@@ -140,10 +140,13 @@ class NowCoder(CompetitivePlatform):
         return cls._format_rating(rating)
 
     @classmethod
-    def _fetch_team_members_info(cls, handle: str, inline: bool = False) -> str:
+    def _fetch_team_member_list(cls, handle: str) -> list[dict]:
         handle = quote_plus(str(handle).strip())
         url = f"https://ac.nowcoder.com/acm/team/member-list?token=&teamId={handle}"
-        members = cls._api(url)
+        return cls._api(url)
+
+    @classmethod
+    def _format_team_members(cls, members: list[dict], inline: bool = False) -> str:
         member_infos = []
 
         for member in members:
@@ -312,99 +315,109 @@ class NowCoder(CompetitivePlatform):
         return contest_id, formatted_contest
 
     @classmethod
-    def get_user_id_card(cls, handle: str) -> pixie.Image | None:
+    def _fetch_user_profile(cls, handle: str) -> Element | None:
+        """获取用户主页，用户不存在时返回 None"""
         handle = quote_plus(str(handle).strip())
         html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/profile/{handle}")
         if html.xpath("//div[@class='null']"):
             return None
-
-        is_group = len(html.xpath("//a[@class='group-member-btn']")) > 0
-        if is_group:
-            social = cls._fetch_team_members_info(handle, inline=True)
-            if len(social) > 0:
-                social = f"Team of {social}."
-        else:
-            social = '. '.join(cls._format_social_info(html, 'From'))
-            if len(social) > 0:
-                social = f"{social}."
-
-        rating = int(html.xpath("//div[contains(@class, 'state-num rate-score')]/text()")[0])
-        rank = next((rk for (l, r), rk in cls.rated_rks.items() if l <= rating < r), '#灰')
-        return UserCardRenderer(handle=html.xpath("//a[contains(@class, 'coder-name')]"
-                                                  "/text()")[0].strip(),
-                                social=social, rank=rank, rank_alias=rank, rating=rating,
-                                platform=cls).render()
+        return html
 
     @classmethod
-    def get_user_info(cls, handle: str) -> tuple[str, str] | None:
-        handle = quote_plus(str(handle).strip())
-        html = fetch_url_element(f"https://ac.nowcoder.com/acm/contest/profile/{handle}")
-        if html.xpath("//div[@class='null']"):
+    def get_user_card(cls, handle: str) -> pixie.Image | None:
+        html = cls._fetch_user_profile(handle)
+        if html is None:
             return None
 
-        sections = []
-
-        social = []
-        name = html.xpath("//a[contains(@class, 'coder-name')]/text()")[0].strip()
-        social.append(name)
-        brief_intro = html.xpath("//div[@class='coder-brief']/text()")[0].strip()
-        social.append(brief_intro)
-        social.extend(cls._format_social_info(html))
-
-        if len(social) > 0:
-            sections.append('\n'.join(social))
-
         is_group = len(html.xpath("//a[@class='group-member-btn']")) > 0
-        if is_group:
-            members = cls._fetch_team_members_info(handle)
-            sections.append(f"队伍成员:\n{members}")
+        name = html.xpath("//a[contains(@class, 'coder-name')]/text()")[0].strip()
+        brief_intro = html.xpath("//div[@class='coder-brief']/text()")[0].strip()
 
-        platform = []
+        member_list = cls._fetch_team_member_list(handle) if is_group else []
+        social = []
+        if is_group:
+            if len(member_list) > 0:
+                social.append(f"Team of {cls._format_team_members(member_list, inline=True)}")
+        else:
+            if len(brief_intro) > 0:
+                social.append(brief_intro)
+            social.extend(cls._format_social_info(html))
+
         rating = int(html.xpath("//div[contains(@class, 'state-num rate-score')]/text()")[0])
-        platform.append(f"比赛Rating: {cls._format_rating(rating)}")
+        rank_alias = next((rk for (l, r), rk in cls.rated_rks.items() if l <= rating < r), '#灰')
+
         rating_rank = html.xpath('//div[@class="profile-status-box"]'
                                  '//a[contains(@href, "/rating-index")]/text()')
         following = html.xpath('//div[@class="profile-status-box"]'
                                '//a[contains(@href, "/following")]/text()')
         followers = html.xpath('//div[@class="profile-status-box"]'
                                '//a[contains(@href, "/followers")]/text()')
+        last_contest = cls.get_user_last_contest(handle)
+
+        metrics = []
         if len(rating_rank) > 0:
-            platform.append(f"位次: {rating_rank[0]}")
+            metrics.append(("位次", rating_rank[0]))
+        if last_contest:
+            metrics.append(("Rated 比赛数", f"{last_contest.rated_count}"))
         if len(following) > 0:
-            platform.append(f"关注: {following[0]}")
+            metrics.append(("关注", following[0]))
         if len(followers) > 0:
-            platform.append(f"粉丝: {followers[0]}")
-        sections.append('\n'.join(platform))
+            metrics.append(("粉丝", followers[0]))
+
+        sections = []
+        if last_contest:
+            contest_lines = [last_contest.name]
+            if len(last_contest.details) > 0:
+                contest_lines.append(' · '.join(last_contest.details))
+            contest_lines.extend(last_contest.notes)
+            sections.append(UserCardSection("最近比赛", contest_lines))
 
         joined_teams = cls._fetch_user_teams_info(handle)
         if joined_teams is not None:
-            sections.append(f"加入的队伍:\n{joined_teams}")
+            sections.append(UserCardSection("加入的队伍", joined_teams.split('\n')[:5]))
+        if len(member_list) > 0:
+            members = cls._format_team_members(member_list)
+            sections.append(UserCardSection("队伍成员", members.split('\n')[:5]))
 
-        return '\n\n'.join(sections), html.xpath("//a[contains(@class, 'head-pic')]//img/@src")[0]
+        card_info = UserCardInfo(
+            platform_name=cls.platform_name,
+            handle=name,
+            accent_color=cls.rks_color[rank_alias],
+            rating=f"{rating}" if rating > 0 else "Unrated",
+            rank=rank_alias,
+            avatar_url=html.xpath("//a[contains(@class, 'head-pic')]//img/@src")[0],
+            social=social,
+            timeline=[f"UID {handle}"],
+            metrics=metrics,
+            sections=sections
+        )
+        return UserCardRenderer(card_info).render()
 
     @classmethod
-    def get_user_last_contest(cls, handle: str) -> str:
+    def get_user_last_contest(cls, handle: str) -> UserLastContest | None:
         handle = quote_plus(str(handle).strip())
         url = ("https://ac.nowcoder.com/acm-heavy/acm/contest/profile/contest-joined-history?"
                f"uid={handle}&onlyJoinedFilter=true&onlyRatingFilter=true&contestEndFilter=true")
         rated_contests = cls._api(url)
         contest_count = len(rated_contests)
         if contest_count == 0:
-            return "还未参加过 Rated 比赛"
+            return UserLastContest("还未参加过 Rated 比赛")
 
         group_contest_count = len([contest for contest in rated_contests
                                    if contest['isTeamSignUp']])
-        if group_contest_count > 0:
-            contest_count = f"{contest_count}，包含团队赛 {group_contest_count} 场"
+        notes = []
+        if 0 < group_contest_count < contest_count:
+            notes.append(f"共 {contest_count} 场 Rated，含团队赛 {group_contest_count} 场")
 
         last = rated_contests[0]
-        info = (f"Rated 比赛数: {contest_count}\n"
-                f"最近一次比赛: {last['contestName']}\n"
-                f"位次: {last['rank']}\n"
-                f"AC 数量: {last['acceptedCount']}\n"
-                f"Rating 变化: {format_int_delta(int(last['changeValue']))}\n")
-
-        return info
+        return UserLastContest(
+            name=last['contestName'],
+            details=[f"位次 {last['rank']}",
+                     f"AC 数量 {last['acceptedCount']}",
+                     f"Rating {format_int_delta(int(last['changeValue']))}"],
+            notes=notes,
+            rated_count=contest_count
+        )
 
     @classmethod
     def get_user_contest_standings(cls, search_name: str,

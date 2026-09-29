@@ -9,37 +9,17 @@ from src.render.pixie.render_contest_list import ContestListRenderer
 _ATC_HELP = '\n'.join(HelpStrList(Constants.help_contents["atcoder"]))
 
 
-def send_user_id_card(message: RobotMessage, handle: str):
-    message.reply(f"正在查询 {handle} 的 AtCoder 基础信息，请稍等")
+def send_user_card(message: RobotMessage, handle: str):
+    message.reply(f"正在查询 {handle} 的 AtCoder 信息，请稍等")
 
-    id_card = AtCoder.get_user_id_card(handle)
+    user_card = AtCoder.get_user_card(handle)
+    if not user_card:
+        message.reply(f"[AtCoder] {handle}\n\n用户不存在", modal_words=False)
+        return
 
-    if not id_card:
-        content = (f"[AtCoder ID] {handle}\n\n"
-                   "用户不存在")
-        message.reply(content, modal_words=False)
-    else:
-        cached_prefix = get_cached_prefix('Platform-ID')
-        id_card.write_file(f"{cached_prefix}.png")
-        message.reply(f"[AtCoder] {handle}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
-
-
-def send_user_info(message: RobotMessage, handle: str):
-    message.reply(f"正在查询 {handle} 的 AtCoder 平台信息，请稍等")
-
-    user = AtCoder.get_user_info(handle)
-    if user is None:
-        content = (f"[AtCoder] {handle}\n\n"
-                   "用户不存在")
-        avatar = None
-    else:
-        info, avatar = user
-        last_contest = AtCoder.get_user_last_contest(handle)
-        content = (f"[AtCoder] {handle}\n\n"
-                   f"{info}\n\n"
-                   f"{last_contest}")
-
-    message.reply(content, img_url=avatar, modal_words=False)
+    cached_prefix = get_cached_prefix('Platform-ID')
+    user_card.write_file(f"{cached_prefix}.png")
+    message.reply(f"[AtCoder] {handle}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
 def send_prob_filter_tag(message: RobotMessage, contest_type: str, limit: str = None) -> bool:
@@ -94,19 +74,12 @@ def reply_atc_request(message: RobotMessage):
 
         func = content[1]
 
-        if func == "identity" or func == "id" or func == "card":
+        if func in ["identity", "id", "card", "info", "user"]:
             if len(content) != 3:
                 message.reply(f"请输入正确的指令格式，如\"/atc {func} jiangly\"")
                 return
 
-            send_user_id_card(message, content[2])
-
-        elif func == "info" or func == "user":
-            if len(content) != 3:
-                message.reply(f"请输入正确的指令格式，如\"/atc {func} jiangly\"")
-                return
-
-            send_user_info(message, content[2])
+            send_user_card(message, content[2])
 
         elif func == "pick" or func == "prob" or func == "problem" or (
                 content[0] == "/rand"):  # 支持从 /rand atc 调用
@@ -136,7 +109,7 @@ def reply_atc_request(message: RobotMessage):
 
 @module(
     name="AtCoder",
-    version="v1.4.0"
+    version="v1.5.0"
 )
 def register_module():
     pass

@@ -29,9 +29,15 @@ class Platform(unittest.TestCase):
         for tp in p:
             print(json.dumps([asdict(d) for d in tp], indent=4, ensure_ascii=False))
 
-    def test_atcoder_user(self):
+    def test_codeforces_user_last_contest(self):
+        handle = "FloatingOcean"
+        p = Codeforces.get_user_last_contest(handle)
+        print(p)
+        self.assertIsNotNone(p)
+
+    def test_atcoder_user_last_contest(self):
         handle = "FluctuateOcean"
-        p = AtCoder.get_user_info(handle)
+        p = AtCoder.get_user_last_contest(handle)
         self.assertIsNotNone(p)
 
     def test_clist(self):
@@ -39,13 +45,6 @@ class Platform(unittest.TestCase):
                              url__regex=r'^(?!https:\/\/atcoder\.jp\/contests\/(abc|arc|agc|ahc)).*')
         self.assertIsNotNone(problems)
         print(json.dumps(problems, indent=4, ensure_ascii=False))
-
-    def test_nowcoder_user(self):
-        handle = "144128559"
-        p = NowCoder.get_user_info(handle)
-        print(p[0])
-        print(p[1])
-        self.assertIsNotNone(p)
 
     def test_nowcoder_user_last_contest(self):
         handle = "144128559"
@@ -56,21 +55,21 @@ class Platform(unittest.TestCase):
     def test_codeforces_user_card(self):
         test_handles = ['floatingocean', 'qwedc001', 'jiangly', 'Lingyu0qwq', 'I_am_real_wx', 'BingYu2023', 'C10udz']
         for handle in test_handles:
-            img = Codeforces.get_user_id_card(handle)
+            img = Codeforces.get_user_card(handle)
             self.assertIsNotNone(img)
             img.write_file(get_output_path(f"platform_cf_user_card_{handle}.png"))
 
     def test_atcoder_user_card(self):
         test_handles = ['floatingocean', 'qwedc001', 'jiangly', 'Lingyu0qwq']
         for handle in test_handles:
-            img = AtCoder.get_user_id_card(handle)
+            img = AtCoder.get_user_card(handle)
             self.assertIsNotNone(img)
             img.write_file(get_output_path(f"platform_atc_user_card_{handle}.png"))
 
     def test_nowcoder_user_card(self):
         test_handles = ['144128559', '140690880', '737857302', '329687984', '815516497', '882260751']
         for handle in test_handles:
-            img = NowCoder.get_user_id_card(handle)
+            img = NowCoder.get_user_card(handle)
             self.assertIsNotNone(img)
             img.write_file(get_output_path(f"platform_nk_user_card_{handle}.png"))
 
