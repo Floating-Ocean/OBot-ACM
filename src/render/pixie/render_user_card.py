@@ -24,7 +24,7 @@ _CONTENT_COLOR = (0, 0, 0, 208)
 _BODY_COLOR = (0, 0, 0, 172)
 _MUTED_COLOR = (0, 0, 0, 116)
 
-_BAND_PADDING = 48
+_BAND_PADDING = 60
 _BAND_SIDE_PADDING = 64
 _BAND_RADIUS = 48
 _RATING_SIZE = 168
@@ -192,17 +192,18 @@ class _RatingSection(RenderableSection):
 
     def __init__(self, info: UserCardInfo, text_color: pixie.Color):
         accent = hex_to_color(info.accent_color)
-        self._panel_color = change_alpha(accent, alpha=_BAND_PADDING)
-        self._pill_color = change_alpha(accent, alpha=56)
+        self._panel_color = change_alpha(accent, alpha=36)
+        self._pill_color = change_alpha(accent, alpha=48)
 
         self.str_label = StyledString(
             "比赛 Rating", 'M', 30, font_color=_MUTED_COLOR, padding_bottom=10
         )
         self.str_rank = _fit_styled_string(info.rank, 'H', _RANK_SIZE, _RANK_MIN_SIZE,
                                            _CONTENT_WIDTH // 2, font_color=darken_color(accent, 0.5))
-        self._pill_width = int(calculate_width(self.str_rank)) + 56
-        self._pill_height = self.str_rank.height + 28
         self._rank_text_width = calculate_width(self.str_rank)
+        self._rank_text_height = calculate_height(self.str_rank)
+        self._pill_width = int(self._rank_text_width) + 56
+        self._pill_height = int(self._rank_text_height) + 28
         # 大号数字需要给右侧段位徽章留出位置
         self.str_rating = _fit_styled_string(
             info.rating, 'H', _RATING_SIZE, _RATING_MIN_SIZE,
@@ -213,15 +214,17 @@ class _RatingSection(RenderableSection):
             info.rating_note, 'B', 28, font_color=_MUTED_COLOR, max_width=720
         )
         self._note_text_width = calculate_width(self.str_note)
+        self._note_text_height = calculate_height(self.str_note)
 
         self._left_height = calculate_height([self.str_label, self.str_rating])
-        self._right_height = self._pill_height + 20 + (
-            self.str_note.height if info.rating_note else 0)
+        self._right_height = self._pill_height + 22 + (
+            self._note_text_height if info.rating_note else 0)
         # 段位徽章与左侧大号数字顶部对齐，不随字号自适应上下浮动
-        self._right_offset = calculate_height(self.str_label) + 24
+        self._right_offset = calculate_height(self.str_label) + 28
 
     def get_height(self):
-        return max(self._left_height, self._right_offset + self._right_height) + _BAND_PADDING * 2
+        return (max(self._left_height, self._right_offset + self._right_height)
+                + _BAND_PADDING * 2 - 20)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         height = self.get_height()
@@ -239,7 +242,7 @@ class _RatingSection(RenderableSection):
         draw_text(img, self.str_rank,
                   pill_x + (self._pill_width - self._rank_text_width) // 2,
                   current_y + 14)
-        current_y += self._pill_height + 20
+        current_y += self._pill_height + 22
         if self.str_note.content:
             draw_text(img, self.str_note, right - self._note_text_width, current_y)
 
@@ -305,7 +308,7 @@ class _MetricsSection(RenderableSection):
             content_y = cell_y + (self._row_height - content_height) // 2
             draw_text(img, str_value, cell_x + _CELL_SIDE_PADDING, content_y)
             draw_text(img, str_label, cell_x + _CELL_SIDE_PADDING,
-                      content_y + str_value.height)
+                      content_y + calculate_height(str_value))
 
         return y + self.get_height()
 
@@ -324,7 +327,7 @@ class _DetailSection(RenderableSection):
                           for line in section.lines]
 
     def get_height(self):
-        return self.str_title.height + calculate_height(self.str_lines)
+        return calculate_height(self.str_title) + calculate_height(self.str_lines)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         draw_mask_rect(img, Loc(x, y + 8, 6, 30), self._bar_color, 3)
@@ -346,7 +349,7 @@ class _FooterSection(RenderableSection):
         )
 
     def get_height(self):
-        return 2 + 30 + self.str_note.height
+        return 2 + 30 + calculate_height(self.str_note)
 
     def render(self, img: pixie.Image, x: int, y: int) -> int:
         draw_mask_rect(img, Loc(x, y, _CONTENT_WIDTH, 2), (0, 0, 0, 24), 1)
