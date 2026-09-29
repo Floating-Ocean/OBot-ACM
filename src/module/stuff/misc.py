@@ -90,12 +90,14 @@ def reply_recent_contests(message: RobotMessage):
         # 去除了重复逻辑，查询特定平台需 /平台 contests
         all_contests = running_contests + upcoming_contests + finished_contests
         contest_map = {contest.name: contest for contest in all_contests}
+        contest_map_query = {contest.name: f"{contest.abbr} {contest.name}"  # 匹配缩写和全名
+                             for contest in all_contests}
 
         def reply_ok(query_tag: str, query_more_tip: str, picked: str):
             message.reply(f"帮你找到了{query_tag}一个比赛{query_more_tip}\n\n"
                           f"{contest_map[picked].format()}", modal_words=False)
 
-        reply_fuzzy_matching(message, contest_map, "比赛", 1, reply_ok)
+        reply_fuzzy_matching(message, contest_map_query, "比赛", 1, reply_ok)
 
     else:
         cached_prefix = get_cached_prefix('Contest-List-Renderer')
@@ -266,7 +268,7 @@ def reply_dazs(message: RobotMessage):
 
 @module(
     name="Misc",
-    version="v3.2.0"
+    version="v3.2.1"
 )
 def register_module():
     pass

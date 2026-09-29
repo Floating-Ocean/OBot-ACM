@@ -236,13 +236,15 @@ def reply_pick_one(message: RobotMessage):
 
     with _get_parser_lock(img_key):
         img_parser = get_img_parser(img_key)
+        img_parser_query = {name: info['ocr_text'] for name, info in img_parser.items()}
 
         def reply_ok(query_tag: str, query_more_tip: str, picked: str):
             """回复模糊匹配的表情包"""
             _reply_picked_img(message, data, img_key, img_parser, picked,
                               query_tag, query_more_tip)
 
-        reply_fuzzy_matching(message, img_parser, f"{current_config.id} 的图片", 2, reply_ok)
+        reply_fuzzy_matching(message, img_parser_query, f"{current_config.id} 的图片",
+                             2, reply_ok)
 
 
 @command(tokens=["随机来只", "随便来只"])
@@ -474,7 +476,7 @@ def reply_audit_accept(message: RobotMessage):
 
 @module(
     name="Pick-One",
-    version="v5.7.0"
+    version="v5.7.1"
 )
 def register_module():
     pass
