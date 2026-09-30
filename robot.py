@@ -14,6 +14,7 @@ from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
 from src.core.bot.transit import clear_message_queue, dispatch_message, activate_scheduled_jobs
 from src.core.constants import Constants
+from src.module.stuff.git_cmd import notify_git_pull_result
 
 tasks_sched = BlockingScheduler()
 
@@ -101,6 +102,9 @@ class MyClient(Client):
 
         # 激活所有定时主动消息任务
         activate_scheduled_jobs(self.api, self.loop, tasks_sched)
+
+        # 回报上一次 /git pull 的更新结果，无待回报信息时静默返回
+        notify_git_pull_result(self.api, self.loop)
 
     async def on_at_message_create(self, message: Message):
         attachment_info = (f" | {message.attachments}"

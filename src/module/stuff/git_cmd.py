@@ -5,7 +5,7 @@ import time
 import git
 
 from src.core.bot.decorator import module, command
-from src.core.bot.message import RobotMessage
+from src.core.bot.message import RobotMessage, MessageType
 from src.core.bot.perm import PermissionLevel
 from src.core.bot.transit import clear_message_queue
 from src.core.constants import Constants, InvalidGitCommit, HelpStrList
@@ -17,6 +17,19 @@ _is_git_valid = not isinstance(Constants.git_commit, InvalidGitCommit)
 _project_dir = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..')
 )
+_status_path = os.path.join(_project_dir, ".git_pull_indep_status")
+
+# 重启后回报更新结果所需的信息，靠环境变量传递给重启后的进程
+_PENDING_ENV = "OBOT_GIT_PULL_NOTIFY"
+
+# 状态文件中仓库变更指示与实际含义的对应关系
+_REPO_CHANGED_TIP = {
+    "Yes": "是",
+    "No": "否",
+    "Yes (with stashes)": "是（本地更改已搁置）",
+}
+
+_PULLED_COMMIT_LIMIT = 8
 
 
 def reply_git_status(message: RobotMessage):
@@ -77,6 +90,136 @@ def reply_git_fetch(message: RobotMessage):
     message.reply(f"[Git-Commands] {msg}")
 
 
+def _remember_pull(message: RobotMessage, checkout: str | None):
+    """记录发起更新的对话场景与更新前提交，供 Bot 重启后回报更新结果"""
+    try:
+        raw_message = message.message
+
+        # 主动消息所需的目标与 uuid 并不一致：频道要子频道 ID，频道私信要 guild_id
+        if message.message_type == MessageType.GUILD:
+            target = f"guild|{raw_message.channel_id}"
+        elif message.message_type == MessageType.DIRECT:
+            target = f"direct|{raw_message.guild_id}"
+        elif message.message_type == MessageType.GROUP:
+            target = f"group|{raw_message.group_openid}"
+        elif message.message_type == MessageType.C2C:
+            target = f"c2c|{message.author_id}"
+        else:
+            raise ValueError(f"暂不支持的对话场景: {message.message_type}")
+
+        os.environ[_PENDING_ENV] = f"{target}|{Constants.git_commit.hash}|{checkout or ''}"
+        Constants.log.info(f"[git] 已记录更新回报场景: {message.uuid}")
+    except Exception as e:
+        Constants.log.warning("[git] 无法解析当前对话场景，重启后将不回报更新结果")
+        Constants.log.exception(f"[git] {e}")
+
+
+def _list_pulled_commits(commit_before: str, commit_after: str) -> str:
+    """列出本次更新实际拉取的提交标题，无法获取时返回空串"""
+    if not commit_before or not commit_after or commit_before == commit_after:
+        return ""
+
+    try:
+        repo = git.Repo(_project_dir)
+        commits = list(repo.iter_commits(f"{commit_before}..{commit_after}"))
+    except Exception as e:
+        Constants.log.warning("[git] 获取本次拉取的提交列表失败")
+        Constants.log.exception(f"[git] {e}")
+        return ""
+
+    if not commits:
+        return ""
+
+    titles = []
+    for commit in commits[:_PULLED_COMMIT_LIMIT]:
+        title = commit.message.strip().split('\n')[0] or "(无提交信息)"
+        titles.append(f"- {title}")
+    if len(commits) > _PULLED_COMMIT_LIMIT:
+        titles.append(f"- ... 其余 {len(commits) - _PULLED_COMMIT_LIMIT} 个提交已省略")
+
+    return (f"{commit_before[:7]}..{commit_after[:7]}，共 {len(commits)} 个提交\n"
+            + '\n'.join(titles))
+
+
+def _format_pull_result(commit_before: str, checkout: str) -> str:
+    """根据更新状态文件与更新前提交，组织更新结果的回报文本"""
+    if not os.path.exists(_status_path):
+        return ("[Git-Commands] 更新结果回报\n\n"
+                "未找到更新状态文件，无法确认本次更新结果，"
+                "可稍后使用 /git plog 查看")
+
+    try:
+        with open(_status_path, 'r', encoding='utf-8') as f:
+            content = f.read().strip('\n')
+    except Exception as e:
+        Constants.log.warning("[git] 读取更新状态文件失败")
+        Constants.log.exception(f"[git] {e}")
+        return "[Git-Commands] 更新结果回报\n\n更新状态文件读取失败"
+
+    fields = {}
+    commit_lines = []
+    lines = content.split('\n')
+    for index, line in enumerate(lines):
+        if line.startswith("Current Commit:"):
+            commit_lines = [item for item in lines[index + 1:index + 3] if item.strip()]
+            break
+        key, sep, value = line.partition(': ')
+        if sep:
+            fields[key.strip()] = value.strip()
+
+    success = fields.get("Status", "").upper() == "SUCCESS"
+    parts = ["[Git-Commands] 更新结果回报", "",
+             f"状态：{'成功' if success else '失败'}"]
+
+    if success:
+        changed = fields.get("Repository Changed", "")
+        parts.append(f"仓库变更：{_REPO_CHANGED_TIP.get(changed, changed or '未知')}")
+        parts.append(f"子模块更新：{fields.get('Submodule Updates', '未知')}")
+    else:
+        parts.append("更新流程出现异常，完整日志可使用 /git plog 查看")
+
+    if checkout:
+        parts.append(f"目标分支：{checkout}")
+
+    commit_after = Constants.git_commit.hash if _is_git_valid else ""
+    if commit_before and commit_after:
+        parts.append(f"提交变更：{commit_before[:7]} -> {commit_after[:7]}")
+
+    if commit_lines:
+        parts.extend(["", "当前提交：", *commit_lines])
+
+    pulled = _list_pulled_commits(commit_before, commit_after)
+    if pulled:
+        parts.extend(["", "本次拉取的提交：", pulled])
+
+    return '\n'.join(parts)
+
+
+def notify_git_pull_result(api, loop):
+    """Bot 重启后回报上一次 /git pull 的更新结果，无待回报信息时静默返回"""
+    pending = os.environ.pop(_PENDING_ENV, None)
+    if not pending:
+        return
+
+    try:
+        message_type, target, commit_before, checkout = pending.split('|', 3)
+
+        message = RobotMessage(api)
+        setup_map = {
+            MessageType.GUILD: message.setup_active_guild_message,
+            MessageType.DIRECT: message.setup_active_direct_message,
+            MessageType.GROUP: message.setup_active_group_message,
+            MessageType.C2C: message.setup_active_c2c_message,
+        }
+        setup_map[MessageType(message_type)](loop, target)
+
+        Constants.log.info(f"[git] 向 {message.uuid} 回报更新结果")
+        message.reply(_format_pull_result(commit_before, checkout), modal_words=False)
+    except Exception as e:
+        Constants.log.warning("[git] 回报更新结果失败")
+        Constants.log.exception(f"[git] {e}")
+
+
 def reply_git_pull(message: RobotMessage):
     content = message.tokens
     checkout = None
@@ -109,18 +252,20 @@ def reply_git_pull(message: RobotMessage):
         script_args.extend(["--checkout", checkout])
     payload = ' '.join(script_args)
 
+    # 记录本次更新的对话场景，Bot 重启后由 notify_git_pull_result 回报更新结果
+    _remember_pull(message, checkout)
+
     Constants.log.info("[git] 切换到更新脚本")
     Constants.log.info(f'[git] os.execl -> python -X utf8 {payload}')
     os.execl(sys.executable, sys.executable, '-X', 'utf8', *script_args)
 
 
 def reply_git_plog(message: RobotMessage):
-    plog_path = os.path.join(_project_dir, ".git_pull_indep_status")
-    if not os.path.exists(plog_path):
+    if not os.path.exists(_status_path):
         message.reply("[Git-Commands] 更新日志不存在")
         return
 
-    with open(plog_path, 'r', encoding='utf-8') as f:
+    with open(_status_path, 'r', encoding='utf-8') as f:
         content = f.read().strip('\n')
         message.reply("[Git-Commands] 上次更新的简略日志\n\n"
                       f"{content}", modal_words=False)
@@ -205,7 +350,7 @@ def reply_git(message: RobotMessage):
 
 @module(
     name="Git-Commands",
-    version="v1.2.1"
+    version="v1.3.0"
 )
 def register_module():
     pass
