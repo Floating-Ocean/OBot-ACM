@@ -131,7 +131,7 @@ def push_today_contests(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Contest-List-Renderer')
     contest_list_img = ContestListRenderer(running_contests, upcoming_contests,
-                                           finished_contests).render()
+                                           finished_contests, is_today=True).render()
     contest_list_img.write_file(f"{cached_prefix}.png")
 
     message.reply(f"{datetime.now().strftime('%Y/%m/%d')} 今日比赛",

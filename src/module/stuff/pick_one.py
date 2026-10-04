@@ -215,7 +215,7 @@ def reply_pick_one_preview(message: RobotMessage):
     preview_img.write_file(f"{cached_prefix}.png")
 
     message.reply(f"[Pick-One] {data.conf[img_key].id} 预览图\n\n"
-                  f"发送 /{message.tokens[0]} {img_key} 加 ID 前缀可直接获取对应表情包",
+                  f"发送 {message.tokens[0]} {img_key} 加 ID 前缀可直接获取对应表情包",
                   img_path=png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
