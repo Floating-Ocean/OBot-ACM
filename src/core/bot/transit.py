@@ -7,12 +7,14 @@ from typing import Callable
 
 from apscheduler.triggers.cron import CronTrigger
 
-from src.core.bot.decorator import __commands__, __scheduled_jobs__
+from src.core.bot.decorator import __commands__, __hooks__, __scheduled_jobs__
 from src.core.bot.interact import reply_key_words, no_reply, reply_command_not_found, \
     reply_specified
 from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import UnauthorizedError
+
+_HOOK_MODULE = "hook"  # 钩子的伪模块名，用于与真实模块的指令区分
 
 _query_queue: dict[str, queue.Queue] = {}
 _count_queue: dict[str, queue.Queue] = {}
@@ -77,11 +79,8 @@ def get_message_id(message: RobotMessage) -> MessageID:
 
                 if multi_thread:
                     # 多线程时，同一上下文一个线程
-                    worker_id = f"{module}_{message.uuid}"
-                    _work_thread_life[worker_id] = 60 * 60  # 一小时生命周期
                     return MessageID(module, cmd, True)
 
-                _work_thread_life[module] = -1
                 return MessageID(module, cmd)
 
         # 命中了受限指令但场景失配，按自定义内容回复而不是静默忽略
@@ -103,6 +102,34 @@ def get_message_id(message: RobotMessage) -> MessageID:
         return MessageID("default.manual", "no_reply")
 
 
+def dispatch_hook_message(message: RobotMessage) -> bool:
+    """
+    在消息被筛选与指令分发前触发消息钩子，按注册顺序匹配第一个可用的钩子。
+
+        钩子与指令一样在各模块的工作线程中执行，同一对话场景内串行。
+
+        :param message: 待处理的消息
+        :return: 钩子是否拦截了该消息，为真时调用方应跳过后续处理
+    """
+    first_token = message.tokens[0].lower() if len(message.tokens) > 0 else ""
+
+    for hook_id, hook_info in __hooks__.items():
+        if not hook_info.match_token(first_token):
+            continue
+
+        if message.user_permission_level < hook_info.permission_level:
+            continue
+
+        if hook_info.scope and message.message_type not in hook_info.scope.types:
+            continue
+
+        _enqueue(message, MessageID(_HOOK_MODULE, hook_id, multi_thread=True),
+                 notify_queue=False)
+        return hook_info.consume
+
+    return False
+
+
 def dispatch_message(message: RobotMessage):
     """
     分发消息
@@ -113,10 +140,19 @@ def dispatch_message(message: RobotMessage):
                       f"{datetime.datetime.now()}\n", modal_words=False)
         return
 
-    message_id = get_message_id(message)
-    worker_id = message_id.module
-    if message_id.multi_thread:
-        worker_id = f"{message_id.module}_{message.uuid}"
+    _enqueue(message, get_message_id(message))
+
+
+def _enqueue(message: RobotMessage, message_id: MessageID, notify_queue: bool = True):
+    """
+    将消息送入对应的工作线程队列
+
+        :param notify_queue: 排队时是否回复提示，钩子这类高频静默处理可置否
+    """
+    # 多线程时同一上下文共用一个线程，生命周期为一小时
+    worker_id = (f"{message_id.module}_{message.uuid}" if message_id.multi_thread
+                 else message_id.module)
+    _work_thread_life[worker_id] = 60 * 60 if message_id.multi_thread else -1
 
     if (worker_id not in _count_queue
             or worker_id not in _query_queue):
@@ -129,9 +165,10 @@ def dispatch_message(message: RobotMessage):
                          name=f"Work Thread ({worker_id})").start()
 
     _count_queue[worker_id].put(1)
-    size = _count_queue[worker_id].qsize()
-    if size > 1:
-        message.reply(f"已加入处理队列，前方还有 {size - 1} 个请求")
+    if notify_queue:
+        size = _count_queue[worker_id].qsize()
+        if size > 1:
+            message.reply(f"已加入处理队列，前方还有 {size - 1} 个请求")
     _query_queue[worker_id].put((message, message_id))
 
 
@@ -142,6 +179,14 @@ def handle_message(message: RobotMessage, message_id: MessageID):
     try:
         if Constants.inst_paused and message_id != MessageID("robot", "/resume_inst"):
             Constants.log.warning("[obot-core] 实例被暂停，弃置消息")
+            return
+
+        if message_id.module == _HOOK_MODULE:
+            hook_info = __hooks__.get(message_id.command)
+            try:
+                hook_info.func(message)
+            except Exception as e:
+                message.report_exception(message_id.command, e)
             return
 
         fixed_handlers = {

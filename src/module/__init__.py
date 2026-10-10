@@ -21,6 +21,7 @@ def register_all_modules():
         "stuff.misc",
         "stuff.pick_one",
         "stuff.rand",
+        "stuff.repeat",
         "stuff.uptime",
     ]
     for mod in modules:

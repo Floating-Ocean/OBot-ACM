@@ -36,6 +36,14 @@
       "_comment_2": "2. 今日无比赛时不推送；留空列表则不推送。",
       "push_to": ["<Chat-Scene-ID-1>", "<Chat-Scene-ID-2>"]
     },
+    "repeat": {
+      "_comment_1": "1. threshold 为群内触发打断复读所需的连续相同消息条数，至少为 2；",
+      "_comment_2": "2. exclude 可按对话场景关闭打断复读与抓学舌功能。",
+      "threshold": 5,
+      "exclude": {
+        "<Chat-Scene-ID-To-Turn-Off-Repeat-Feature>": "<Reply-Content-Of-Reasons-For-Turning-Off>"
+      }
+    },
     "peeper": {
       "exclude_id": ["<Chat-Scene-ID-To-Turn-Off-PBG-Feature>"],
       "configs": [

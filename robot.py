@@ -12,7 +12,8 @@ from botpy.message import Message, GroupMessage, C2CMessage, DirectMessage
 
 from src.core.bot.decorator import command, PermissionLevel
 from src.core.bot.interact import RobotMessage
-from src.core.bot.transit import clear_message_queue, dispatch_message, activate_scheduled_jobs
+from src.core.bot.transit import clear_message_queue, dispatch_message, dispatch_hook_message, \
+    activate_scheduled_jobs
 from src.core.constants import Constants
 from src.module.stuff.git_cmd import notify_git_pull_result
 
@@ -148,7 +149,10 @@ class MyClient(Client):
                            f"{attachment_info}")
         packed_message = RobotMessage(self.api)
         packed_message.setup_group_message(self.loop, message)
-        dispatch_message(packed_message)
+
+        # 消息钩子：在指令分发前触发，命中且要求拦截时不再继续处理
+        if not dispatch_hook_message(packed_message):
+            dispatch_message(packed_message)
 
     async def on_group_message_create(self, message: GroupMessage):
         # 当 bot 拥有接收全部消息权限时，on_group_at_message_create 不再触发，
@@ -166,24 +170,27 @@ class MyClient(Client):
             return
 
         bot_mention = f"<@{bot_id}>"
-        if bot_mention not in content and not content.startswith('/'):
-            # 非 @Bot → 仅 / 开头，其他静默
+        is_at_bot = bot_mention in content
+        if is_at_bot:
+            # @Bot → 去掉 @Bot 后等价于原 on_group_at_message_create 行为
+            message.content = content.replace(bot_mention, "")
+
+        packed_message = RobotMessage(self.api)
+        packed_message.setup_group_message(self.loop, message, is_public=not is_at_bot)
+
+        # 消息钩子：在 @ / 指令筛选前触发，可以看到群内全量消息
+        if dispatch_hook_message(packed_message):
+            return
+
+        if not is_at_bot and not content.startswith('/'):
+            # 非 @Bot → 仅 / 开头，其他静默（钩子已在上方处理过全量消息）
             return
 
         Constants.log.info(f"[obot-act] 在 group_{message.group_openid} "
-                           f"收到公共群聊消息: {message.content}"
+                           f"收到公共群聊消息: {content}"
                            f"{attachment_info}")
-        if bot_mention in content:
-            # @Bot → 去掉 @Bot 后等价于原 on_group_at_message_create 行为
-            message.content = message.content.replace(bot_mention, "")
-            packed_message = RobotMessage(self.api)
-            packed_message.setup_group_message(self.loop, message, is_public=False)
-            dispatch_message(packed_message)
-        else:
-            # 非 @Bot
-            packed_message = RobotMessage(self.api)
-            packed_message.setup_group_message(self.loop, message, is_public=True)
-            dispatch_message(packed_message)
+
+        dispatch_message(packed_message)
 
     async def on_c2c_message_create(self, message: C2CMessage):
         attachment_info = (f" | {message.attachments}"

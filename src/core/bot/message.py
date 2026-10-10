@@ -3,7 +3,9 @@ import base64
 import random
 import re
 import threading
+import time
 import uuid
+from collections import deque
 from enum import Enum
 from typing import Optional, Union, Literal
 
@@ -15,6 +17,39 @@ from src.core.constants import Constants
 from src.core.util.exception import handle_exception
 from src.core.util.img_transform import patch_img_transform
 from src.core.util.tools import reverse_text_on_41
+
+_REPLY_MEMORY_SIZE = 16      # 每个对话场景记忆的 Bot 消息条数
+_REPLY_MEMORY_TTL = 5 * 60   # 秒，记忆的 Bot 消息参与比对的有效期
+_ECHO_TIMEOUT = 3            # 秒，消息 ID 不可用时的自身回声判定窗口
+
+# 对话场景 ID -> 近期发出的消息 (时间, 消息 ID, 内容)
+_recent_replies: dict[str, deque[tuple[float, str | None, str]]] = {}
+
+
+def is_own_message(message: RobotMessage) -> bool:
+    """判断收到的消息是否为 Bot 自己发出的，发送成功会触发创建消息事件"""
+    if message.author_id and message.author_id == Constants.role_conf.get('bot_id'):
+        return True
+
+    incoming_id = getattr(message.message, 'id', None)
+    content = ' '.join(message.content.split())
+    now = time.time()
+    for sent_at, sent_id, text in reversed(_recent_replies.get(message.uuid, ())):
+        if sent_id is not None and incoming_id is not None:
+            if sent_id == incoming_id:
+                return True
+        elif now - sent_at <= _ECHO_TIMEOUT and ' '.join(text.split()) == content:
+            return True
+
+    return False
+
+
+def is_bot_reply(uuid: str, content: str) -> bool:
+    """判断这条内容是否为 Bot 于该对话场景近期发出过的消息，即群友在学舌"""
+    content = ' '.join(content.split())
+    now = time.time()
+    return any(now - sent_at <= _REPLY_MEMORY_TTL and ' '.join(text.split()) == content
+               for sent_at, _, text in _recent_replies.get(uuid, ()))
 
 
 class MessageType(Enum):
@@ -324,7 +359,14 @@ class RobotMessage:
             api_method = self.api.post_c2c_message
 
         intended_params = {name: params[name] for name in intended_params_name if name in params}
-        await api_method(**intended_params)
+        received = await api_method(**intended_params)
+
+        # 记录群内发出的消息与消息 ID，用于区分 Bot 自己的回声和群友学舌
+        if self.message_type == MessageType.GROUP and params.get('content'):
+            _recent_replies.setdefault(self.uuid, deque(maxlen=_REPLY_MEMORY_SIZE)).append(
+                (time.time(),
+                 received.get('id') if isinstance(received, dict) else None,
+                 params['content']))
 
     async def _send_fallback_message(self, text: str, msg_seq: int):
         """发送失败回退消息"""

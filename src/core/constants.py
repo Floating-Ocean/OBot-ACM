@@ -19,6 +19,7 @@ class ModulesConfig:
     game: dict
     peeper: dict
     contest: dict
+    repeat: dict
 
     @classmethod
     def get_lib_path(cls, lib_name: str) -> str:

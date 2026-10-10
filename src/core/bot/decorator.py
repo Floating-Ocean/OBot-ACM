@@ -45,6 +45,67 @@ class ScheduledJobInfo:
 __scheduled_jobs__: dict[str, list[ScheduledJobInfo]] = {}
 
 
+@dataclass(frozen=True)
+class HookInfo:
+    """
+    消息钩子的注册信息。
+
+    钩子在消息被筛选（@ / 指令判定）与指令分发前触发，可以看到全量消息，
+    并可通过 consume 拦截后续处理。
+
+    :param func: 钩子的处理函数，签名为 func(message: RobotMessage)
+    :param tokens: 命中的消息首 token，'*' 代表匹配任意消息，'前缀*' 代表前缀匹配
+    :param permission_level: 允许触发该钩子的权限等级
+    :param scope: 限制钩子可用的对话场景，为 CommandScope，不指定时无限制
+    :param consume: 命中后是否终止后续筛选与指令分发
+    """
+    func: Callable
+    tokens: tuple[str, ...]
+    permission_level: PermissionLevel = PermissionLevel.USER
+    scope: CommandScope | None = None
+    consume: bool = False
+
+    def match_token(self, first_token: str) -> bool:
+        """判断消息首 token 是否命中该钩子"""
+        return any(token == '*' or token == first_token or
+                   (token.endswith('*') and first_token.startswith(token[:-1]))
+                   for token in self.tokens)
+
+
+# 以「模块名.函数名」为唯一标识，按注册顺序匹配
+__hooks__: dict[str, HookInfo] = {}
+
+
+def hook(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
+         scope: CommandScope | None = None, consume: bool = False):
+    """
+        注册一个消息钩子，在消息被筛选前按注册顺序依次匹配。
+
+        :param tokens: 命中的消息首 token，'*' 代表匹配任意消息，'前缀*' 代表前缀匹配
+        :param permission_level: 允许触发该钩子的权限等级，默认为USER，代表用户都可触发
+        :param scope: 限制钩子可用的对话场景，为 CommandScope，不指定时无限制
+        :param consume: 命中后是否终止后续筛选与指令分发，默认为否
+    """
+
+    def decorator(func):
+        if not tokens:
+            raise ValueError(f'Function {func.__name__} requires tokens')
+
+        hook_id = f"{func.__module__ or 'default.unknown'}.{func.__name__}"
+        if hook_id in __hooks__:
+            raise ValueError(f'Hook {hook_id} has been registered')
+
+        __hooks__[hook_id] = HookInfo(
+            func=func,
+            tokens=tuple(str(token).lower() for token in tokens),
+            permission_level=permission_level,
+            scope=scope,
+            consume=consume)
+        return func
+
+    return decorator
+
+
 def command(tokens: list, permission_level: PermissionLevel = PermissionLevel.USER,
             is_command: bool = True, multi_thread: bool = False,
             scope: CommandScope | None = None):
