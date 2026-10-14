@@ -224,8 +224,6 @@ def reply_arcapk(message: RobotMessage):
         message.reply("[ArcAPK] 获取失败，请稍后重试")
         return
     url = data['value']['url']
-    url_sendable = url.replace('https://arcaea-static.lowiro-cdn.net',
-                               'arcaea-static.lowiro-cdn\n.net')
     version = data['value']['version']
 
     cached_prefix = get_cached_prefix('QRCode-Generator')
@@ -234,7 +232,7 @@ def reply_arcapk(message: RobotMessage):
 
     message.reply(f"[ArcAPK] Arcaea v{version}\n\n"
                   f"可双设备配合以扫码下载，或者粘贴下面的链接至浏览器\n\n"
-                  f"{url_sendable}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
+                  f"{url}", png2jpg(f"{cached_prefix}.png"), modal_words=False)
 
 
 @command(tokens=["trans", "transform", "img_transform"])

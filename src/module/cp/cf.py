@@ -123,17 +123,18 @@ def send_prob_filter_tag(message: RobotMessage, prob_info: ProbInfo) -> bool:
 
 def send_prob_link(message: RobotMessage, chosen_prob: dict, hide_tag: bool = False):
     tags = ', '.join(chosen_prob['tags'])
+    link = (f"https://codeforces.com/contest/"
+            f"{chosen_prob['contestId']}/problem/{chosen_prob['index']}")
     content = (f"[Codeforces] 随机选题\n\n"
                f"P{chosen_prob['contestId']}{chosen_prob['index']} {chosen_prob['name']}\n\n"
-               f"链接: [codeforces] /contest/{chosen_prob['contestId']}/problem/{chosen_prob['index']}")
+               f"链接: {link}")
     if not hide_tag:
         content += f"\n标签: {tags}"
     if 'rating' in chosen_prob:
         content += f"\n难度: *{chosen_prob['rating']}"
 
     cached_prefix = get_cached_prefix('QRCode-Generator')
-    qr_img = get_simple_qrcode(
-        f"https://codeforces.com/contest/{chosen_prob['contestId']}/problem/{chosen_prob['index']}")
+    qr_img = get_simple_qrcode(link)
     qr_img.save(f"{cached_prefix}.png")
 
     message.reply(content, png2jpg(f"{cached_prefix}.png"), modal_words=False)

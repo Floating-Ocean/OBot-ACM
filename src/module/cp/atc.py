@@ -35,16 +35,16 @@ def send_prob_filter_tag(message: RobotMessage, contest_type: str, limit: str = 
         return True
 
     abbr = chosen_prob['url'].split('/')[-1].capitalize()
-    link = chosen_prob['url'].replace('https://atcoder.jp', '')
+    link = chosen_prob['url']
     content = (f"[AtCoder] 随机选题\n\n"
                f"{abbr} {chosen_prob['name']}\n\n"
-               f"链接: [atcoder] {link}")
+               f"链接: {link}")
 
     if 'rating' in chosen_prob:
         content += f"\n难度: *{chosen_prob['rating']}"
 
     cached_prefix = get_cached_prefix('QRCode-Generator')
-    qr_img = get_simple_qrcode(chosen_prob['url'])
+    qr_img = get_simple_qrcode(link)
     qr_img.save(f"{cached_prefix}.png")
 
     message.reply(content, png2jpg(f"{cached_prefix}.png"), modal_words=False)
