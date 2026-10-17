@@ -23,6 +23,7 @@ from src.render.pixie.render_color_card import ColorCardRenderer, COLOR_QRCODE_C
 from src.render.pixie.render_contest_list import ContestListRenderer
 from src.render.pixie.render_help import HelpRenderer
 from src.render.pixie.render_pick_one import PickOneRenderer, PickOnePreviewRenderer
+from src.render.pixie.render_guess_1a2b import Guess1A2BRecord, Guess1A2BRenderer
 from src.render.pixie.render_tetris_game import TetrisGameRenderer, TetrisNextBlockRenderer
 from src.render.pixie.render_uptime import UptimeRenderer
 from src.render.pixie.render_user_card import UserCardInfo, UserCardRenderer, UserCardSection
@@ -107,6 +108,44 @@ class Render(unittest.TestCase):
             preview_img = renderer.render()
             self.assertIsNotNone(preview_img)
             preview_img.write_file(get_output_path(f"render_pick_one_preview_{img_key}.png"))
+
+    def test_guess_1a2b(self):
+        """1A2B 对局卡片：空历史 / 进行中 / 胜利 / 终止 / 超长历史折叠"""
+        records = {
+            "1234": Guess1A2BRecord("1234", 1, 1),
+            "5678": Guess1A2BRecord("5678", 2, 0),
+            "5270": Guess1A2BRecord("5270", 3, 0),
+        }
+
+        empty_img = Guess1A2BRenderer(4, []).render()
+        self.assertIsNotNone(empty_img)
+        empty_img.write_file(get_output_path("render_guess_1a2b_empty.png"))
+
+        playing_img = Guess1A2BRenderer(4, list(records.values())).render()
+        self.assertIsNotNone(playing_img)
+        playing_img.write_file(get_output_path("render_guess_1a2b_playing.png"))
+
+        win_img = Guess1A2BRenderer(
+            4, list(records.values()) + [Guess1A2BRecord("5271", 4, 0)],
+            answer="5271", correct=True
+        ).render()
+        self.assertIsNotNone(win_img)
+        win_img.write_file(get_output_path("render_guess_1a2b_win.png"))
+
+        stop_img = Guess1A2BRenderer(4, list(records.values()),
+                                     answer="5271", correct=False).render()
+        self.assertIsNotNone(stop_img)
+        stop_img.write_file(get_output_path("render_guess_1a2b_stop.png"))
+
+        long_records = [Guess1A2BRecord("527184", 2, 2) for _ in range(25)]
+        long_img = Guess1A2BRenderer(6, long_records).render()
+        self.assertIsNotNone(long_img)
+        long_img.write_file(get_output_path("render_guess_1a2b_long.png"))
+
+        self.assertEqual(empty_img.width, playing_img.width)
+        self.assertEqual(playing_img.width, long_img.width)
+        self.assertGreater(playing_img.height, empty_img.height)
+        self.assertGreater(long_img.height, playing_img.height)
 
     def test_tetris_game(self):
         current_map = [[0] * 24 for _ in range(16)]

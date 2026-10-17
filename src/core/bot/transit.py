@@ -105,11 +105,6 @@ def get_message_id(message: RobotMessage) -> MessageID:
 def dispatch_hook_message(message: RobotMessage) -> bool:
     """
     在消息被筛选与指令分发前触发消息钩子，按注册顺序匹配第一个可用的钩子。
-
-        钩子与指令一样在各模块的工作线程中执行，同一对话场景内串行。
-
-        :param message: 待处理的消息
-        :return: 钩子是否拦截了该消息，为真时调用方应跳过后续处理
     """
     first_token = message.tokens[0].lower() if len(message.tokens) > 0 else ""
 
@@ -146,8 +141,6 @@ def dispatch_message(message: RobotMessage):
 def _enqueue(message: RobotMessage, message_id: MessageID, notify_queue: bool = True):
     """
     将消息送入对应的工作线程队列
-
-        :param notify_queue: 排队时是否回复提示，钩子这类高频静默处理可置否
     """
     # 多线程时同一上下文共用一个线程，生命周期为一小时
     worker_id = (f"{message_id.module}_{message.uuid}" if message_id.multi_thread
