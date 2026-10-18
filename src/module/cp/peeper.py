@@ -355,9 +355,7 @@ def get_version_info() -> str:
         return version[1]
 
 
-@command(tokens=['user'],
-         scope=CommandScope([MessageType.C2C, MessageType.DIRECT],
-                            denied_reply="只能在私聊中查询用户信息哦"))
+@command(tokens=['user', '用户'])
 def send_oj_user(message: RobotMessage):
     content = message.tokens
     if len(content) < 3:

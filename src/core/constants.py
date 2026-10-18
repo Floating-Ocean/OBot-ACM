@@ -156,8 +156,8 @@ class Constants:
             Help("/活着吗", "字面意思，等价于 /ping.")
         ],
         'sub': [
-            Help("/user id [uid]", "查询 uid 对应用户的信息，仅限私聊."),
-            Help("/user name [name]", "查询名为 name 对应用户的信息，支持模糊匹配，仅限私聊."),
+            Help("/user id [uid]", "查询 uid 对应用户的信息."),
+            Help("/user name [name]", "查询名为 name 对应用户的信息，支持模糊匹配."),
             Help("/alive", "检查各算竟平台的可连通性."),
             Help("/about", "获取当前各模块的构建信息.")
         ],
