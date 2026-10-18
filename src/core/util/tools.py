@@ -193,11 +193,6 @@ def format_seconds(seconds: int) -> str:
                     if seconds % u_mod // u_div > 0]).strip()
 
 
-def escape_mail_url(content: str) -> str:
-    email_pattern = r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{1,})'
-    return re.sub(email_pattern, lambda x: x.group().replace('.', ' . '), content)
-
-
 def check_is_int(value: str) -> bool:
     try:
         int(value)

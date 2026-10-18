@@ -11,7 +11,7 @@ from src.core.bot.decorator import command, module, scheduled, parse_uuid, Comma
 from src.core.bot.message import RobotMessage, MessageType
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
-from src.core.util.tools import run_py_file, escape_mail_url, png2jpg, check_is_int, clean_unsafe_shell_str
+from src.core.util.tools import run_py_file, png2jpg, check_is_int, clean_unsafe_shell_str
 from src.core.util.output_cache import get_cached_prefix
 
 _lib_path = Constants.modules_conf.get_lib_path("Peeper-Board-Generator")
@@ -252,13 +252,11 @@ def _send_user_info(message: RobotMessage, content: str, by_name: bool = False):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f'--query_{type_id} "{content}" --output "{cached_prefix}.txt"')
+                           f'--query_{type_id} "{content}" --output "{cached_prefix}.png"')
     if run is None:
         return
 
-    with open(f"{cached_prefix}.txt", "r", encoding="utf-8") as f:
-        result = escape_mail_url(f.read())
-        message.reply(f"[{type_id.capitalize()} {content}]\n\n{result}", modal_words=False)
+    message.reply(f"{content} 的用户数据", png2jpg(f"{cached_prefix}.png"))
 
 
 @command(tokens=['评测榜单', 'verdict'])
@@ -274,7 +272,7 @@ def send_now_board_with_verdict(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f'--now --separate_cols --verdict "{verdict}" '
+                           f'--now --verdict "{verdict}" '
                            f'--output "{cached_prefix}.png"', conf_id=conf_id)
     if run is None:
         return
@@ -289,7 +287,7 @@ def send_today_board(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f'--now --separate_cols --output "{cached_prefix}.png"',
+                           f'--now --output "{cached_prefix}.png"',
                            conf_id=conf_id)
     if run is None:
         return
@@ -306,7 +304,7 @@ def send_yesterday_board(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f'--full --separate_cols --output "{cached_prefix}.png"',
+                           f'--full --output "{cached_prefix}.png"',
                            conf_id=conf_id)
     if run is None:
         return
@@ -334,7 +332,7 @@ def send_history_board(message: RobotMessage):
 
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(message,
-                           f'--full {date_string} --separate_cols --output "{cached_prefix}.png"',
+                           f'--full {date_string} --output "{cached_prefix}.png"',
                            conf_id=conf_id)
     if run is None:
         return
