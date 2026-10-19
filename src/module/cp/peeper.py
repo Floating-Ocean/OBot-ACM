@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 
 from thefuzz import process
 
-from src.core.bot.decorator import command, module, scheduled, parse_uuid, CommandScope
-from src.core.bot.message import RobotMessage, MessageType
+from src.core.bot.decorator import command, module, scheduled, parse_uuid
+from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.core.util.exception import ModuleRuntimeError
 from src.core.util.tools import run_py_file, png2jpg, check_is_int, clean_unsafe_shell_str
