@@ -10,6 +10,7 @@ from src.core.bot.decorator import module, command
 from src.core.bot.message import RobotMessage
 from src.core.constants import Constants
 from src.data.data_mc import get_mc_resource
+from src.data.data_pick_one import get_pick_one_data
 
 _status_gamemode: dict[str, tuple["GameMode", float]] = {}
 _status_effect: dict[str, dict[str, float]] = {}
@@ -260,9 +261,7 @@ def reply_mc_sleep(message: RobotMessage):
         "这张床爆炸了",
         "你被床弹飞了",
         "这张床已被破坏",
-        "你现在不能休息，周围有玩家在游荡",
-        "你现在不能休息，周围有流浪拴绳在游荡",
-        "你现在不能休息，周围有白色僵尸在游荡",
+        "游荡",
         "你只能在白天或晴天中入睡",
         "守夜村民抢走了你的床，你被赶下来了",
         "闪电五雷轰，你的床被烧没了",
@@ -291,8 +290,19 @@ def reply_mc_sleep(message: RobotMessage):
 
     chosen_type = random.choices(reasons, weights=reasons_prob)[0]
     chosen = random.choice(chosen_type)
-    tokens = _decode_template(chosen)
+
+    if chosen == "游荡":
+        targets = [
+            "玩家",
+            "流浪拴绳",
+            "白色僵尸",
+        ]
+        data = get_pick_one_data()
+        targets.extend(data.conf.keys())
+        chosen = f"你现在不能休息，周围有{random.choice(targets)}在游荡"
+
     Constants.log.info(f"[MC-Sleep] <sleep_prob:{sleep_prob * 100:.2f}%> {chosen}")
+    tokens = _decode_template(chosen)
     message.reply(f"[MC-Sleep] {_fill_template(tokens)}", modal_words=False)
 
     if chosen == "晚安":
@@ -307,7 +317,7 @@ def reply_mc_sleep(message: RobotMessage):
 
 @module(
     name="Minecraft",
-    version="v1.2.0"
+    version="v1.2.1"
 )
 def register_module():
     pass
