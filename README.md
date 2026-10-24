@@ -11,7 +11,7 @@
 </div><br>
 
 <div align="center">
-  <a href="https://github.com/qwedc001/Peeper-Board-Generator/blob/master/requirements.txt"><img alt="Supported Python Version" src="https://img.shields.io/badge/Python-3.10+-teal?style=flat-square"></a>
+  <a href="https://github.com/qwedc001/Peeper-Board-Generator/blob/master/pyproject.toml"><img alt="Supported Python Version" src="https://img.shields.io/badge/Python-3.11+-teal?style=flat-square"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/Floating-Ocean/OBot-ACM?include_prereleases&style=flat-square&label=OBot's+ACM"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/blob/main/LICENSE"><img alt="GitHub Licence" src="https://img.shields.io/github/license/Floating-Ocean/OBot-ACM?style=flat-square&color=yellow"></a>
   <a href="https://github.com/Floating-Ocean/OBot-ACM/actions/workflows/codeql.yml"><img alt="CodeQL Scan" src="https://img.shields.io/github/actions/workflow/status/Floating-Ocean/OBot-ACM/codeql.yml?style=flat-square&label=codeql+scan"></a>
