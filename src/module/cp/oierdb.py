@@ -8,10 +8,11 @@ from typing import Optional
 
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
-from src.data.data_oierdb import oierdb_instance
+from src.data.data_oierdb import query_by_name
 
 
-@command(tokens=["oier", "oierdb", "oidb", "oi", "OI选手", "信息学奥赛"])
+@command(tokens=["oier", "oierdb", "oidb", "oi", "oifinder", "oifind", "oifd"
+                 "OI选手", "信息学奥赛"])
 def reply_oierdb(message: RobotMessage):
     """查询OI选手信息"""
     try:
@@ -186,173 +187,146 @@ def _get_award_priority(record: dict) -> int:
 
 def _query_single_player(name: str) -> str:
     """查询单个选手详细信息"""
-    results = oierdb_instance.query_by_name(name)
+    result = query_by_name(name)
 
-    if not results:
+    if not result:
         return f"[OIerDb] 未找到选手 '{name}'"
 
-    if len(results) > 1:
-        # 多个同名选手
-        response = "警告：找到多个同名选手，如果你看到这一条返回，说明出现了异常，请联系管理员进行处理\n\n"
-    else:
-        # 单个选手详细信息
-        result = results[0]
-        uid_info = f"(UID: {result.get('uid', '未知')})" if result.get('uid') else ""
-        response = f"[OIerDb] 选手查询\n\n"
-        response += f"{result['name']}{uid_info}"
+    response = f"[OIerDb] 选手查询\n\n"
+    response += f"{result['name']}"
 
-        # 按学校分类显示获奖记录
-        records = result['records']
-        if records:
-            # 按学校分组
-            school_records = {}
-            for record in records:
-                school = record['school'] or '未知学校'
-                if school not in school_records:
-                    school_records[school] = []
-                school_records[school].append(record)
+    # 按学校分类显示获奖记录
+    records = result['records']
+    if records:
+        # 按学校分组
+        school_records = {}
+        for record in records:
+            school = record['school'] or '未知学校'
+            if school not in school_records:
+                school_records[school] = []
+            school_records[school].append(record)
 
-            # 按学校显示获奖记录
-            cnt = 0
-            for school, school_record_list in school_records.items():
-                cnt += 1
-                # 计算该学校本学生的CCF评级
-                oier_obj = result.get('oier_obj')
-                if oier_obj:
-                    school_ccf_score, school_ccf_level = oier_obj.calculate_school_ccf_level(school)
-                    ccf_info = f"CCF等级: {school_ccf_level}"
-                else:
-                    ccf_info = ""
+        # 按学校显示获奖记录
+        cnt = 0
+        for school, school_record_list in school_records.items():
+            cnt += 1
+            # 计算该学校本学生的CCF评级
+            oier_obj = result.get('oier_obj')
+            if oier_obj:
+                school_ccf_score, school_ccf_level = oier_obj.calculate_school_ccf_level(school)
+                ccf_info = f"CCF等级: {school_ccf_level}"
+            else:
+                ccf_info = ""
 
-                highest_record = max(school_record_list, key=_get_award_priority)
+            highest_record = max(school_record_list, key=_get_award_priority)
 
-                # 尝试多个记录来推算状态，优先使用有年级信息的记录
-                records_with_grade = [r for r in school_record_list if r.get('grade', '').strip()]
-                if records_with_grade:
-                    # 如果最高奖项没有年级信息，使用有年级信息的最高奖项
-                    if not highest_record.get('grade', '').strip():
-                        highest_with_grade = max(records_with_grade, key=_get_award_priority)
-                        status_record = highest_with_grade
-                    else:
-                        status_record = highest_record
+            # 尝试多个记录来推算状态，优先使用有年级信息的记录
+            records_with_grade = [r for r in school_record_list if r.get('grade', '').strip()]
+            if records_with_grade:
+                # 如果最高奖项没有年级信息，使用有年级信息的最高奖项
+                if not highest_record.get('grade', '').strip():
+                    highest_with_grade = max(records_with_grade, key=_get_award_priority)
+                    status_record = highest_with_grade
                 else:
                     status_record = highest_record
+            else:
+                status_record = highest_record
 
-                current_status = _calculate_current_status(
-                    status_record['year'],
-                    status_record.get('grade', '')
-                )
+            current_status = _calculate_current_status(
+                status_record['year'],
+                status_record.get('grade', '')
+            )
 
-                ccf_display = f"{ccf_info}" if ccf_info else ""
-                if current_status == "无法推算":
-                    status_display = f"状态未知(基于{status_record['year']}年记录)"
-                elif "年级格式不识别" in current_status:
-                    grade_str = status_record.get('grade', '')
-                    status_display = f"年级格式异常: '{grade_str}'"
-                else:
-                    status_display = current_status
-                response += f"\n\n#{cnt} {school}\n"
-                response += f"{ccf_display} / {status_display}"
+            ccf_display = f"{ccf_info}" if ccf_info else ""
+            if current_status == "无法推算":
+                status_display = f"状态未知(基于{status_record['year']}年记录)"
+            elif "年级格式不识别" in current_status:
+                grade_str = status_record.get('grade', '')
+                status_display = f"年级格式异常: '{grade_str}'"
+            else:
+                status_display = current_status
+            response += f"\n\n#{cnt} {school}\n"
+            response += f"{ccf_display} / {status_display}"
 
-                # 在学校内按比赛类型分组
-                contest_types = {}
-                for record in school_record_list:
-                    contest_type = record['contest_type']
-                    if contest_type not in contest_types:
-                        contest_types[contest_type] = []
-                    contest_types[contest_type].append(record)
+            # 在学校内按比赛类型分组
+            contest_types = {}
+            for record in school_record_list:
+                contest_type = record['contest_type']
+                if contest_type not in contest_types:
+                    contest_types[contest_type] = []
+                contest_types[contest_type].append(record)
 
-                # 按重要性排序显示比赛类型
-                type_order = ['NOI', 'IOI', 'WC', 'CTS', 'APIO', 'CSP提高', 'CSP入门', 'NOIP提高', 'NOIST', 'NOIP普及', 'NOID类']
+            # 按重要性排序显示比赛类型
+            type_order = ['NOI', 'IOI', 'WC', 'CTS', 'APIO', 'CSP提高', 'CSP入门', 'NOIP提高', 'NOIST', 'NOIP普及', 'NOID类']
 
-                for contest_type in type_order:
-                    if contest_type in contest_types:
-                        records_of_type = contest_types[contest_type]
+            for contest_type in type_order:
+                if contest_type in contest_types:
+                    records_of_type = contest_types[contest_type]
 
-                        for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
-                            contest = record['contest_name']
-                            grade = record.get('grade', '').strip()
-                            level = record.get('level', '').strip()
+                    for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
+                        contest = record['contest_name']
+                        grade = record.get('grade', '').strip()
+                        level = record.get('level', '').strip()
 
-                            # 格式化年级显示
-                            if grade:
-                                formatted_grade = _format_grade_display(grade)
-                                grade_display = f" @{formatted_grade}"
-                            else:
-                                grade_display = ""
+                        # 格式化年级显示
+                        if grade:
+                            formatted_grade = _format_grade_display(grade)
+                            grade_display = f" @{formatted_grade}"
+                        else:
+                            grade_display = ""
 
-                            level_display = f"[{level}]" if level else "[未知]"
-                            response += f"\n{level_display} {contest}{grade_display}"
+                        level_display = f"[{level}]" if level else "[未知]"
+                        response += f"\n{level_display} {contest}{grade_display}"
 
-                # 显示其他类型
-                for contest_type in contest_types:
-                    if contest_type not in type_order:
-                        response += "出现这个说明你的询问对象曾有列表以外的比赛，算是一个警告，请联系管理员\n"
-                        
-                        records_of_type = contest_types[contest_type]
+            # 显示其他类型
+            for contest_type in contest_types:
+                if contest_type not in type_order:
+                    response += "出现这个说明你的询问对象曾有列表以外的比赛，算是一个警告，请联系管理员\n"
 
-                        for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
-                            contest = record['contest_name']
-                            response += f"未定义比赛名称: {contest}\n"
-        else:
-            response += "\n\n暂无获奖记录"
+                    records_of_type = contest_types[contest_type]
+
+                    for record in sorted(records_of_type, key=lambda x: x['year'], reverse=True):
+                        contest = record['contest_name']
+                        response += f"未定义比赛名称: {contest}\n"
+    else:
+        response += "\n\n暂无获奖记录"
 
     return response
 
 
 def _query_batch_players(names: list) -> str:
     """批量查询选手信息"""
-    response = f"[OIerDb] 选手批量查询 ({len(names)}人)\n"
-    found_count = 0
+    blocks = []
 
     for i, name in enumerate(names, 1):
-        results = oierdb_instance.query_by_name(name)
-        if results:
-            found_count += 1
+        result = query_by_name(name)
+        if not result:
+            blocks.append(f"#{i} {name}  未找到")
+            continue
 
-            # 如果有多个同名选手，选择CCF等级最高的（等级相同则按CCF分数）
-            if len(results) > 1:
-                result = max(results, key=lambda x: (x['ccf_level'], x['ccf_score']))
-                multiple_info = f" [共{len(results)}人，显示最高级]"
-            else:
-                result = results[0]
-                multiple_info = ""
+        block = f"#{i} {result['name']}\n"
+        # 显示关键信息：CCF等级、获奖次数
+        block += f"CCF等级: {result['ccf_level']} / 获奖: {len(result['records'])}次\n"
 
-            response += f"\n#{i} {result['name']}"
-            response += multiple_info + "\n"
+        # 显示学校和省份信息（简化）
+        if result.get('schools'):
+            school_info = result['schools'][0] if len(
+                result['schools']) == 1 else f"{result['schools'][0]}等{len(result['schools'])}校"
+            block += f"@{school_info}"
 
-            # 显示关键信息：CCF等级、CCF分数、获奖次数
-            response += f"CCF等级: {result['ccf_level']} / "
-            response += f"获奖: {len(result['records'])}次\n"
+        if result.get('provinces'):
+            block += f" / {', '.join(result['provinces'][:2])}"
+            if len(result['provinces']) > 2:
+                block += "等"
 
-            # 显示学校和省份信息（简化）
-            if result.get('schools'):
-                school_info = result['schools'][0] if len(
-                    result['schools']) == 1 else f"{result['schools'][0]}等{len(result['schools'])}校"
-                response += f"@{school_info}"
+        blocks.append(block)
 
-            if result.get('provinces'):
-                response += f" / {', '.join(result['provinces'][:2])}"
-                if len(result['provinces']) > 2:
-                    response += "等"
-
-            # 判断是否是最后一个选手,如果不是则换行
-            if i < len(names):
-                response += "\n"
-
-        else:
-            # 未找到的选手
-            if i < len(names):
-                response += f"\n#{i} {name}  未找到\n"
-            else:
-                response += f"\n#{i} {name}  未找到"
-
-    return response
+    return f"[OIerDb] 选手批量查询 ({len(names)}人)\n\n" + "\n\n".join(blocks)
 
 
 @module(
     name="Contestant-OIerDb",
-    version="v1.0.1"
+    version="v1.1.0"
 )
 def register_module():
     pass

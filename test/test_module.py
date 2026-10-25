@@ -4,6 +4,7 @@ import time
 import unittest
 from dataclasses import asdict
 from datetime import datetime
+from unittest import mock
 
 from aiohttp import ClientConnectorSSLError
 from botpy.errors import ServerError
@@ -11,9 +12,10 @@ from botpy.errors import ServerError
 from src.core.util.exception import handle_exception, UnauthorizedError, ModuleRuntimeError
 from src.core.util.img_transform import ImgSymmetric, make_img_sym
 from src.core.util.tools import decode_range, md5_to_base62
+from src.data.data_oierdb import query_by_name
 from src.data.data_pick_one import (get_pick_one_data, get_img_parser, get_img_full_path,
                                     list_parser_hash_ids, match_hash_id_prefix)
-from src.platform.collect.cpcfinder import CPCFinder
+from src.platform.collect.cpcfinder import CPCFinder, CPCOIAward, CPCOIStudent
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces, ProbInfo
@@ -111,6 +113,54 @@ class Module(unittest.TestCase):
         print(stu_general)
         stu_awards = CPCFinder.get_student_awards(stu_id)
         print(stu_awards)
+
+    def test_cpcfinder_oi(self):
+        students = CPCFinder.find_oi_students("陈立杰")
+        self.assertEqual(len(students), 1)
+        self.assertEqual(students[0].name, "陈立杰")
+
+        stu_awards = CPCFinder.get_oi_student_awards(students[0].id)
+        self.assertGreater(len(stu_awards), 0)
+        self.assertTrue(all(stu_award.contest_name for stu_award in stu_awards))
+
+        # 模糊搜索的结果需按完全同名过滤
+        same_name = CPCFinder.find_oi_students("王子")
+        self.assertGreater(len(same_name), 0)
+        self.assertTrue(all(student.name == "王子" for student in same_name))
+
+        # 空姓名不应请求接口
+        self.assertEqual(CPCFinder.find_oi_students("  "), [])
+
+    def test_oierdb_contest_alias(self):
+        student = CPCOIStudent(1, "测试选手", "北京", 2024, 1.0, 1)
+        awards = [
+            CPCOIAward(1, 1, "NOIP2025", "NOIP", 2025, "2025-12-13", "高二",
+                       "测试中学", 400.0, 1, 1000, "一等奖"),
+            CPCOIAward(2, 2, "NOI2009", "NOI", 2009, "2009-08-01", "高二",
+                       "测试中学", 599.0, 5, 200, "一等奖"),
+            CPCOIAward(3, 3, "CTSC2011", "CTSC", 2011, "2011-05-08", "高一",
+                       "测试中学", 271.0, 2, 84, "金牌"),
+        ]
+
+        with mock.patch.object(CPCFinder, "find_oi_students", return_value=[student]), \
+                mock.patch.object(CPCFinder, "get_oi_student_awards", return_value=awards):
+            result = query_by_name("测试选手")
+
+        self.assertIsNotNone(result)
+        records = {record["contest_name"]: record for record in result["records"]}
+        self.assertEqual(records["NOIP2025"]["contest_type"], "NOIP提高")
+        self.assertEqual(records["NOIP2025"]["year"], 2025)
+        self.assertEqual(records["NOI2009"]["level"], "金牌")
+        self.assertEqual(records["CTSC2011"]["contest_type"], "CTS")
+
+    def test_oierdb_query(self):
+        result = query_by_name("陈立杰")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["name"], "陈立杰")
+        self.assertGreater(result["ccf_level"], 0)
+        self.assertGreater(len(result["records"]), 0)
+
+        self.assertIsNone(query_by_name("不存在的选手名"))
 
     def test_img_transform(self):
         data = get_pick_one_data()

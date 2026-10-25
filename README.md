@@ -77,7 +77,7 @@ python entry.py    # 直接运行
 
 - 近日比赛清单整合图（可手动导入 XCPC 比赛）；
 
-- 选手获奖信息查询，基于 **[`CPCFinder`](https://cpcfinder.com)** 和 **[`OIerDb`](https://oier.baoshuo.dev/)** 平台；
+- 选手获奖信息查询，基于 **[`CPCFinder`](https://cpcfinder.com)** 平台（OI 数据来源于 **[`OIerDb`](https://oier.baoshuo.dev/)**）；
 
 - 多平台可用性查询，基于 **[`Uptime Robot`](https://uptimerobot.com/)** 平台；
 
