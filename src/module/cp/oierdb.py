@@ -52,6 +52,8 @@ def _query_single_player(name: str) -> str:
         return f"[OIerDb] 未找到选手 '{name}'"
 
     response = f"[OIerDb] 选手查询\n\n"
+    if result.get('same_name_count', 1) > 1:
+        response += f"同名选手：共 {result['same_name_count']} 名，仅显示评分最高者\n"
     response += f"{result['name']}"
     if result.get('province'):
         response += f" / {result['province']}"
@@ -131,6 +133,8 @@ def _query_batch_players(names: list) -> str:
             continue
 
         block = f"#{i} {result['name']}\n"
+        if result.get('same_name_count', 1) > 1:
+            block += f"同名选手：共 {result['same_name_count']} 名，仅显示评分最高者\n"
         # 显示关键信息：CCF等级、获奖次数
         block += f"CCF等级: {result['ccf_level']} / 获奖: {len(result['records'])}次\n"
 

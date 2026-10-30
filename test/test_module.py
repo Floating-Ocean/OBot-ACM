@@ -4,7 +4,6 @@ import time
 import unittest
 from dataclasses import asdict
 from datetime import datetime
-from unittest import mock
 
 from aiohttp import ClientConnectorSSLError
 from botpy.errors import ServerError
@@ -15,7 +14,7 @@ from src.core.util.tools import decode_range, md5_to_base62
 from src.data.data_oierdb import query_by_name
 from src.data.data_pick_one import (get_pick_one_data, get_img_parser, get_img_full_path,
                                     list_parser_hash_ids, match_hash_id_prefix)
-from src.platform.collect.cpcfinder import CPCFinder, CPCOIAward, CPCOIStudent
+from src.platform.collect.cpcfinder import CPCFinder
 from src.platform.model import DynamicContest
 from src.platform.online.atcoder import AtCoder
 from src.platform.online.codeforces import Codeforces, ProbInfo
@@ -139,6 +138,7 @@ class Module(unittest.TestCase):
         result = query_by_name("陈立杰")
         self.assertIsNotNone(result)
         self.assertEqual(result["name"], "陈立杰")
+        self.assertEqual(result["same_name_count"], 1)
         self.assertGreater(result["rating"], 0)
         self.assertIsNotNone(result["rank"])
         self.assertGreater(result["ccf_level"], 0)

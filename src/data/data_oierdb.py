@@ -132,6 +132,7 @@ def query_by_name(name: str) -> Dict[str, Any] | None:
 
     return {
         "name": student.name,
+        "same_name_count": len(candidates),
         "province": student.province,
         "graduation_year": student.graduation_year,
         "rating": student.rating,
