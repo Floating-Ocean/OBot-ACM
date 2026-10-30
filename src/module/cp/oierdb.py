@@ -3,15 +3,12 @@ OIerDB查询模块
 提供OI选手数据库查询功能
 """
 
-from datetime import datetime
-from typing import Optional
-
 from src.core.bot.decorator import command, module
 from src.core.bot.message import RobotMessage
 from src.data.data_oierdb import query_by_name
 
 
-@command(tokens=["oier", "oierdb", "oidb", "oi", "oifinder", "oifind", "oifd"
+@command(tokens=["oier", "oierdb", "oidb", "oi", "oifinder", "oifind", "oifd",
                  "OI选手", "信息学奥赛"])
 def reply_oierdb(message: RobotMessage):
     """查询OI选手信息"""
@@ -28,8 +25,8 @@ def reply_oierdb(message: RobotMessage):
             return
 
         # 限制查询数量
-        if len(names) > 10:
-            message.reply("单次查询最多支持 10 个选手", modal_words=False)
+        if len(names) > 3:
+            message.reply("单次查询最多支持 3 个选手", modal_words=False)
             return
 
         # 执行查询
@@ -47,144 +44,6 @@ def reply_oierdb(message: RobotMessage):
         message.report_exception('Contestant-OIerDb', e)
 
 
-def _format_grade_display(grade_str: str) -> str:
-    """
-    将年级字符串格式化为标准显示格式
-    
-    Args:
-        grade_str: 原始年级字符串
-    
-    Returns:
-        格式化后的年级字符串
-    """
-    if not grade_str or not grade_str.strip():
-        return ""
-
-    grade = grade_str.strip()
-
-    # 数字年级到标准年级的映射
-    number_to_standard = {
-        '1': '初一', '2': '初二', '3': '初三',
-        '4': '高一', '5': '高二', '6': '高三'
-    }
-
-    # 如果是数字年级，转换为标准格式
-    if grade in number_to_standard:
-        return number_to_standard[grade]
-
-    # 其他格式直接返回
-    return grade
-
-
-def _calculate_current_status(
-        first_award_year: int,
-        first_award_grade: str,
-        current_year: Optional[int] = None
-) -> str:
-    """
-    根据第一个奖项的年份和年级，推算选手在当前年份的状态
-    
-    Args:
-        first_award_year: 第一个奖项的年份
-        first_award_grade: 第一个奖项时的年级
-        current_year: 当前年份，默认为当前系统年份
-    
-    Returns:
-        选手当前状态的描述字符串
-    """
-    if not first_award_year or not first_award_grade:
-        return "无法推算"
-
-    if current_year is None:
-        current_year = datetime.now().year
-
-    # 年级映射到标准年级数字 (1-12)
-    grade_mapping = {
-        # 小学
-        '小学': 6, '小学/无': 6, '六年级': 6, '五年级': 5, '四年级': 4, '三年级': 3, '二年级': 2, '一年级': 1,
-        # 初中
-        '初一': 7, '初二': 8, '初三': 9, '1': 7, '2': 8, '3': 9,
-        '七年级': 7, '八年级': 8, '九年级': 9,
-        '初中一年级': 7, '初中二年级': 8, '初中三年级': 9,
-        # 高中
-        '高一': 10, '高二': 11, '高三': 12, '4': 10, '5': 11, '6': 12,
-        '高中一年级': 10, '高中二年级': 11, '高中三年级': 12,
-        # 其他格式
-        '预初': 6, '初中': 8, '中四': 10, '中五': 11, '中六': 12,
-        '初四': 9, '高四': 12,  # 一些特殊情况
-        # 空值处理
-        '': None, ' ': None, '无': None, '未知': None
-    }
-
-    # 获取当时的年级数字
-    grade_str = first_award_grade.strip() if first_award_grade else ""
-    first_grade_num = grade_mapping.get(grade_str)
-
-    # 处理映射失败的情况
-    if first_grade_num is None:
-        if not grade_str:  # 空年级
-            return "无法推算"
-        else:  # 无法识别的年级格式
-            return f"年级格式无法识别: {grade_str}"
-
-    # 计算年份差
-    year_diff = current_year - first_award_year
-
-    # 推算当前年级
-    current_grade_num = first_grade_num + year_diff
-
-    # 判断当前状态
-    if current_grade_num <= 6:
-        return f"小学{current_grade_num}年级"
-    elif current_grade_num <= 9:
-        grade_names = {7: "初一", 8: "初二", 9: "初三"}
-        return grade_names.get(current_grade_num, f"初中{current_grade_num - 6}年级")
-    elif current_grade_num <= 12:
-        grade_names = {10: "高一", 11: "高二", 12: "高三"}
-        return grade_names.get(current_grade_num, f"高中{current_grade_num - 9}年级")
-    else:
-        # 已经毕业
-        years_after_graduation = current_grade_num - 12
-        return f"高中毕业{years_after_graduation}年"
-
-
-def _get_award_priority(record: dict) -> int:
-    """计算奖项优先级，值越高代表奖项越高"""
-    contest_type = record.get('contest_type', '')
-    level = record.get('level', '')
-
-    # 比赛类型权重
-    contest_weight = {
-        'IOI': 1000,
-        'NOI': 900,
-        'WC': 800,
-        'CTS': 700,
-        'APIO': 600,
-        'CSP提高': 500,
-        'NOIP提高': 400,
-        'NOIST': 400, # 春季测试，权重与 NOIP 一致
-        'CSP入门': 300,
-        'NOIP普及': 200
-    }.get(contest_type, 100)
-
-    # 奖项等级权重
-    level_weight = 0
-    if '金牌' in level or 'Au' in level:
-        level_weight = 100
-    elif '银牌' in level or 'Ag' in level:
-        level_weight = 80
-    elif '铜牌' in level or 'Cu' in level:
-        level_weight = 60
-    elif '一等奖' in level:
-        level_weight = 50
-    elif '二等奖' in level:
-        level_weight = 30
-    elif '三等奖' in level:
-        level_weight = 10
-
-    return contest_weight + level_weight
-
-
 def _query_single_player(name: str) -> str:
     """查询单个选手详细信息"""
     result = query_by_name(name)
@@ -194,6 +53,13 @@ def _query_single_player(name: str) -> str:
 
     response = f"[OIerDb] 选手查询\n\n"
     response += f"{result['name']}"
+    if result.get('province'):
+        response += f" / {result['province']}"
+    if result.get('graduation_year'):
+        response += f" / {result['graduation_year']}届"
+    response += f"\nCCF等级: {result['ccf_level']} / 评分: {result.get('rating') or 0:.2f}"
+    if result.get('rank'):
+        response += f" / 全站排名: #{result['rank']}"
 
     # 按学校分类显示获奖记录
     records = result['records']
@@ -210,43 +76,7 @@ def _query_single_player(name: str) -> str:
         cnt = 0
         for school, school_record_list in school_records.items():
             cnt += 1
-            # 计算该学校本学生的CCF评级
-            oier_obj = result.get('oier_obj')
-            if oier_obj:
-                school_ccf_score, school_ccf_level = oier_obj.calculate_school_ccf_level(school)
-                ccf_info = f"CCF等级: {school_ccf_level}"
-            else:
-                ccf_info = ""
-
-            highest_record = max(school_record_list, key=_get_award_priority)
-
-            # 尝试多个记录来推算状态，优先使用有年级信息的记录
-            records_with_grade = [r for r in school_record_list if r.get('grade', '').strip()]
-            if records_with_grade:
-                # 如果最高奖项没有年级信息，使用有年级信息的最高奖项
-                if not highest_record.get('grade', '').strip():
-                    highest_with_grade = max(records_with_grade, key=_get_award_priority)
-                    status_record = highest_with_grade
-                else:
-                    status_record = highest_record
-            else:
-                status_record = highest_record
-
-            current_status = _calculate_current_status(
-                status_record['year'],
-                status_record.get('grade', '')
-            )
-
-            ccf_display = f"{ccf_info}" if ccf_info else ""
-            if current_status == "无法推算":
-                status_display = f"状态未知(基于{status_record['year']}年记录)"
-            elif "年级格式不识别" in current_status:
-                grade_str = status_record.get('grade', '')
-                status_display = f"年级格式异常: '{grade_str}'"
-            else:
-                status_display = current_status
-            response += f"\n\n#{cnt} {school}\n"
-            response += f"{ccf_display} / {status_display}"
+            response += f"\n\n#{cnt} {school}"
 
             # 在学校内按比赛类型分组
             contest_types = {}
@@ -268,12 +98,8 @@ def _query_single_player(name: str) -> str:
                         grade = record.get('grade', '').strip()
                         level = record.get('level', '').strip()
 
-                        # 格式化年级显示
-                        if grade:
-                            formatted_grade = _format_grade_display(grade)
-                            grade_display = f" @{formatted_grade}"
-                        else:
-                            grade_display = ""
+                        # 年级使用接口返回的写法
+                        grade_display = f" @{grade}" if grade else ""
 
                         level_display = f"[{level}]" if level else "[未知]"
                         response += f"\n{level_display} {contest}{grade_display}"
@@ -326,7 +152,7 @@ def _query_batch_players(names: list) -> str:
 
 @module(
     name="Contestant-OIerDb",
-    version="v1.1.0"
+    version="v1.1.1"
 )
 def register_module():
     pass

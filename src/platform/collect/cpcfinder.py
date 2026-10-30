@@ -39,7 +39,7 @@ class CPCOIStudent:
     province: str
     graduation_year: int | None
     rating: float
-    rank: int | None  # 搜索接口返回的是结果内名次，并非全站排名
+    rank: int | None  # 全站排名，仅详情接口提供；搜索结果中为 None
 
 
 @dataclass
@@ -147,7 +147,7 @@ class CPCFinder:
                                  stu.get('province') or '',
                                  stu.get('graduationYear'),
                                  stu.get('rating') or 0.0,
-                                 stu.get('rank'))
+                                 None)
                     for stu in json_data['data']
                     if (stu.get('name') or '').casefold() == name.casefold()
                 ]
@@ -161,6 +161,24 @@ class CPCFinder:
 
         students.sort(key=lambda stu: stu.rating, reverse=True)
         return students
+
+    @classmethod
+    def get_oi_student(cls, student_id: int) -> CPCOIStudent:
+        """按 ID 获取 OI 选手详情，包含全站排名"""
+        json_data = fetch_url_json(f"https://cpcfinder.com/api/oi/student/{student_id}",
+                                   method='get')
+        if 'data' not in json_data:
+            raise ValueError("Invalid response for cpcfinder oi api")
+
+        stu = json_data['data']
+        try:
+            return CPCOIStudent(stu['oiStudentId'], stu['name'],
+                                stu.get('province') or '',
+                                stu.get('graduationYear'),
+                                stu.get('rating') or 0.0,
+                                stu.get('rank'))
+        except KeyError as e:
+            raise ValueError("Invalid response for cpcfinder oi api") from e
 
     @classmethod
     def get_oi_student_awards(cls, student_id: int) -> list[CPCOIAward]:

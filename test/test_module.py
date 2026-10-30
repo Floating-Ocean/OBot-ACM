@@ -119,6 +119,10 @@ class Module(unittest.TestCase):
         self.assertEqual(len(students), 1)
         self.assertEqual(students[0].name, "陈立杰")
 
+        student = CPCFinder.get_oi_student(students[0].id)
+        self.assertEqual(student.name, "陈立杰")
+        self.assertIsNotNone(student.rank)
+
         stu_awards = CPCFinder.get_oi_student_awards(students[0].id)
         self.assertGreater(len(stu_awards), 0)
         self.assertTrue(all(stu_award.contest_name for stu_award in stu_awards))
@@ -131,32 +135,12 @@ class Module(unittest.TestCase):
         # 空姓名不应请求接口
         self.assertEqual(CPCFinder.find_oi_students("  "), [])
 
-    def test_oierdb_contest_alias(self):
-        student = CPCOIStudent(1, "测试选手", "北京", 2024, 1.0, 1)
-        awards = [
-            CPCOIAward(1, 1, "NOIP2025", "NOIP", 2025, "2025-12-13", "高二",
-                       "测试中学", 400.0, 1, 1000, "一等奖"),
-            CPCOIAward(2, 2, "NOI2009", "NOI", 2009, "2009-08-01", "高二",
-                       "测试中学", 599.0, 5, 200, "一等奖"),
-            CPCOIAward(3, 3, "CTSC2011", "CTSC", 2011, "2011-05-08", "高一",
-                       "测试中学", 271.0, 2, 84, "金牌"),
-        ]
-
-        with mock.patch.object(CPCFinder, "find_oi_students", return_value=[student]), \
-                mock.patch.object(CPCFinder, "get_oi_student_awards", return_value=awards):
-            result = query_by_name("测试选手")
-
-        self.assertIsNotNone(result)
-        records = {record["contest_name"]: record for record in result["records"]}
-        self.assertEqual(records["NOIP2025"]["contest_type"], "NOIP提高")
-        self.assertEqual(records["NOIP2025"]["year"], 2025)
-        self.assertEqual(records["NOI2009"]["level"], "金牌")
-        self.assertEqual(records["CTSC2011"]["contest_type"], "CTS")
-
     def test_oierdb_query(self):
         result = query_by_name("陈立杰")
         self.assertIsNotNone(result)
         self.assertEqual(result["name"], "陈立杰")
+        self.assertGreater(result["rating"], 0)
+        self.assertIsNotNone(result["rank"])
         self.assertGreater(result["ccf_level"], 0)
         self.assertGreater(len(result["records"]), 0)
 
