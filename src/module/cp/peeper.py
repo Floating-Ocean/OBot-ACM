@@ -340,6 +340,29 @@ def send_history_board(message: RobotMessage):
     message.reply(f"{date_string} 卷王天梯榜", png2jpg(f"{cached_prefix}.png"))
 
 
+@command(tokens=['题数排名', '题数排行', '训练榜单'])
+def send_rank_board(message: RobotMessage):
+    rank_limit = "20" if len(message.tokens) < 2 else message.tokens[1]
+    if not check_is_int(rank_limit) or not (5 <= int(rank_limit) <= 100):
+        message.reply("参数错误，请输入 [5, 100] 内的整数", modal_words=False)
+        return
+
+    rank_limit = int(rank_limit)
+    conf_id = message.tokens[2] if len(message.tokens) >= 3 else None
+
+    if not message.is_active():
+        message.reply(f"正在查询题数排名前 {rank_limit} 名，请稍等")
+
+    cached_prefix = get_cached_prefix('Peeper-Board-Generator')
+    run = _call_lib_method(message,
+                           f'--rank {rank_limit} --output "{cached_prefix}.png"',
+                           conf_id=conf_id)
+    if run is None:
+        return
+
+    message.reply(f"题数排名前 {rank_limit} 名", png2jpg(f"{cached_prefix}.png"))
+
+
 def get_version_info() -> str:
     cached_prefix = get_cached_prefix('Peeper-Board-Generator')
     run = _call_lib_method(None,  # 留空选择默认

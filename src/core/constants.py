@@ -150,6 +150,7 @@ class Constants:
             Help("/昨日总榜 (id)", "查询昨日的完整榜单，可指定已配置的榜单 id."),
             Help("/评测榜单 [verdict]",
                  "查询分类型榜单，其中指定评测结果为第二参数 verdict，需要保证参数中无空格，如 wa, TimeExceeded."),
+            Help("/题数排名 (limit)", "查询题数排名前 limit 名榜单，不包含其他信息，limit 默认为 20."),
             Help("/近日比赛 (platform)",
                  "查询 platform 平台近期比赛，可指定 Codeforces, AtCoder, NowCoder，留空则返回三平台近日比赛集合."),
             Help("/今日比赛 (platform)", "查询 platform 平台今日比赛，参数同上."),
@@ -158,8 +159,7 @@ class Constants:
         'sub': [
             Help("/user id [uid]", "查询 uid 对应用户的信息."),
             Help("/user name [name]", "查询名为 name 对应用户的信息，支持模糊匹配."),
-            Help("/alive", "检查各算竟平台的可连通性."),
-            Help("/about", "获取当前各模块的构建信息.")
+            Help("/alive", "检查各算竟平台的可连通性.")
         ],
         'contestant': [
             Help("/cpcfinder [name] [school]", "获取名为 name 且学校为 school 的 XCPC 大学生程序设计竞赛选手获奖信息."),
@@ -252,7 +252,8 @@ class Constants:
             Help("/重启", "重新启动 Bot，需要管理员权限.")
         ],
         'help': [
-            Help("/help", "获取本图.")
+            Help("/help", "获取本图."),
+            Help("/about", "获取当前各模块的构建信息.")
         ],
     }
 
