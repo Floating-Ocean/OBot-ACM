@@ -74,11 +74,13 @@ class DynamicContest(Contest):
             supplement=kwargs['supplement']
         )
         current_phase = self.get_phase()
-        if current_phase != DynamicContestPhase.RUNNING:
+        if current_phase == DynamicContestPhase.UPCOMING:
             current_tick = int(datetime.now().timestamp())
             self.phase = format_timestamp_diff(current_tick - self.start_time)
-        else:
+        elif current_phase == DynamicContestPhase.RUNNING:
             self.phase = "正在比赛中"
+        else:
+            self.phase = "已结束"
 
 
 class CompetitivePlatform(abc.ABC):
