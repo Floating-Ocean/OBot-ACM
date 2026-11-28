@@ -11,13 +11,13 @@ dependencies = [
     "easyocr>=1.7.2",
     "gitpython>=3.2.1",
     "imgkit>=1.2.3",
-    "lxml>=6.1.3",
+    "lxml>=6.2.0",
     "markdown2>=2.5.5",
     "pilk>=0.2.4",
     "pixie-python>=4.3.0",
     "psutil>=7.2.2",
     "pypinyin>=0.55.0",
-    "python-dateutil>=3.0.0",
+    "python-dateutil>=4.0.0",
     "qrcode>=8.2",
     "requests>=2.34.2",
     "soundfile>=0.14.0",
@@ -25,4 +25,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-botpy = { git = "https://github.com/Floating-Ocean/botpy.git", rev = "599c516afcf2e15fadc22cdde6f3696c22dd4de7" }
+botpy = { git = "https://github.com/Floating-Ocean/botpy.git", rev = "a15c5ddb419f316c6c1ffaf778afd42267dfd919" }

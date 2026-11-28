@@ -188,7 +188,8 @@ def reply_pick_one_preview(message: RobotMessage):
     imgs = get_category_stat(img_key)
     if not imgs:
         message.reply(f"[Pick-One] 这个类别还没有表情包哦，"
-                      f"发送 /添加来只 {img_key} 并附带图片即可添加.", modal_words=False)
+                      f"发送 /添加来只 {img_key} 并附带图片，或引用一张图片再发送该指令即可添加.",
+                      modal_words=False)
         return
 
     if len(message.tokens) >= 3:  # 指定 ID 前缀时直接给出对应的表情包
@@ -274,7 +275,8 @@ def reply_save_one(message: RobotMessage):
         cnt, ok, duplicate = accept_attachment(img_key, need_audit, message.attachments)
 
         if cnt == 0:
-            message.reply("[Pick-One] 未识别到图片，请将图片和指令发送在同一条消息中\n\n"
+            message.reply("[Pick-One] 未识别到图片，请将图片和指令发送在同一条消息中，"
+                          "或引用一张带图片的消息后再发送指令\n\n"
                           "移动端可长按编辑框进入全屏输入模式以附加图片")
         else:
             _parse_img(img_key)

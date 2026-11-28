@@ -98,7 +98,8 @@ class RobotMessage:
         self.content = message.content
         self.tokens = re.sub(r'<@!\d+>', '', message.content).strip().split()
         self.author_id = getattr(message.author, author_id_path, "")
-        self.attachments = message.attachments
+        _quoted_attachments = getattr(message, 'quoted_attachments', None) or []
+        self.attachments = list(message.attachments) + list(_quoted_attachments)
         self.user_permission_level = PermissionLevel.distribute_permission(self.author_id)
 
     def setup_guild_message(self, loop: asyncio.AbstractEventLoop,
