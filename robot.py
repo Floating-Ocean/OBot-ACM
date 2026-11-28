@@ -182,6 +182,7 @@ class MyClient(Client):
         if dispatch_hook_message(packed_message):
             return
 
+        content = content.strip()
         if not is_at_bot and not content.startswith('/'):
             # 非 @Bot → 仅 / 开头，其他静默（钩子已在上方处理过全量消息）
             return

@@ -25,4 +25,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-botpy = { git = "https://github.com/Floating-Ocean/botpy.git", rev = "a15c5ddb419f316c6c1ffaf778afd42267dfd919" }
+botpy = { git = "https://github.com/Floating-Ocean/botpy.git", rev = "0da47586e9ac81a2a82cd5d3729221b5f148f734" }
